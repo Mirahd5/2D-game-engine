@@ -64,7 +64,7 @@ public class Main {
      * espace = case vide / tunnel
      */
     private static final String[] MAP = {
-        "###############################",
+        "#.###########################.#",
         "#..............#..............#",
         "#.#####.#####..#..#####.#####.#",
         "#.#####.#####..#..#####.#####.#",
@@ -94,7 +94,7 @@ public class Main {
         "#.#####.#####..#..#####.#####.#",
         "#.#####.#####..#..#####.#####.#",
         "#..............#..............#",
-        "###############################"
+        "#.###########################.#"
     };
 
     public static void main(String[] args) {
@@ -623,20 +623,18 @@ public class Main {
             }
         }
 
-        for (int x = 0; x < expectedWidth; x++) {
-            if (MAP[0].charAt(x) != '#') {
-                throw new IllegalStateException("Top border is not closed at x = " + x);
-            }
+        if (!game.torusOnYaxis()) {
+            for (int x = 0; x < expectedWidth; x++) {
+                if (MAP[0].charAt(x) != '#') {
+                    throw new IllegalStateException("Top border is not closed at x = " + x);
+                }
 
-            if (MAP[expectedHeight - 1].charAt(x) != '#') {
-                throw new IllegalStateException("Bottom border is not closed at x = " + x);
+                if (MAP[expectedHeight - 1].charAt(x) != '#') {
+                    throw new IllegalStateException("Bottom border is not closed at x = " + x);
+                }
             }
         }
 
-        /*
-         * Si l'axe X n'est pas torique, les côtés gauche/droite
-         * doivent être fermés.
-         */
         if (!game.torusOnXaxis()) {
             for (int y = 0; y < expectedHeight; y++) {
                 if (MAP[y].charAt(0) != '#') {
@@ -649,25 +647,42 @@ public class Main {
             }
         }
 
-        /*
-         * Si l'axe X est torique, il faut au moins un tunnel horizontal.
-         */
         if (game.torusOnXaxis()) {
-            boolean hasTunnel = false;
+            boolean hasHorizontalTunnel = false;
 
             for (int y = 0; y < expectedHeight; y++) {
                 boolean leftOpen = MAP[y].charAt(0) != '#';
                 boolean rightOpen = MAP[y].charAt(expectedWidth - 1) != '#';
 
                 if (leftOpen && rightOpen) {
-                    hasTunnel = true;
+                    hasHorizontalTunnel = true;
                     break;
                 }
             }
 
-            if (!hasTunnel) {
+            if (!hasHorizontalTunnel) {
                 throw new IllegalStateException(
                     "torusOnXaxis is true, but no horizontal tunnel is open"
+                );
+            }
+        }
+
+        if (game.torusOnYaxis()) {
+            boolean hasVerticalTunnel = false;
+
+            for (int x = 0; x < expectedWidth; x++) {
+                boolean topOpen = MAP[0].charAt(x) != '#';
+                boolean bottomOpen = MAP[expectedHeight - 1].charAt(x) != '#';
+
+                if (topOpen && bottomOpen) {
+                    hasVerticalTunnel = true;
+                    break;
+                }
+            }
+
+            if (!hasVerticalTunnel) {
+                throw new IllegalStateException(
+                    "torusOnYaxis is true, but no vertical tunnel is open"
                 );
             }
         }
