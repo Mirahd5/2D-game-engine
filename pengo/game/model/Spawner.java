@@ -1,5 +1,5 @@
 package game.model;
 
-public class Crystal {
+public class Spawner {
 
 }
