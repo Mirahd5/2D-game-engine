@@ -42,7 +42,7 @@ import oop.tasks.Task;
  * - contrôleur ;
  * - boucle principale.
  */
-public class Main {
+public class MainPacMan {
 
     private static final int HUD_WIDTH = 220;
 
