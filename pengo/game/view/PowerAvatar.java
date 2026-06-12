@@ -11,18 +11,9 @@ import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
 public class PowerAvatar extends Avatar {
-
-	/*
-	 * Le Power associé à cet avatar.
-	 *
-	 * On garde directement le type Power pour pouvoir utiliser getType() sans
-	 * convertir Entity en Power à chaque affichage.
-	 */
+	
 	private final Power power;
 
-	/*
-	 * Une image est associée à chaque valeur de PowerType.
-	 */
 	private final Map<PowerType, BufferedImage> images;
 
 	private boolean imagesLoaded;
