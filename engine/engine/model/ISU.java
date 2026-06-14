@@ -3,30 +3,50 @@ package engine.model;
 
 import java.io.PrintStream;
 
+/*
+ * ISU représente l'espace continu du jeu, en centimètres.
+ *
+ * La Grid travaille avec des positions de cellules.
+ * ISU travaille avec des coordonnées plus précises dans le monde.
+ *
+ * C'est utile pour les déplacements progressifs, les collisions,
+ * les distances et les rotations.
+ */
 public class ISU {
 
-	private Axis xAxis;
-	private Axis yAxis;
+	private Axis xAxis, yAxis;
 	private Grid grid;
-	private final double cmPerCell;
 
-	private final Game game;
+	private double width_cm;
+	private double height_cm;
+
+	private double cmPerCell;
 
 	public ISU(Game game) {
-		this.game = game;
-		this.cmPerCell = game.cmPerCell();
-		assert this.cmPerCell > 0.0;
-		this.xAxis = new Axis(game.torusOnXaxis(), game.width_cm());
-		this.yAxis = new Axis(game.torusOnYaxis(), game.height_cm());
+		assert game != null;
+
+		this.width_cm = game.getWidthCm();
+		this.height_cm = game.getHeightCm();
+
+		this.cmPerCell = game.getCmPerCell();
+
+		// Les axes ISU utilisent les dimensions du monde en cm.
+		this.xAxis = new Axis(game.getTorusOnXaxis(), this.width_cm);
+		this.yAxis = new Axis(game.getTorusOnYaxis(), this.height_cm);
 	}
 
 	public void set(Grid grid) {
 		assert grid != null;
+
 		this.grid = grid;
 	}
 
-	public Grid grid() {
-		return this.grid;
+	public double width() {
+		return this.width_cm;
+	}
+
+	public double height() {
+		return this.height_cm;
 	}
 
 	public double cmPerCell() {
@@ -41,55 +61,153 @@ public class ISU {
 		return this.yAxis;
 	}
 
-	public Game game() {
-		return this.game;
+	public Grid grid() {
+		return this.grid;
 	}
 
-	public double width_cm() {
-		return game.width_cm();
-	}
+	// == DIMENSION (cm) ==
 
-	public double height_cm() {
-		return game.height_cm();
-	}
-
+	/*
+	 * Dimension en cm.
+	 *
+	 * Contrairement à une coordonnée, une dimension représente une taille. Elle
+	 * doit donc toujours être strictement positive.
+	 */
 	public class Dimension {
 
-		private double x_cm;
-		private double y_cm;
+		private double x_cm, y_cm;
 
 		public Dimension(double x_cm, double y_cm) {
-			setxy(x_cm, y_cm);
+			assert x_cm > 0.0 : x_cm;
+			assert y_cm > 0.0 : y_cm;
+
+			this.x_cm = x_cm;
+			this.y_cm = y_cm;
+
+			normalize();
+
+			assert this.x_cm > 0.0;
+			assert this.y_cm > 0.0;
+			assert this.x_cm <= width_cm;
+			assert this.y_cm <= height_cm;
 		}
 
 		public void normalize() {
-			assert this.x_cm > 0.0;
-			assert this.y_cm > 0.0;
+			this.x_cm = xAxis.normalizeDimension(this.x_cm);
+			this.y_cm = yAxis.normalizeDimension(this.y_cm);
 		}
 
 		public void setxy(double x_cm, double y_cm) {
+			assert x_cm > 0.0 : x_cm;
+			assert y_cm > 0.0 : y_cm;
+
+			this.x_cm = x_cm;
+			this.y_cm = y_cm;
+
+			normalize();
+
+			assert this.x_cm > 0.0;
+			assert this.y_cm > 0.0;
+			assert this.x_cm <= width_cm;
+			assert this.y_cm <= height_cm;
+		}
+
+		public Dimension copy() {
+			return new Dimension(this.x_cm, this.y_cm);
+		}
+
+		@Override
+		public int hashCode() {
+			return java.util.Objects.hash(ISU.this, Double.doubleToLongBits(this.x_cm),
+					Double.doubleToLongBits(this.y_cm));
+		}
+
+		public ISU isu() {
+			return ISU.this;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o instanceof Dimension) {
+				return equiv((Dimension) o);
+			}
+
+			return false;
+		}
+
+		public boolean equiv(Dimension d) {
+			if (d == this) {
+				return true;
+			}
+
+			return d != null && this.x_cm == d.x_cm && this.y_cm == d.y_cm;
+		}
+
+		public double x() {
+			return this.x_cm;
+		}
+
+		public double y() {
+			return this.y_cm;
+		}
+
+		/*
+		 * Fabrique un vecteur proportionnel à cette dimension. Pratique pour construire
+		 * des offsets dépendant de la taille d'une entité.
+		 */
+		public ISU.Vector mkScaledVector(double factor) {
+			return new ISU.Vector(this.x_cm * factor, this.y_cm * factor);
+		}
+
+		public ISU.Vector mkScaledVector(double xFactor, double yFactor) {
+			return new ISU.Vector(this.x_cm * xFactor, this.y_cm * yFactor);
+		}
+
+		public ISU.Vector mkVector() {
+			return new ISU.Vector(this.x_cm, this.y_cm);
+		}
+
+		public void show(PrintStream ps) {
+			ps.println("Dimension(" + this.x_cm + ", " + this.y_cm + ") cm");
+		}
+	}
+
+	// == POINT ==
+
+	/*
+	 * Coord représente une position précise dans le monde.
+	 *
+	 * Sur un tore, la coordonnée est automatiquement normalisée pour rester dans
+	 * les limites du monde.
+	 */
+	public class Coord {
+
+		private double x_cm, y_cm;
+
+		public Coord(double x_cm, double y_cm) {
 			this.x_cm = x_cm;
 			this.y_cm = y_cm;
 
 			normalize();
 		}
 
-		public ISU isu() {
-			return ISU.this;
+		private void normalize() {
+			this.x_cm = xAxis.normalize(this.x_cm);
+			this.y_cm = yAxis.normalize(this.y_cm);
+
+			check();
 		}
 
-		@Override
-		public boolean equals(Object o) {
-			if (!(o instanceof ISU.Dimension)) {
-				return false;
+		private void check() {
+			if (!ISU.this.xAxis.onTorus()) {
+				assert this.x_cm >= 0.0;
+				assert this.x_cm < ISU.this.width_cm;
 			}
 
-			Dimension d = (Dimension) o;
-			return equiv(d);
-		}
-
-		public boolean equiv(Dimension d) {
-			return d != null && Double.compare(this.x_cm, d.x_cm) == 0 && Double.compare(this.y_cm, d.y_cm) == 0;
+			if (!ISU.this.yAxis.onTorus()) {
+				assert this.y_cm >= 0.0;
+				assert this.y_cm < ISU.this.height_cm;
+			}
 		}
 
 		public double x() {
@@ -100,121 +218,127 @@ public class ISU {
 			return this.y_cm;
 		}
 
-		public ISU.Vector mkScaledVector(double factor) {
-			return new Vector(this.x_cm * factor, this.y_cm * factor);
-		}
-
-		public ISU.Vector mkScaledVector(double xFactor, double yFactor) {
-			return new Vector(this.x_cm * xFactor, this.y_cm * yFactor);
-		}
-
-		public ISU.Vector mkVector() {
-			return new Vector(this.x_cm, this.y_cm);
-		}
-
-		public void show(PrintStream ps) {
-			ps.println("ISU.Dimension(" + this.x_cm + ", " + this.y_cm + ") cm");
-		}
-	}
-
-	public class Coord {
-
-		private double x_cm;
-		private double y_cm;
-
-		public Coord(double x_cm, double y_cm) {
-			setxy(x_cm, y_cm);
-		}
-
-		private void setxy(double x_cm, double y_cm) {
-			this.x_cm = xAxis.normalize(x_cm);
-			this.y_cm = yAxis.normalize(y_cm);
-		}
-
-		public double x() {
-			return this.x_cm;
-		}
-
-		public double y() {
-			return this.y_cm;
-		}
-
-		public void show(PrintStream ps) {
-			ps.println("ISU.Coord(" + this.x_cm + ", " + this.y_cm + ") cm");
-		}
-
 		public ISU isu() {
 			return ISU.this;
 		}
 
-		@Override
-		public boolean equals(Object o) {
-			if (!(o instanceof ISU.Coord)) {
-				return false;
-			}
-
-			Coord c = (Coord) o;
-
-			return Double.compare(this.x_cm, c.x_cm) == 0 && Double.compare(this.y_cm, c.y_cm) == 0;
+		public void show(PrintStream ps) {
+			ps.println("Coord(" + this.x_cm + ", " + this.y_cm + ") cm");
 		}
 
+		@Override
+		public boolean equals(Object o) {
+			if (o instanceof ISU.Coord) {
+				Coord coord = (ISU.Coord) o;
+				return coord.x_cm == this.x_cm && coord.y_cm == this.y_cm;
+			}
+
+			return false;
+		}
+
+		/*
+		 * Construit le plus court vecteur vers une autre coordonnée.
+		 *
+		 * Sur un tore, il faut parfois passer par le bord du monde. Exemple : aller de
+		 * x=1 à x=99 dans un monde de largeur 100 peut se faire avec un déplacement de
+		 * -2.
+		 */
 		public ISU.Vector mkVectorToward(Coord target) {
 			assert target != null;
 
-			double dx = xAxis.normalizeDelta(target.x_cm - this.x_cm);
-			double dy = yAxis.normalizeDelta(target.y_cm - this.y_cm);
+			/*
+			 * Le choix du plus court chemin dépend de chaque axe. Exemple : PacMan peut
+			 * avoir X torique et Y non torique. On ne doit donc pas appliquer la correction
+			 * du tore sur un axe fermé.
+			 */
+			double dx = xAxis.delta(this.x_cm, target.x_cm);
+			double dy = yAxis.delta(this.y_cm, target.y_cm);
 
-			return new Vector(dx, dy);
+			return new ISU.Vector(dx, dy);
 		}
 
+		/*
+		 * Convertit une coordonnée ISU vers une position de grille.
+		 *
+		 * On utilise floor pour retrouver la cellule dans laquelle se trouve la
+		 * coordonnée.
+		 */
 		public Grid.Position toGridPosition() {
 			assert grid != null;
 
-			int x_ncell = (int) Math.round(this.x_cm / cmPerCell);
-			int y_ncell = (int) Math.round(this.y_cm / cmPerCell);
+			double eps = 0.000001;
+
+			int x_ncell = (int) Math.floor((this.x_cm + eps) / cmPerCell);
+			int y_ncell = (int) Math.floor((this.y_cm + eps) / cmPerCell);
 
 			return grid.new Position(x_ncell, y_ncell);
 		}
 
-		public void translate(ISU.Vector v) {
-			assert v != null;
+		public void translate(ISU.Vector vector) {
+			assert vector != null;
+			assert vector.isu() == ISU.this;
 
-			setxy(this.x_cm + v.x(), this.y_cm + v.y());
+			this.x_cm += vector.x();
+			this.y_cm += vector.y();
+
+			normalize();
 		}
 
 		public ISU.Coord mkTranslated(ISU.Vector v) {
 			assert v != null;
 
-			return new Coord(this.x_cm + v.x(), this.y_cm + v.y());
+			return new ISU.Coord(this.x_cm + v.x_cm, this.y_cm + v.y_cm);
 		}
 
 		public ISU.Coord mkCopy() {
-			return new Coord(this.x_cm, this.y_cm);
+			return new ISU.Coord(this.x_cm, this.y_cm);
 		}
 
+		/*
+		 * Rotation autour de l'origine du repère.
+		 */
 		public void rotation(int angle_degree) {
-			double angle_rad = Math.toRadians(angle_degree);
+			double angle = Math.toRadians(angle_degree);
 
-			double newX = this.x_cm * Math.cos(angle_rad) - this.y_cm * Math.sin(angle_rad);
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
 
-			double newY = this.x_cm * Math.sin(angle_rad) + this.y_cm * Math.cos(angle_rad);
+			double newX = this.x_cm * cos - this.y_cm * sin;
+			double newY = this.x_cm * sin + this.y_cm * cos;
 
-			setxy(newX, newY);
+			this.x_cm = newX;
+			this.y_cm = newY;
+
+			normalize();
 		}
 
 		public void rotateAround(Coord center, int angle_degree) {
 			assert center != null;
+			assert center.isu() == ISU.this;
 
-			double angle_rad = Math.toRadians(angle_degree);
+			/*
+			 * Vecteur local du centre de rotation vers le point. Sur le tore, delta choisit
+			 * la représentation locale la plus courte.
+			 */
+			double dx = ISU.this.xAxis.delta(center.x_cm, this.x_cm);
 
-			double dx = this.x_cm - center.x_cm;
-			double dy = this.y_cm - center.y_cm;
+			double dy = ISU.this.yAxis.delta(center.y_cm, this.y_cm);
 
-			double newX = center.x_cm + dx * Math.cos(angle_rad) - dy * Math.sin(angle_rad);
+			double angle = Math.toRadians(angle_degree);
 
-			double newY = center.y_cm + dx * Math.sin(angle_rad) + dy * Math.cos(angle_rad);
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
 
-			setxy(newX, newY);
+			double rotatedX = dx * cos - dy * sin;
+			double rotatedY = dx * sin + dy * cos;
+
+			this.x_cm = center.x_cm + rotatedX;
+			this.y_cm = center.y_cm + rotatedY;
+
+			/*
+			 * Une seule normalisation, sur la coordonnée finale.
+			 */
+			normalize();
 		}
 
 		public double distanceTo(Coord pt) {
@@ -227,63 +351,98 @@ public class ISU {
 		}
 	}
 
+	// == VECTOR ==
+
+	/*
+	 * Vector représente un déplacement en cm.
+	 *
+	 * Contrairement à Coord, un vecteur n'est pas une position. On ne le normalise
+	 * donc pas automatiquement sur le tore.
+	 */
 	public class Vector {
 
-		private double targetX_cm;
-		private double targetY_cm;
+		private double x_cm;
+		private double y_cm;
 
 		public Vector(double targetX_cm, double targetY_cm) {
-			this.targetX_cm = targetX_cm;
-			this.targetY_cm = targetY_cm;
+			this.x_cm = targetX_cm;
+			this.y_cm = targetY_cm;
 		}
 
 		public double x() {
-			return this.targetX_cm;
+			return this.x_cm;
 		}
 
 		public double y() {
-			return this.targetY_cm;
+			return this.y_cm;
 		}
 
 		public void add(Vector v) {
-			this.targetX_cm += v.targetX_cm;
-			this.targetY_cm += v.targetY_cm;
+			assert v != null;
+
+			this.x_cm += v.x_cm;
+			this.y_cm += v.y_cm;
 		}
 
 		public void scale(double factor) {
-			this.targetX_cm *= factor;
-			this.targetY_cm *= factor;
+			this.x_cm *= factor;
+			this.y_cm *= factor;
 		}
 
 		public void scale(double xFactor, double yFactor) {
-			this.targetX_cm *= xFactor;
-			this.targetY_cm *= yFactor;
+			this.x_cm *= xFactor;
+			this.y_cm *= yFactor;
 		}
 
-		double dot(ISU.Vector v) {
+		public double dot(ISU.Vector v) {
 			assert v != null;
 
-			return this.targetX_cm * v.targetX_cm + this.targetY_cm * v.targetY_cm;
+			return this.x_cm * v.x_cm + this.y_cm * v.y_cm;
+		}
+
+		public ISU isu() {
+			return ISU.this;
 		}
 
 		public double norm() {
-			return Math.sqrt(this.targetX_cm * this.targetX_cm + this.targetY_cm * this.targetY_cm);
+			return Math.sqrt(this.x_cm * this.x_cm + this.y_cm * this.y_cm);
 		}
 
+		/*
+		 * Transforme le vecteur en vecteur unitaire.
+		 */
 		public void unity() {
 			double n = norm();
+
 			assert n != 0.0;
-			this.targetX_cm /= n;
-			this.targetY_cm /= n;
+
+			this.x_cm /= n;
+			this.y_cm /= n;
 		}
 
+		/*
+		 * Tourne le vecteur autour de son origine. Utile pour appliquer l'orientation
+		 * d'une entité à un offset.
+		 */
 		public void turn(int angle_degree) {
-			double angle_rad = Math.toRadians(angle_degree);
-			double newX = this.targetX_cm * Math.cos(angle_rad) - this.targetY_cm * Math.sin(angle_rad);
-			double newY = this.targetX_cm * Math.sin(angle_rad) + this.targetY_cm * Math.cos(angle_rad);
-			this.targetX_cm = newX;
-			this.targetY_cm = newY;
+			double angle = Math.toRadians(angle_degree);
+
+			double cos = Math.cos(angle);
+			double sin = Math.sin(angle);
+
+			double newX = this.x_cm * cos - this.y_cm * sin;
+			double newY = this.x_cm * sin + this.y_cm * cos;
+
+			this.x_cm = newX;
+			this.y_cm = newY;
+		}
+
+		public Vector copy() {
+			return new Vector(this.x_cm, this.y_cm);
+		}
+
+		public void show(PrintStream ps) {
+			ps.println("Vector(" + this.x_cm + ", " + this.y_cm + ") cm");
 		}
 	}
-
 }

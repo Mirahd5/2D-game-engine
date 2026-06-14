@@ -1,42 +1,52 @@
-// == BOT ==
 package engine.brain;
 
 import java.util.List;
 
-import engine.model.BasicStunt;
 import engine.model.Entity;
+import engine.model.Stunt;
 
 public abstract class Bot {
 
-    // FIELDS
+	protected final Brain brain;
+	protected final Stunt stunt;
 
-    protected BasicStunt stunt;
+	protected Bot(Brain brain, Stunt stunt) {
+		assert brain != null;
+		assert stunt != null;
 
-    // CONSTRUCTOR
+		this.brain = brain;
+		this.stunt = stunt;
 
-    protected Bot(BasicStunt stunt) {
-        assert stunt != null;
-        this.stunt = stunt;
-        this.stunt.setBot(this);
-    }
+		this.stunt.setBot(this);
+	}
 
-    // GETTER
+	public final Brain brain() {
+		return this.brain;
+	}
 
-    public BasicStunt stunt() {
-        return stunt;
-    }
+	public final Stunt stunt() {
+		return this.stunt;
+	}
 
-    public Entity entity() {
-        return stunt.entity();
-    }
+	public abstract void think();
 
-    // DECISION MAKING
+	public void done() {
+		// Réaction optionnelle dans les sous-classes.
+	}
 
-    public abstract void think();
+	public void collision(Entity entity) {
+		// Réaction optionnelle dans les sous-classes.
+	}
 
-    public abstract void done();
+	public void collision(List<Entity> entities) {
+		// Réaction optionnelle dans les sous-classes.
+	}
 
-    public abstract void collision(Entity other);
-
-    public abstract void collision(List<Entity> others);
+	/*
+	 * Un Bot est valide seulement si : - son Stunt est encore valide ; - il est
+	 * toujours le Bot actuellement associé à ce Stunt.
+	 */
+	public final boolean valid() {
+		return this.stunt.valid() && this.stunt.bot() == this;
+	}
 }

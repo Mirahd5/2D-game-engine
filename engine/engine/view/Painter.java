@@ -2,57 +2,43 @@ package engine.view;
 
 import oop.graphics.Canvas;
 import oop.graphics.Graphics;
-import oop.tasks.Runtime;
 
-public class Painter implements Canvas.PaintListener, oop.tasks.Runnable {
+public class Painter implements Canvas.PaintListener {
 
-	private final Canvas canvas;
-	private final View view;
-	private final int frameDelay_ms;
-	private boolean running;
+    private View view;
+    private Canvas canvas;
 
-	public Painter(Canvas canvas, View view, int frameDelay_ms) {
-		assert frameDelay_ms > 0 : "frameDelay_ms must be positive";
-		this.canvas = canvas;
-		this.view = view;
-		this.frameDelay_ms = frameDelay_ms;
-		this.running = false;
-	}
+    public Painter(View view) {
+        assert view != null;
+        this.view = view;
+        this.canvas = null;
+    }
 
-	public void start() {
-		if (this.running) {
-			return;
-		}
-		this.running = true;
-		this.canvas.set(this);
-		Runtime.post(this);
-	}
+    public Canvas canvas() {
+        return this.canvas;
+    }
 
-	public void stop() {
-		this.running = false;
-	}
+    @Override
+    public void visible(Canvas canvas) {
+        assert canvas != null;
 
-	@Override
-	public void run() {
-		if (!this.running) {
-			return;
-		}
+        this.canvas = canvas;
+        canvas.repaint();
+    }
 
-		this.canvas.repaint();
-		Runtime.post(this, this.frameDelay_ms);
-	}
+    @Override
+    public void paint(Canvas canvas, Graphics g) {
+        assert canvas != null;
+        assert g != null;
 
-	@Override
-	public void visible(Canvas canvas) {
-	}
+        g.setColor(Graphics.Colors.black);
+        g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-	@Override
-	public void paint(Canvas canvas, Graphics g) {
-		this.view.paint(g);
-	}
+        this.view.paint(g);
+    }
 
-	@Override
-	public void revoked(Canvas canvas) {
-		stop();
-	}
+    @Override
+    public void revoked(Canvas canvas) {
+        this.canvas = null;
+    }
 }

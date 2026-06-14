@@ -1,0 +1,56 @@
+package engine.controller;
+
+import engine.brain.PlayerBot;
+import oop.graphics.Canvas;
+import oop.graphics.VirtualKeyCodes;
+
+public class KeyboardController implements Canvas.KeyListener {
+
+	private final PlayerBot playerBot;
+
+	public KeyboardController(PlayerBot playerBot) {
+		assert playerBot != null;
+
+		this.playerBot = playerBot;
+	}
+
+	@Override
+	public void pressed(Canvas canvas, int keyCode, char keyChar) {
+		switch (keyCode) {
+		case VirtualKeyCodes.VK_RIGHT:
+		case VirtualKeyCodes.VK_D:
+			this.playerBot.wish(0);
+			break;
+
+		case VirtualKeyCodes.VK_DOWN:
+		case VirtualKeyCodes.VK_S:
+			this.playerBot.wish(90);
+			break;
+
+		case VirtualKeyCodes.VK_LEFT:
+		case VirtualKeyCodes.VK_Q:
+			this.playerBot.wish(180);
+			break;
+
+		case VirtualKeyCodes.VK_UP:
+		case VirtualKeyCodes.VK_Z:
+			this.playerBot.wish(270);
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	@Override
+	public void released(Canvas canvas, int keyCode, char keyChar) {
+		/*
+		 * La direction de Pac-Man reste active après le relâchement de la touche.
+		 */
+	}
+
+	@Override
+	public void typed(Canvas canvas, char keyChar) {
+		// Non utilisé.
+	}
+}

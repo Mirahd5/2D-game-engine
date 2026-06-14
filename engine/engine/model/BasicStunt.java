@@ -1,195 +1,364 @@
-// == BASIC STUNT ==
 package engine.model;
 
 import java.util.List;
 
-import engine.brain.Bot;
-
 public class BasicStunt extends Stunt {
 
-	public static final int EAST = 0;
-	public static final int SOUTH = 90;
-	public static final int WEST = 180;
-	public static final int NORTH = 270;
+	private static final double EPS = 0.000001;
+	private static final double TURN_SNAP_RATIO = 0.30;
 
-	private Bot bot;
-	private final double speed_cm_per_ms;
-	private double remaining_cm;
-	private int direction_degree;
+	/*
+	 * Facteur de vitesse. 5.0 veut dire : 5 cellules par seconde.
+	 */
+	private static final double WALK_SPEED = 5.0;
 
-	private int wanted_direction_degree;
-	private boolean moving;
-	private boolean stopRequested;
-	private final boolean continuousWalk;
+	private boolean walking;
 
-	public BasicStunt(Entity entity, double speed_cm_per_ms) {
-		this(entity, speed_cm_per_ms, false);
+	private ISU.Coord startCenter;
+	private ISU.Coord targetCenter;
+
+	private boolean pendingDone;
+
+	public BasicStunt(Model model, Entity entity) {
+		super(model, entity);
+
+		this.walking = false;
+		this.startCenter = null;
+		this.targetCenter = null;
+		this.pendingDone = false;
 	}
 
-	public BasicStunt(Entity entity, double speed_cm_per_ms, boolean continuousWalk) {
-		super(entity);
-		assert speed_cm_per_ms > 0;
-
-		this.speed_cm_per_ms = speed_cm_per_ms;
-		this.remaining_cm = 0.0;
-		this.direction_degree = EAST;
-		this.wanted_direction_degree = EAST;
-
-		this.moving = false;
-		this.stopRequested = false;
-		this.continuousWalk = continuousWalk;
-	}
-
-	public void setBot(Bot bot) {
-		assert bot != null;
-
-		this.bot = bot;
-	}
-
-	public boolean isMoving() {
-		return this.moving;
-	}
-
-	public int direction() {
-		return this.direction_degree;
-	}
-
-	public int wantedDirection() {
-		return this.wanted_direction_degree;
-	}
-
-	public void walk(int degree) {
-
-		int direction = closestCardinal(degree);
-
-		this.wanted_direction_degree = direction;
-		this.stopRequested = false;
-
-		if (!this.moving) {
-			startMove(direction);
-			return;
-		}
-
-		if (isOpposite(this.direction_degree, direction)) {
-			this.direction_degree = direction;
-			set(this.direction_degree);
-			double cellWidth_cm = entity.isu().game().cmPerCell();
-			double alreadyMoved_cm = cellWidth_cm - this.remaining_cm;
-			if (alreadyMoved_cm <= 0.0) {
-				alreadyMoved_cm = cellWidth_cm;
-			}
-
-			this.remaining_cm = alreadyMoved_cm;
-		}
-	}
-
-	public void stop() {
-		this.stopRequested = true;
-	}
-
-	private boolean isOpposite(int d1, int d2) {
-		return Math.abs(d1 - d2) == 180;
-	}
-
-	public void stopNow() {
-		this.moving = false;
-		this.remaining_cm = 0.0;
-		this.stopRequested = true;
-	}
-
-	private void startMove(int direction) {
-
-		this.direction_degree = closestCardinal(direction);
-		set(this.direction_degree);
-		double cellWidth_cm = entity.isu().game().cmPerCell();
-		this.remaining_cm = cellWidth_cm;
-		this.moving = true;
-	}
-
-	private int closestCardinal(int degree) {
-		degree = ((degree % 360) + 360) % 360;
-		if (degree < 45 || degree >= 315) {
-			return EAST;
-		}
-		if (degree < 135) {
-			return SOUTH;
-		}
-		if (degree < 225) {
-			return WEST;
-		}
-		return NORTH;
+	public boolean walking() {
+		return this.walking;
 	}
 
 	@Override
-	public void tick(long elapsed_ms) {
+	public boolean walk(int degree) {
+		if (!valid()) {
+			return false;
+		}
+		int orientation = normalizeCardinal(degree);
 
-		// Si aucun mouvement n'est en cours, il n'y a rien à faire.
-		if (!this.moving) {
+		/*
+		 * Si l'entité marche déjà, on ne refuse plus automatiquement. On essaie de
+		 * changer la direction pendant le mouvement.
+		 */
+		if (this.walking) {
+			return changeDirectionWhileWalking(orientation);
+		}
+
+		return startWalkFromCurrentCell(orientation);
+	}
+
+	@Override
+	public void set(double x, double y) {
+
+		if (!valid()) {
 			return;
 		}
 
-		// Distance que l'entité devrait parcourir pendant ce tick.
-		double moved_cm = this.speed_cm_per_ms * elapsed_ms;
-
-		// Cas 1 : la distance calculée dépasse ou atteint la distance restante.
-		if (moved_cm >= this.remaining_cm) {
-			moveStep(this.remaining_cm);
-
-			this.remaining_cm = 0.0;
-			this.moving = false;
-
-			if (!this.stopRequested && this.continuousWalk) {
-				walk(this.wanted_direction_degree);
-
-			} else if (!this.stopRequested && this.bot != null) {
-				this.bot.done();
-			}
-
-			// Cas 2 : le pas courant n'est pas encore terminé.
-
-		} else {
-			// On avance seulement de la distance possible pour ce tick.
-			moveStep(moved_cm);
-			this.remaining_cm -= moved_cm;
+		if (!this.walking || this.pendingDone) {
+			return;
 		}
+
+		ISU.Coord current = model.isu().new Coord(x, y);
+
+		double walked = this.startCenter.distanceTo(current);
+
+		double expected = this.startCenter.distanceTo(this.targetCenter);
+
+		if (walked + EPS < expected) {
+			return;
+		}
+
+		this.pendingDone = true;
+
+		entity.setLinearSpeed(model.isu().new Vector(0.0, 0.0));
+
+		entity.setAngularSpeed(0.0);
 	}
 
-	private void moveStep(double distance_cm) {
-		switch (this.direction_degree) {
-		case EAST:
-			entity.moveEast(distance_cm);
-			break;
+	@Override
+	public void commit() {
 
-		case WEST:
-			entity.moveWest(distance_cm);
-			break;
-
-		case SOUTH:
-			entity.translate(entity.isu().new Vector(0.0, distance_cm));
-			break;
-
-		case NORTH:
-			entity.translate(entity.isu().new Vector(0.0, -distance_cm));
-			break;
-
-		default:
-			break;
+		if (!valid()) {
+			return;
 		}
+
+		if (!this.pendingDone) {
+			return;
+		}
+
+		ISU.Coord exactTarget = this.targetCenter.mkCopy();
+
+		/*
+		 * Le recentrage est effectué après validation complète du mouvement par le
+		 * Model.
+		 */
+		model.placeSilently(entity, exactTarget);
+
+		resetAction();
+
+		notifyDone();
+	}
+
+	@Override
+	protected void onInvalidate() {
+		this.walking = false;
+		this.pendingDone = false;
+		this.startCenter = null;
+		this.targetCenter = null;
+	}
+
+	private void resetAction() {
+		this.walking = false;
+		this.pendingDone = false;
+		this.startCenter = null;
+		this.targetCenter = null;
 	}
 
 	@Override
 	public void collision(Entity other) {
-		stopNow();
-		if (!this.continuousWalk && this.bot != null) {
-			this.bot.collision(other);
+		assert other != null;
+
+		if (model.isBlocking(entity, other)) {
+			stopBecauseOfCollision();
 		}
+
+		notifyCollision(other);
 	}
 
 	@Override
-	public void collision(List<Entity> others) {
-		stopNow();
-		if (!this.continuousWalk && this.bot != null) {
-			this.bot.collision(others);
+	public void collision(List<Entity> entities) {
+		assert entities != null;
+
+		boolean blocked = false;
+
+		for (Entity other : entities) {
+			if (other != entity && model.isBlocking(entity, other)) {
+				blocked = true;
+				break;
+			}
 		}
+
+		if (blocked) {
+			stopBecauseOfCollision();
+		}
+
+		notifyCollision(entities);
+	}
+
+	private void stopBecauseOfCollision() {
+		resetAction();
+
+		entity.setLinearSpeed(model.isu().new Vector(0.0, 0.0));
+
+		entity.setAngularSpeed(0.0);
+	}
+
+	@Override
+	public void set(int orientation) {
+		// Notification : orientation changée.
+	}
+
+	@Override
+	public void set(Grid.Cell cell) {
+		// Notification : cellule changée.
+	}
+
+	private int normalizeCardinal(int degree) {
+		int d = ((degree % 360) + 360) % 360;
+
+		if (d < 45 || d >= 315) {
+			return 0;
+		}
+
+		if (d < 135) {
+			return 90;
+		}
+
+		if (d < 225) {
+			return 180;
+		}
+
+		return 270;
+	}
+
+	private boolean startWalkFromCurrentCell(int orientation) {
+		Grid.Position currentPosition = entity.position();
+		Grid.Position targetPosition = neighborPosition(currentPosition, orientation);
+
+		if (!canWalkTo(targetPosition)) {
+			return false;
+		}
+
+		entity.turn(orientation - entity.orientation());
+
+		this.startCenter = currentPosition.toISUCoordCentered();
+		this.targetCenter = targetPosition.toISUCoordCentered();
+
+		/*
+		 * Quand on démarre un nouveau pas, on recale PacMan au centre de sa cellule
+		 * actuelle.
+		 */
+		model.placeSilently(entity, this.startCenter);
+
+		this.walking = true;
+		this.pendingDone = false;
+
+		entity.setLinearSpeed(speedForOrientation(orientation));
+		entity.setAngularSpeed(0.0);
+
+		return true;
+	}
+
+	private boolean changeDirectionWhileWalking(int newOrientation) {
+		int currentOrientation = entity.orientation();
+
+		/*
+		 * Même direction : rien à changer.
+		 */
+		if (newOrientation == currentOrientation) {
+			return true;
+		}
+
+		/*
+		 * Demi-tour : autorisé immédiatement. Exemple : droite -> gauche, haut -> bas.
+		 */
+		if (isOpposite(currentOrientation, newOrientation)) {
+			reverseImmediately(newOrientation);
+			return true;
+		}
+
+		/*
+		 * Direction perpendiculaire : on autorise seulement si PacMan est proche du
+		 * centre de sa cellule. Sinon on garde la commande en mémoire dans PlayerBot,
+		 * elle sera retentée au prochain think().
+		 */
+		if (isCloseToCellCenter()) {
+			Grid.Position currentPosition = entity.position();
+			Grid.Position targetPosition = neighborPosition(currentPosition, newOrientation);
+
+			if (!canWalkTo(targetPosition)) {
+				return false;
+			}
+
+			ISU.Coord cellCenter = currentPosition.toISUCoordCentered();
+
+			model.placeSilently(entity, cellCenter);
+			entity.turn(newOrientation - entity.orientation());
+
+			this.startCenter = cellCenter;
+			this.targetCenter = targetPosition.toISUCoordCentered();
+
+			entity.setLinearSpeed(speedForOrientation(newOrientation));
+			entity.setAngularSpeed(0.0);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	private void reverseImmediately(int newOrientation) {
+		ISU.Coord currentCenter = entity.center().mkCopy();
+
+		/*
+		 * En cas de demi-tour, la nouvelle cible devient l'ancien départ. Exemple :
+		 * PacMan allait de A vers B ; s'il fait demi-tour, il revient vers A.
+		 */
+		ISU.Coord oldStart = this.startCenter.mkCopy();
+
+		entity.turn(newOrientation - entity.orientation());
+
+		this.startCenter = currentCenter;
+		this.targetCenter = oldStart;
+
+		entity.setLinearSpeed(speedForOrientation(newOrientation));
+		entity.setAngularSpeed(0.0);
+
+		this.pendingDone = false;
+	}
+
+	private Grid.Position neighborPosition(Grid.Position position, int orientation) {
+		assert position != null;
+
+		Grid.Position targetPosition = position.copy();
+
+		switch (orientation) {
+		case 0:
+			targetPosition.translate(model.grid().new Vector(1, 0));
+			break;
+
+		case 90:
+			targetPosition.translate(model.grid().new Vector(0, 1));
+			break;
+
+		case 180:
+			targetPosition.translate(model.grid().new Vector(-1, 0));
+			break;
+
+		case 270:
+			targetPosition.translate(model.grid().new Vector(0, -1));
+			break;
+
+		default:
+			throw new AssertionError();
+		}
+
+		return targetPosition;
+	}
+
+	private ISU.Vector speedForOrientation(int orientation) {
+		switch (orientation) {
+		case 0:
+			return model.isu().new Vector(entity.step().x() * WALK_SPEED, 0.0);
+
+		case 90:
+			return model.isu().new Vector(0.0, entity.step().y() * WALK_SPEED);
+
+		case 180:
+			return model.isu().new Vector(-entity.step().x() * WALK_SPEED, 0.0);
+
+		case 270:
+			return model.isu().new Vector(0.0, -entity.step().y() * WALK_SPEED);
+
+		default:
+			throw new AssertionError();
+		}
+	}
+
+	private boolean isOpposite(int a, int b) {
+		a = normalizeCardinal(a);
+		b = normalizeCardinal(b);
+
+		return ((a + 180) % 360) == b;
+	}
+
+	private boolean canWalkTo(Grid.Position targetPosition) {
+		assert targetPosition != null;
+
+		if (!model.grid().contains(targetPosition)) {
+			return false;
+		}
+
+		Grid.Cell targetCell = model.grid().cellAt(targetPosition);
+
+		for (Entity other : targetCell.entities()) {
+			if (other != entity && model.isBlocking(entity, other)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	private boolean isCloseToCellCenter() {
+		Grid.Position currentPosition = entity.position();
+		ISU.Coord cellCenter = currentPosition.toISUCoordCentered();
+
+		double distance = entity.center().distanceTo(cellCenter);
+
+		return distance <= model.isu().cmPerCell() * TURN_SNAP_RATIO;
 	}
 }
