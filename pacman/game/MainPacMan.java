@@ -27,7 +27,7 @@ import oop.tasks.Runtime;
 import oop.tasks.Runnable;
 import oop.tasks.Task;
 
-public final class Main {
+public final class MainPacMan {
 
 	private static final int MAP_WIDTH_PIXEL = 760;
 	private static final int MAP_HEIGHT_PIXEL = 840;
@@ -35,10 +35,6 @@ public final class Main {
 	private static final int TICK_DELAY_MS = 16;
 	private static final int PAINT_DELAY_MS = 33;
 	private static final int VIEWPORT_WIDTH_CELLS = 15;
-
-	private Main() {
-		// Classe utilitaire : aucune instance.
-	}
 
 	public static void main(String[] args) {
 		Dimension windowDimension = new Dimension(MAP_WIDTH_PIXEL + PacManHud.WIDTH_PIXEL, MAP_HEIGHT_PIXEL);
