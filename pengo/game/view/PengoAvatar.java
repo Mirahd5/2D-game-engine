@@ -1,146 +1,111 @@
 package game.view;
 
-import engine.model.BasicStunt;
-import engine.model.Entity;
-import engine.model.Picture;
 import engine.view.Avatar;
+import engine.view.View;
+import game.model.Pengo;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-public class PengoAvatar extends Avatar {
+/** Avatar animé de Pengo, synchronisé par View.tick(...). */
+public final class PengoAvatar extends Avatar {
 
-	//120 ms donne environ 8 changements d'image par seconde	 
-	private static final long FRAME_MS = 120;
+    private static final long FRAME_DURATION_MS = 120L;
 
-	private final BasicStunt stunt;
+    private final Pengo pengo;
 
-	private BufferedImage down1;
-	private BufferedImage down2;
+    private BufferedImage down1;
+    private BufferedImage down2;
+    private BufferedImage up1;
+    private BufferedImage up2;
+    private BufferedImage right1;
+    private BufferedImage right2;
+    private BufferedImage left1;
+    private BufferedImage left2;
 
-	private BufferedImage up1;
-	private BufferedImage up2;
+    private long elapsedSinceFrame;
+    private int frame;
+    private int animatedOrientation;
 
-	private BufferedImage right1;
-	private BufferedImage right2;
+    public PengoAvatar(View view, Pengo pengo) {
+        super(view, pengo);
 
-	private BufferedImage left1;
-	private BufferedImage left2;
+        this.pengo = pengo;
+        this.elapsedSinceFrame = 0L;
+        this.frame = 0;
+        this.animatedOrientation = pengo.orientation();
+    }
 
-	public PengoAvatar(Entity entity, BasicStunt stunt) {
-		super(entity);
-		this.stunt = stunt;
-	}
+    @Override
+    public void tick(long elapsed) {
+        assert elapsed >= 0L;
 
-	@Override
-	public void paint(Graphics g, Picture picture) {
-		assert g != null;
-		assert picture != null;
+        if (!this.pengo.isMoving()) {
+            this.elapsedSinceFrame = 0L;
+            this.frame = 0;
+            this.animatedOrientation = this.pengo.orientation();
+            return;
+        }
 
-		loadImages(g);
+        if (this.animatedOrientation != this.pengo.orientation()) {
+            this.animatedOrientation = this.pengo.orientation();
+            this.elapsedSinceFrame = 0L;
+            this.frame = 0;
+        }
 
-		BufferedImage image = imageForOrientation();
+        this.elapsedSinceFrame += elapsed;
 
-		int x = picture.toPixelX(entity.center().x());
-		int y = picture.toPixelY(entity.center().y());
+        while (this.elapsedSinceFrame >= FRAME_DURATION_MS) {
+            this.elapsedSinceFrame -= FRAME_DURATION_MS;
+            this.frame = 1 - this.frame;
+        }
+    }
 
-		double cellSize_cm = entity.isu().cmPerCell();
+    @Override
+    public void paint(Graphics graphics) {
+        assert graphics != null;
 
-		int width_pixel = picture.toPixelLength(cellSize_cm);
-		int height_pixel = picture.toPixelLength(cellSize_cm);
+        loadImages(graphics);
 
-		g.drawImage(
-			image,
-			x - width_pixel / 2,
-			y - height_pixel / 2,
-			width_pixel,
-			height_pixel
-		);
-	}
+        BufferedImage image = imageForOrientation(this.pengo.orientation());
 
-	private void loadImages(Graphics g) {
-		if (down1 != null) {
-			return;
-		}
+        int centerX = this.view.toPixelX(this.pengo.center().x());
+        int centerY = this.view.toPixelY(this.pengo.center().y());
 
-		down1 = g.load("pengo_rsrc/pengo_down1.png");
-		down2 = g.load("pengo_rsrc/pengo_down2.png");
+        int width = this.view.toPixelWidth(this.pengo.size().x());
+        int height = this.view.toPixelHeight(this.pengo.size().y());
 
-		up1 = g.load("pengo_rsrc/pengo_up1.png");
-		up2 = g.load("pengo_rsrc/pengo_up2.png");
+        graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+    }
 
-		right1 = g.load("pengo_rsrc/pengo_right1.png");
-		right2 = g.load("pengo_rsrc/pengo_right2.png");
+    private void loadImages(Graphics graphics) {
+        if (this.down1 != null) {
+            return;
+        }
 
-		left1 = g.load("pengo_rsrc/pengo_left1.png");
-		left2 = g.load("pengo_rsrc/pengo_left2.png");
-	}
+        this.down1 = graphics.load("pengo_rsrc/pengo_down1.png");
+        this.down2 = graphics.load("pengo_rsrc/pengo_down2.png");
+        this.up1 = graphics.load("pengo_rsrc/pengo_up1.png");
+        this.up2 = graphics.load("pengo_rsrc/pengo_up2.png");
+        this.right1 = graphics.load("pengo_rsrc/pengo_right1.png");
+        this.right2 = graphics.load("pengo_rsrc/pengo_right2.png");
+        this.left1 = graphics.load("pengo_rsrc/pengo_left1.png");
+        this.left2 = graphics.load("pengo_rsrc/pengo_left2.png");
+    }
 
-	private BufferedImage imageForOrientation() {
-		int orientation = entity.orientation();
-		if (!stunt.isMoving()) {
-			return idleImageForOrientation(orientation);
-		}
+    private BufferedImage imageForOrientation(int orientation) {
+        int activeFrame = this.pengo.isMoving() ? this.frame : 0;
 
-		int frame = animationFrame();
-
-		if (orientation == BasicStunt.EAST) {
-			return frameForDirection(frame, right1, right2);
-		}
-
-		if (orientation == BasicStunt.WEST) {
-			return frameForDirection(frame, left1, left2);
-		}
-
-		if (orientation == BasicStunt.NORTH) {
-			return frameForDirection(frame, up1, up2);
-		}
-
-		if (orientation == BasicStunt.SOUTH) {
-			return frameForDirection(frame, down1, down2);
-		}
-
-		return down1;
-	}
-	
-	//Image utilisée lorsque Pengo ne bouge pas.
-	private BufferedImage idleImageForOrientation(int orientation) {
-		if (orientation == BasicStunt.EAST) {
-			return right1;
-		}
-
-		if (orientation == BasicStunt.WEST) {
-			return left1;
-		}
-
-		if (orientation == BasicStunt.NORTH) {
-			return up1;
-		}
-
-		if (orientation == BasicStunt.SOUTH) {
-			return down1;
-		}
-
-		return down1;
-	}
-
-	/*
-	 * frame 0 : premier pied en avant
-	 * frame 1 : second pied en avant
-	 */
-	private BufferedImage frameForDirection(
-		int frame,
-		BufferedImage first,
-		BufferedImage second
-	) {
-		if (frame == 0) {
-			return first;
-		}
-
-		return second;
-	}
-
-	//Renvoie alternativement 0 puis 1 avec FRAME_MS = 120 :
-	private int animationFrame() {
-		return (int) ((System.currentTimeMillis() / FRAME_MS) % 2);
-	}
+        switch (orientation) {
+        case 0:
+            return activeFrame == 0 ? this.right1 : this.right2;
+        case 90:
+            return activeFrame == 0 ? this.down1 : this.down2;
+        case 180:
+            return activeFrame == 0 ? this.left1 : this.left2;
+        case 270:
+            return activeFrame == 0 ? this.up1 : this.up2;
+        default:
+            return this.down1;
+        }
+    }
 }

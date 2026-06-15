@@ -3,84 +3,60 @@ package game.view;
 import java.util.EnumMap;
 import java.util.Map;
 
-import engine.model.Picture;
 import engine.view.Avatar;
+import engine.view.View;
 import game.model.Power;
 import game.model.PowerType;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-public class PowerAvatar extends Avatar {
-	
-	private final Power power;
+/** Avatar d'un bonus, choisi selon son PowerType. */
+public final class PowerAvatar extends Avatar {
 
-	private final Map<PowerType, BufferedImage> images;
+    private final Power power;
+    private final Map<PowerType, BufferedImage> images;
+    private boolean imagesLoaded;
 
-	private boolean imagesLoaded;
+    public PowerAvatar(View view, Power power) {
+        super(view, power);
 
-	public PowerAvatar(Power power) {
-		super(power);
+        this.power = power;
+        this.images = new EnumMap<PowerType, BufferedImage>(PowerType.class);
+        this.imagesLoaded = false;
+    }
 
-		assert power != null;
+    @Override
+    public void paint(Graphics graphics) {
+        assert graphics != null;
 
-		this.power = power;
-		this.images = new EnumMap<>(PowerType.class);
-		this.imagesLoaded = false;
-	}
+        loadImages(graphics);
 
-	@Override
-	public void paint(Graphics g, Picture picture) {
-		assert g != null;
-		assert picture != null;
+        BufferedImage image = this.images.get(this.power.getType());
+        if (image == null) {
+            return;
+        }
 
-		loadImages(g);
+        int centerX = this.view.toPixelX(this.power.center().x());
+        int centerY = this.view.toPixelY(this.power.center().y());
+        int width = this.view.toPixelWidth(this.power.size().x());
+        int height = this.view.toPixelHeight(this.power.size().y());
 
-		BufferedImage image = imageForPower();
+        graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+    }
 
-		if (image == null) {
-			return;
-		}
+    private void loadImages(Graphics graphics) {
+        if (this.imagesLoaded) {
+            return;
+        }
 
-		int centerX_pixel = picture.toPixelX(power.center().x());
+        this.images.put(PowerType.SHIELD, graphics.load("pengo_rsrc/shield.png"));
+        this.images.put(PowerType.SPEED, graphics.load("pengo_rsrc/piment.png"));
+        this.images.put(PowerType.FREEZE, graphics.load("pengo_rsrc/glacon.png"));
+        this.images.put(PowerType.STAR, graphics.load("pengo_rsrc/etoile.png"));
+        this.images.put(PowerType.EXTRA_LIFE, graphics.load("pengo_rsrc/bonbon.png"));
+        this.images.put(PowerType.BOOMFISH, graphics.load("pengo_rsrc/boom_fish.png"));
+        this.images.put(PowerType.FRIEND_ACTIVATOR, graphics.load("pengo_rsrc/friend_activator.png"));
 
-		int centerY_pixel = picture.toPixelY(power.center().y());
-
-		// 0.65 changable si trop petit ou trop grand
-		double size_cm = power.isu().cmPerCell() * 0.65;
-
-		int width_pixel = picture.toPixelLength(size_cm);
-
-		int height_pixel = picture.toPixelLength(size_cm);
-
-		g.drawImage(image, centerX_pixel - width_pixel / 2, centerY_pixel - height_pixel / 2, width_pixel,
-				height_pixel);
-	}
-
-	// Charge toutes les images une seule fois.
-	private void loadImages(Graphics g) {
-		if (imagesLoaded) {
-			return;
-		}
-
-		images.put(PowerType.SHIELD, g.load("pengo_rsrc/powers/shield.png"));
-
-		images.put(PowerType.SPEED, g.load("pengo_rsrc/powers/speed.png"));
-
-		images.put(PowerType.FREEZE, g.load("pengo_rsrc/powers/freeze.png"));
-
-		images.put(PowerType.STAR, g.load("pengo_rsrc/powers/star.png"));
-
-		images.put(PowerType.EXTRA_LIFE, g.load("pengo_rsrc/powers/extra_life.png"));
-
-		images.put(PowerType.BOOMFISH, g.load("pengo_rsrc/powers/boomfish.png"));
-
-		images.put(PowerType.FRIEND_ACTIVATOR, g.load("pengo_rsrc/powers/friend_activator.png"));
-
-		imagesLoaded = true;
-	}
-
-	// Renvoie l'image correspondant au type du pouvoir.
-	private BufferedImage imageForPower() {
-		return images.get(power.getType());
-	}
+        this.imagesLoaded = true;
+    }
 }

@@ -1,18 +1,29 @@
 package game.brain;
 
+import java.util.List;
 import java.util.Random;
 
 import engine.brain.Bot;
+import engine.brain.Brain;
 import engine.model.BasicStunt;
+import engine.model.Entity;
 import game.model.Friend;
 
-public class FriendBot extends Bot {
+/**
+ * Bot simple de l'allié : il choisit une direction praticable au hasard.
+ */
+public final class FriendBot extends Bot {
 
-    private Friend friend;
-    private Random random;
+    private static final int[] DIRECTIONS = { 0, 90, 180, 270 };
 
-    public FriendBot(BasicStunt stunt, Friend friend) {
-        super(stunt);
+    private final Friend friend;
+    private final Random random;
+
+    public FriendBot(Brain brain, BasicStunt stunt, Friend friend) {
+        super(brain, stunt);
+
+        assert friend != null;
+        assert stunt.entity() == friend;
 
         this.friend = friend;
         this.random = new Random();
@@ -20,41 +31,35 @@ public class FriendBot extends Bot {
 
     @Override
     public void think() {
-
-        if (stunt.isMoving())
+        if (!valid() || this.friend.isControlled() || this.friend.isMoving()) {
             return;
+        }
 
-        int direction = random.nextInt(4);
+        int first = this.random.nextInt(DIRECTIONS.length);
 
-        switch(direction) {
+        for (int offset = 0; offset < DIRECTIONS.length; offset++) {
+            int direction = DIRECTIONS[(first + offset) % DIRECTIONS.length];
 
-        case 0:
-            stunt.walk(BasicStunt.NORTH);
-            break;
-
-        case 1:
-            stunt.walk(BasicStunt.SOUTH);
-            break;
-
-        case 2:
-            stunt.walk(BasicStunt.EAST);
-            break;
-
-        case 3:
-            stunt.walk(BasicStunt.WEST);
-            break;
+            if (this.stunt.walk(direction)) {
+                return;
+            }
         }
     }
 
     @Override
     public void done() {
+        think();
     }
 
     @Override
-    public void collision(engine.model.Entity other) {
+    public void collision(Entity other) {
+        assert other != null;
+        think();
     }
 
     @Override
-    public void collision(java.util.List<engine.model.Entity> others) {
+    public void collision(List<Entity> others) {
+        assert others != null;
+        think();
     }
 }
