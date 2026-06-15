@@ -24,6 +24,7 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 
 		System.out.println("\n=== Ghost size ===");
 		System.out.println("Situation : Ghost size should be half of one cell");
@@ -44,6 +45,7 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 
 		System.out.println("\n=== Ghost bounding ===");
 		System.out.println("Situation : Ghost should have a non-null Bounding");
@@ -63,6 +65,7 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 
 		System.out.println("\n=== Ghost bounding shapes count ===");
 		System.out.println("Situation : Ghost is represented by 2 shapes");
@@ -80,7 +83,9 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 
 		ghost.setPosition(game.getGrid().new Position(2, 3));
 		pacman.setPosition(game.getGrid().new Position(2, 3));
@@ -110,7 +115,9 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 
 		ghost.setPosition(game.getGrid().new Position(2, 3));
 		pacman.setPosition(game.getGrid().new Position(8, 8));
@@ -140,7 +147,9 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 
 		ghost.setPosition(game.getGrid().new Position(1, 1));
 		pacman.setPosition(game.getGrid().new Position(8, 8));
@@ -176,6 +185,7 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 
 		double xminBefore = ghost.bounding().hitbox().xmin();
 		double xmaxBefore = ghost.bounding().hitbox().xmax();
@@ -222,6 +232,7 @@ public class GhostTest {
 		Model model = game.model();
 
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 		double xminBefore = ghost.bounding().hitbox().xmin();
 		double xmaxBefore = ghost.bounding().hitbox().xmax();
 

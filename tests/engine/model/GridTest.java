@@ -443,4 +443,19 @@ public class GridTest {
 
 		assertDoesNotThrow(() -> cell.show(System.out));
 	}
+	@Test
+	void vectorIsNotNormalizedOnTorus() {
+		Game game = new TestGame();
+		Grid grid = game.getGrid();
+
+		Grid.Vector left = grid.new Vector(-1, 0);
+		Grid.Vector severalTurns = grid.new Vector(21, -17);
+
+		assertEquals(-1, left.x());
+		assertEquals(0, left.y());
+		assertEquals(21, severalTurns.x());
+		assertEquals(-17, severalTurns.y());
+	}
+
+
 }

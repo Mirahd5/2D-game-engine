@@ -22,13 +22,23 @@ public class BotTest {
 	static class TestEntity extends Entity {
 		TestEntity(Model model, String name) {
 			super(model, name);
-			setBounding();
+			updateBounding();
 		}
 
 		@Override
-		protected void setBounding() {
-			this.bounding = new Bounding();
-			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
+		protected Bounding createBounding(
+			engine.model.ISU.Coord center,
+			engine.model.ISU.Dimension size,
+			int orientationDegree
+		) {
+			Bounding result = new Bounding();
+			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
+			return result;
+		}
+
+		@Override
+		public boolean blocks(Entity other) {
+			return true;
 		}
 	}
 
@@ -39,13 +49,13 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity attacker = new TestEntity(model, "attacker");
+		model.add(attacker);
 		Entity target = new TestEntity(model, "target");
+		model.add(target);
 
 		attacker.setPosition(game.getGrid().new Position(0, 0));
 		target.setPosition(game.getGrid().new Position(3, 0));
 
-		model.add(attacker);
-		model.add(target);
 
 		BasicStunt stunt = new BasicStunt(model, attacker);
 		attacker.setStunt(stunt);
@@ -60,7 +70,7 @@ public class BotTest {
 		assertEquals(0, attacker.position().y());
 		assertEquals(0, attacker.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
 		assertEquals(1, attacker.position().x());
 		assertEquals(0, attacker.position().y());
@@ -74,13 +84,13 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity attacker = new TestEntity(model, "attacker");
+		model.add(attacker);
 		Entity target = new TestEntity(model, "target");
+		model.add(target);
 
 		attacker.setPosition(game.getGrid().new Position(0, 0));
 		target.setPosition(game.getGrid().new Position(0, 3));
 
-		model.add(attacker);
-		model.add(target);
 
 		BasicStunt stunt = new BasicStunt(model, attacker);
 		attacker.setStunt(stunt);
@@ -94,7 +104,7 @@ public class BotTest {
 		assertEquals(0, attacker.position().y());
 		assertEquals(90, attacker.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
 		assertEquals(0, attacker.position().x());
 		assertEquals(1, attacker.position().y());
@@ -108,13 +118,13 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity player = new TestEntity(model, "player");
+		model.add(player);
 		Entity enemy = new TestEntity(model, "enemy");
+		model.add(enemy);
 
 		player.setPosition(game.getGrid().new Position(5, 5));
 		enemy.setPosition(game.getGrid().new Position(6, 5));
 
-		model.add(player);
-		model.add(enemy);
 
 		BasicStunt stunt = new BasicStunt(model, player);
 		player.setStunt(stunt);
@@ -128,7 +138,7 @@ public class BotTest {
 		assertEquals(5, player.position().y());
 		assertEquals(180, player.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
 		assertEquals(4, player.position().x());
 		assertEquals(5, player.position().y());
@@ -142,13 +152,13 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity player = new TestEntity(model, "player");
+		model.add(player);
 		Entity enemy = new TestEntity(model, "enemy");
+		model.add(enemy);
 
 		player.setPosition(game.getGrid().new Position(5, 5));
 		enemy.setPosition(game.getGrid().new Position(5, 6));
 
-		model.add(player);
-		model.add(enemy);
 
 		BasicStunt stunt = new BasicStunt(model, player);
 		player.setStunt(stunt);
@@ -162,7 +172,7 @@ public class BotTest {
 		assertEquals(5, player.position().y());
 		assertEquals(270, player.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
 		assertEquals(5, player.position().x());
 		assertEquals(4, player.position().y());
@@ -176,16 +186,16 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity attacker = new TestEntity(model, "attacker");
+		model.add(attacker);
 		Entity blocker = new TestEntity(model, "blocker");
+		model.add(blocker);
 		Entity target = new TestEntity(model, "target");
+		model.add(target);
 
 		attacker.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(1, 0));
 		target.setPosition(game.getGrid().new Position(3, 0));
 
-		model.add(attacker);
-		model.add(blocker);
-		model.add(target);
 
 		BasicStunt stunt = new BasicStunt(model, attacker);
 		attacker.setStunt(stunt);
@@ -197,13 +207,13 @@ public class BotTest {
 
 		assertEquals(0, attacker.position().x());
 		assertEquals(0, attacker.position().y());
-		assertEquals(0, attacker.orientation());
+		// La direction directe est bloquée : le Bot choisit une route alternative.
+		assertEquals(90, attacker.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
-		// Le mouvement vers (1,0) collisionne avec blocker, donc retour à la position initiale.
 		assertEquals(0, attacker.position().x());
-		assertEquals(0, attacker.position().y());
+		assertEquals(1, attacker.position().y());
 	}
 
 	@Test
@@ -213,16 +223,16 @@ public class BotTest {
 		Brain brain = new Brain();
 
 		Entity player = new TestEntity(model, "player");
+		model.add(player);
 		Entity enemy = new TestEntity(model, "enemy");
+		model.add(enemy);
 		Entity blocker = new TestEntity(model, "blocker");
+		model.add(blocker);
 
 		player.setPosition(game.getGrid().new Position(5, 5));
 		enemy.setPosition(game.getGrid().new Position(6, 5));
 		blocker.setPosition(game.getGrid().new Position(4, 5));
 
-		model.add(player);
-		model.add(enemy);
-		model.add(blocker);
 
 		BasicStunt stunt = new BasicStunt(model, player);
 		player.setStunt(stunt);
@@ -234,12 +244,12 @@ public class BotTest {
 
 		assertEquals(5, player.position().x());
 		assertEquals(5, player.position().y());
-		assertEquals(180, player.orientation());
+		// La fuite directe vers l'ouest est bloquée : le Bot choisit le nord.
+		assertEquals(270, player.orientation());
 
-		model.tick(1000L);
+		model.tick(200L);
 
-		// Fuite vers (4,5), mais blocker est là, donc le joueur reste en (5,5).
 		assertEquals(5, player.position().x());
-		assertEquals(5, player.position().y());
+		assertEquals(4, player.position().y());
 	}
 }

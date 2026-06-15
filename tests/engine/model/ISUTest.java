@@ -457,4 +457,34 @@ public class ISUTest {
 		assertDoesNotThrow(() -> v.turn(90));
 		assertDoesNotThrow(() -> v.show(System.out));
 	}
+	@Test
+	void vectorKeepsItsDirectionAndLengthOnTorus() {
+		Game game = new TestGame();
+		ISU isu = game.getIsu();
+
+		ISU.Vector left = isu.new Vector(-isu.cmPerCell(), 0.0);
+		ISU.Vector longVector = isu.new Vector(2.0 * isu.width() + 1.5, -isu.height() - 2.5);
+
+		assertEquals(-isu.cmPerCell(), left.x(), EPS);
+		assertEquals(0.0, left.y(), EPS);
+		assertEquals(2.0 * isu.width() + 1.5, longVector.x(), EPS);
+		assertEquals(-isu.height() - 2.5, longVector.y(), EPS);
+	}
+
+	@Test
+	void translatingByLongVectorNormalizesOnlyTheFinalCoordinate() {
+		Game game = new TestGame();
+		ISU isu = game.getIsu();
+
+		ISU.Coord start = isu.new Coord(1.0, 2.0);
+		ISU.Vector path = isu.new Vector(2.0 * isu.width() + 3.0, -isu.height() - 4.0);
+		ISU.Coord end = start.mkTranslated(path);
+
+		assertEquals(4.0, end.x(), EPS);
+		assertEquals(isu.height() - 2.0, end.y(), EPS);
+		assertEquals(2.0 * isu.width() + 3.0, path.x(), EPS);
+		assertEquals(-isu.height() - 4.0, path.y(), EPS);
+	}
+
+
 }

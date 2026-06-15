@@ -18,13 +18,18 @@ public class StuntNotificationTest {
 
 		TestEntity(Model model, String name) {
 			super(model, name);
-			setBounding();
+			updateBounding();
 		}
 
 		@Override
-		protected void setBounding() {
-			this.bounding = new Bounding();
-			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
+		protected Bounding createBounding(
+			engine.model.ISU.Coord center,
+			engine.model.ISU.Dimension size,
+			int orientationDegree
+		) {
+			Bounding result = new Bounding();
+			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
+			return result;
 		}
 	}
 
@@ -80,6 +85,7 @@ public class StuntNotificationTest {
 		Model model = game.model();
 
 		Entity entity = new TestEntity(model, "e");
+		model.add(entity);
 		SpyStunt stunt = new SpyStunt(model, entity);
 
 		entity.setStunt(stunt);
@@ -98,6 +104,7 @@ public class StuntNotificationTest {
 		Model model = game.model();
 
 		Entity entity = new TestEntity(model, "e");
+		model.add(entity);
 		SpyStunt stunt = new SpyStunt(model, entity);
 
 		entity.setStunt(stunt);
@@ -114,6 +121,7 @@ public class StuntNotificationTest {
 		Model model = game.model();
 
 		Entity entity = new TestEntity(model, "e");
+		model.add(entity);
 		SpyStunt stunt = new SpyStunt(model, entity);
 
 		entity.setStunt(stunt);
@@ -140,6 +148,7 @@ public class StuntNotificationTest {
 		assertTrue(entity.alive());
 
 		entity.death();
+		model.tick(0L);
 
 		assertFalse(entity.alive());
 		assertFalse(model.entities().contains(entity));

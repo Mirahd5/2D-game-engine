@@ -18,13 +18,18 @@ public class EntityTest {
 
 		TestEntity(Model model, String name) {
 			super(model, name);
-			setBounding();
+			updateBounding();
 		}
 
 		@Override
-		protected void setBounding() {
-			this.bounding = new Bounding();
-			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
+		protected Bounding createBounding(
+			engine.model.ISU.Coord center,
+			engine.model.ISU.Dimension size,
+			int orientationDegree
+		) {
+			Bounding result = new Bounding();
+			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
+			return result;
 		}
 	}
 
@@ -33,6 +38,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		assertSame(model, e.model());
 		assertEquals("pacman", e.name());
@@ -57,6 +63,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Position p = game.getGrid().new Position(2, 3);
 		e.setPosition(p);
@@ -73,6 +80,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		ISU.Coord c = game.getIsu().new Coord(7.4, 11.1);
 		e.setCoord(c);
@@ -89,6 +97,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Vector v = game.getGrid().new Vector(1, 2);
 		e.translate(v);
@@ -105,6 +114,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		ISU.Vector v = game.getIsu().new Vector(7.4, 3.7);
 		e.translate(v);
@@ -121,6 +131,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		e.turn(90);
 		assertEquals(90, e.orientation());
@@ -137,6 +148,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		e.moveEast(3.7);
 		assertEquals(1, e.position().x());
@@ -168,6 +180,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid grid = game.getGrid();
 
@@ -187,6 +200,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Position start = e.position().copy();
 
@@ -206,6 +220,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Position start = e.position().copy();
 
@@ -225,6 +240,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Dimension d = game.getGrid().new Dimension(2, 3);
 		e.setSize(d);
@@ -238,11 +254,15 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		ISU.Dimension d = game.getIsu().new Dimension(2.0, 3.0);
 		e.setSize(d);
 
-		assertSame(d, e.size());
+		ISU.Dimension stored = e.size();
+		assertNotSame(d, stored);
+		assertEquals(d.x(), stored.x(), EPS);
+		assertEquals(d.y(), stored.y(), EPS);
 	}
 
 	@Test
@@ -250,6 +270,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		assertDoesNotThrow(() -> e.show(System.out));
 	}
@@ -259,6 +280,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Position start = e.position().copy();
 
@@ -278,6 +300,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		Grid.Position start = e.position().copy();
 
@@ -297,6 +320,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "pacman");
+		model.add(e);
 
 		assertNotNull(e.bounding());
 	}
@@ -307,7 +331,9 @@ public class EntityTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
+		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
+		model.add(e2);
 
 		e1.setCoord(game.getIsu().new Coord(5.0, 5.0));
 		e2.setCoord(game.getIsu().new Coord(6.0, 5.0));
@@ -322,7 +348,9 @@ public class EntityTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
+		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
+		model.add(e2);
 
 		e1.setCoord(game.getIsu().new Coord(1.0, 1.0));
 		e2.setCoord(game.getIsu().new Coord(20.0, 20.0));
@@ -337,7 +365,9 @@ public class EntityTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
+		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
+		model.add(e2);
 
 		e1.setCoord(game.getIsu().new Coord(0.0, 0.0));
 		e2.setCoord(game.getIsu().new Coord(3.0, 4.0));
@@ -351,7 +381,9 @@ public class EntityTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
+		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
+		model.add(e2);
 
 		e1.setCoord(game.getIsu().new Coord(0.0, 0.0));
 		e2.setCoord(game.getIsu().new Coord(20.0, 20.0));
@@ -368,6 +400,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "e");
+		model.add(e);
 
 		Grid.Cell cell = game.getGrid().cellAt(game.getGrid().new Position(0, 0));
 
@@ -380,6 +413,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "e");
+		model.add(e);
 
 		Grid.Cell oldCell = game.getGrid().cellAt(game.getGrid().new Position(0, 0));
 
@@ -398,6 +432,7 @@ public class EntityTest {
 		Game game = new TestGame();
 		Model model = game.model();
 		Entity e = new TestEntity(model, "e");
+		model.add(e);
 
 		e.setPosition(game.getGrid().new Position(2, 3));
 
@@ -440,6 +475,7 @@ public class EntityTest {
 		}
 
 		Entity e = new TestEntity(model, "e");
+		model.add(e);
 		SpyStunt stunt = new SpyStunt(model, e);
 		e.setStunt(stunt);
 
@@ -457,6 +493,7 @@ public class EntityTest {
 		Model model = game.model();
 
 		Entity entity = new TestEntity(model, "e");
+		model.add(entity);
 
 		assertEquals(0, entity.zOrder());
 		assertEquals(0, entity.sOrder());

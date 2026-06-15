@@ -22,7 +22,9 @@ public class EntityCollisionTest {
 		Model model = game.model();
 
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
+		model.add(gum);
 
 		pacman.setPosition(game.getGrid().new Position(2, 2));
 		gum.setPosition(game.getGrid().new Position(2, 2));
@@ -52,7 +54,9 @@ public class EntityCollisionTest {
 		Model model = game.model();
 
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
+		model.add(gum);
 
 
 		pacman.setPosition(game.getGrid().new Position(1, 1));
@@ -84,7 +88,9 @@ public class EntityCollisionTest {
 		Model model = game.model();
 
 		PacMan pacman = new PacMan(model, "pacman");
-		Obstacle obstacle = new Obstacle(model, "wall", 2, 2);
+		model.add(pacman);
+		Obstacle obstacle = new Obstacle(model, "wall");
+		model.add(obstacle, model.grid().new Position(2, 2));
 
 		pacman.setPosition(game.getGrid().new Position(2, 2));
 
@@ -113,7 +119,9 @@ public class EntityCollisionTest {
 		
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		Obstacle obstacle = new Obstacle(model, "wall", 8, 8);
+		model.add(pacman);
+		Obstacle obstacle = new Obstacle(model, "wall");
+		model.add(obstacle, model.grid().new Position(8, 8));
 
 		pacman.setPosition(game.getGrid().new Position(1, 1));
 
@@ -139,7 +147,9 @@ public class EntityCollisionTest {
 		
 		Model model = game.model();
 		Ghost ghost = new Ghost(model, "ghost");
+		model.add(ghost);
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 
 		ghost.setPosition(game.getGrid().new Position(4, 4));
 		pacman.setPosition(game.getGrid().new Position(4, 4));
@@ -169,7 +179,9 @@ public class EntityCollisionTest {
 		
 		Model model = game.model();
 		Boss boss = new Boss(model, "boss");
+		model.add(boss);
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 
 		boss.setPosition(game.getGrid().new Position(4, 4));
 		pacman.setPosition(game.getGrid().new Position(4, 4));
@@ -201,7 +213,9 @@ public class EntityCollisionTest {
 		Model model = game.model();
 		
 		PacMan pacman = new PacMan(model, "pacman");
+		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
+		model.add(gum);
 
 		/*
 		 * Ici on utilise setCoord plutôt que setPosition pour placer les centres

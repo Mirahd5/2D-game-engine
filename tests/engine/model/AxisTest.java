@@ -215,13 +215,12 @@ public class AxisTest {
 		System.out.println("Situation : non-torus dimension should not wrap");
 		System.out.println("Expected normalizeDimension(1)  = 1  | Actual = " + axis.normalizeDimension(1));
 		System.out.println("Expected normalizeDimension(10) = 10 | Actual = " + axis.normalizeDimension(10));
-		System.out.println("Expected normalizeDimension(12) = 12 | Actual = " + axis.normalizeDimension(12));
-		System.out.println("Expected normalizeDimension(20) = 20 | Actual = " + axis.normalizeDimension(20));
+		System.out.println("Dimensions greater than the non-toric axis are rejected");
 
 		assertEquals(1, axis.normalizeDimension(1));
 		assertEquals(10, axis.normalizeDimension(10));
-		assertEquals(12, axis.normalizeDimension(12));
-		assertEquals(20, axis.normalizeDimension(20));
+		assertThrows(AssertionError.class, () -> axis.normalizeDimension(12));
+		assertThrows(AssertionError.class, () -> axis.normalizeDimension(20));
 	}
 
 	// =========================
@@ -257,13 +256,12 @@ public class AxisTest {
 		System.out.println("Situation : non-torus dimension should not wrap");
 		System.out.println("Expected normalizeDimension(1.0)  = 1.0  | Actual = " + axis.normalizeDimension(1.0));
 		System.out.println("Expected normalizeDimension(10.0) = 10.0 | Actual = " + axis.normalizeDimension(10.0));
-		System.out.println("Expected normalizeDimension(12.0) = 12.0 | Actual = " + axis.normalizeDimension(12.0));
-		System.out.println("Expected normalizeDimension(20.0) = 20.0 | Actual = " + axis.normalizeDimension(20.0));
+		System.out.println("Dimensions greater than the non-toric axis are rejected");
 
 		assertEquals(1.0, axis.normalizeDimension(1.0), EPS);
 		assertEquals(10.0, axis.normalizeDimension(10.0), EPS);
-		assertEquals(12.0, axis.normalizeDimension(12.0), EPS);
-		assertEquals(20.0, axis.normalizeDimension(20.0), EPS);
+		assertThrows(AssertionError.class, () -> axis.normalizeDimension(12.0));
+		assertThrows(AssertionError.class, () -> axis.normalizeDimension(20.0));
 	}
 
 	// =========================
