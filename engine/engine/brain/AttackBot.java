@@ -1,144 +1,181 @@
 package engine.brain;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import engine.model.BasicStunt;
 import engine.model.Entity;
-import engine.model.Grid;
 import engine.model.ISU;
+import engine.model.Stunt;
 
-public class AttackBot extends Bot {
+/*
+ * Bot simple qui poursuit une entité donnée.
+ *
+ * Le Bot choisit une direction.
+ * Le Stunt exécute le déplacement.
+ * Le Model applique physiquement le mouvement.
+ */
+public final class AttackBot extends Bot {
 
-	private Entity target;
+	private static final double EPSILON = 0.000000001;
 
-	private List<Entity> walls;
+	/*
+	 * Cible poursuivie pendant toute la vie du Bot.
+	 */
+	private final Entity target;
 
-	private int lastDirection;
+	/*
+	 * null signifie qu'aucun déplacement n'a encore été effectué.
+	 */
+	private Integer lastDirection;
 
-	public AttackBot(BasicStunt stunt, Entity target) {
-		this(stunt, target, new ArrayList<Entity>());
-	}
+	public AttackBot(Brain brain, Stunt stunt, Entity target) {
+		super(brain, stunt);
 
-	public AttackBot(BasicStunt stunt, Entity target, List<Entity> walls) {
-		super(stunt);
+		assert target != null;
+		assert target != stunt.entity();
+
+		/*
+		 * L'attaquant et la cible doivent appartenir au même monde simulé.
+		 */
+		assert target.model() == stunt.entity().model();
+
 		this.target = target;
-		this.walls = new ArrayList<Entity>(walls);
-		this.lastDirection = BasicStunt.EAST;
+		this.lastDirection = null;
 	}
 
-	public void setWalls(List<Entity> walls) {
-		this.walls = new ArrayList<Entity>(walls);
+	public Entity target() {
+		return this.target;
 	}
 
 	@Override
 	public void think() {
+		/*
+		 * Le Bot a peut-être été remplacé ou son Stunt a été invalidé.
+		 */
+		if (!valid()) {
+			return;
+		}
+
+		Entity attacker = this.stunt.entity();
+
+		if (!attacker.alive() || !attacker.installed()) {
+			return;
+		}
+
+		/*
+		 * Une cible morte ou retirée du Model ne doit plus être poursuivie.
+		 */
+		if (!this.target.alive() || !this.target.installed()) {
+			return;
+		}
+
+		/*
+		 * Une marche est une action qui prend du temps. On attend sa fin avant d'en
+		 * demander une autre.
+		 */
+		if (attacker.isMoving()) {
+			return;
+		}
+
 		walkTowardTarget();
 	}
 
 	@Override
 	public void done() {
-		walkTowardTarget();
+		think();
 	}
 
 	@Override
 	public void collision(Entity other) {
-		// Si on touche un mur, on retente une autre direction.
-		walkTowardTarget();
+		think();
 	}
 
 	@Override
 	public void collision(List<Entity> others) {
-		walkTowardTarget();
+		think();
 	}
 
 	private void walkTowardTarget() {
-		if (stunt.isMoving()) {
+		Entity self = this.stunt.entity();
+
+		/*
+		 * Vecteur torique le plus court allant de l'attaquant vers sa cible.
+		 */
+		ISU.Vector toward = self.center().mkVectorToward(this.target.center());
+
+		double dx = toward.x();
+		double dy = toward.y();
+
+		/*
+		 * Les deux centres sont confondus. Le contact sera traité par les collisions.
+		 */
+		if (Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON) {
 			return;
 		}
-		ISU.Coord myCenter = entity().center();
-		ISU.Coord targetCenter = target.center();
-		double dx = targetCenter.x() - myCenter.x();
-		double dy = targetCenter.y() - myCenter.y();
-		int horizontal = dx >= 0 ? BasicStunt.EAST : BasicStunt.WEST;
-		int vertical = dy >= 0 ? BasicStunt.SOUTH : BasicStunt.NORTH;
+
+		int horizontal = dx >= 0.0 ? 0 : 180;
+
+		int vertical = dy >= 0.0 ? 90 : 270;
+
 		int[] directions;
 
+		/*
+		 * On privilégie l'axe sur lequel la cible est la plus éloignée.
+		 */
 		if (Math.abs(dx) >= Math.abs(dy)) {
 			directions = new int[] { horizontal, vertical, opposite(vertical), opposite(horizontal) };
 		} else {
 			directions = new int[] { vertical, horizontal, opposite(horizontal), opposite(vertical) };
 		}
 
-		int reverse = opposite(lastDirection);
+		/*
+		 * On évite d'abord le demi-tour, mais seulement si un déplacement précédent
+		 * existe.
+		 */
+		if (this.lastDirection != null) {
+			int reverse = opposite(this.lastDirection);
+
+			for (int direction : directions) {
+				if (direction == reverse) {
+					continue;
+				}
+
+				if (this.stunt.walk(direction)) {
+					this.lastDirection = direction;
+
+					return;
+				}
+			}
+		}
+
+		/*
+		 * Premier déplacement, ou aucune autre direction possible : toutes les
+		 * directions sont autorisées.
+		 */
 		for (int direction : directions) {
-			if (direction != reverse && !isBlocked(direction)) {
-				lastDirection = direction;
-				stunt.walk(direction);
+			if (this.stunt.walk(direction)) {
+				this.lastDirection = direction;
+
 				return;
 			}
-		}
-
-		for (int direction : directions) {
-			if (!isBlocked(direction)) {
-				lastDirection = direction;
-				stunt.walk(direction);
-				return;
-			}
-		}
-	}
-
-	private boolean isBlocked(int direction) {
-		Grid.Position current = entity().position();
-		Grid grid = current.grid();
-
-		Grid.Position next = current.copy();
-		next.translate(vectorFor(grid, direction));
-
-		for (Entity wall : walls) {
-			if (wall.position().equiv(next)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	private Grid.Vector vectorFor(Grid grid, int direction) {
-		switch (direction) {
-		case BasicStunt.EAST:
-			return grid.new Vector(1, 0);
-
-		case BasicStunt.WEST:
-			return grid.new Vector(-1, 0);
-
-		case BasicStunt.SOUTH:
-			return grid.new Vector(0, 1);
-
-		case BasicStunt.NORTH:
-			return grid.new Vector(0, -1);
-
-		default:
-			return grid.new Vector(0, 0);
 		}
 	}
 
 	private int opposite(int direction) {
 		switch (direction) {
-		case BasicStunt.EAST:
-			return BasicStunt.WEST;
+		case 0:
+			return 180;
 
-		case BasicStunt.WEST:
-			return BasicStunt.EAST;
+		case 90:
+			return 270;
 
-		case BasicStunt.NORTH:
-			return BasicStunt.SOUTH;
+		case 180:
+			return 0;
 
-		case BasicStunt.SOUTH:
-			return BasicStunt.NORTH;
+		case 270:
+			return 90;
 
 		default:
-			return BasicStunt.EAST;
+			throw new AssertionError("Direction must be cardinal: " + direction);
 		}
 	}
 }

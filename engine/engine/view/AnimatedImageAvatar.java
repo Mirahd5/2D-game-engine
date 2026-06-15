@@ -1,0 +1,95 @@
+package engine.view;
+
+import engine.model.Entity;
+
+/*
+ * Avatar générique basé sur plusieurs frames.
+ *
+ * L'animation dépend uniquement :
+ * - du temps écoulé transmis par View.tick ;
+ * - de l'état de l'entité.
+ *
+ * Cette classe ne crée aucun Timer, Thread
+ * ou Runtime.post indépendant.
+ */
+public abstract class AnimatedImageAvatar extends ImageAvatar {
+
+	private final long frameDuration;
+
+	private long elapsedSinceFrame;
+	private int animatedOrientation;
+
+	public AnimatedImageAvatar(View view, Entity entity, String[] paths, long frameDuration) {
+		super(view, entity, paths);
+
+		assert frameDuration > 0L;
+
+		this.frameDuration = frameDuration;
+		this.elapsedSinceFrame = 0L;
+		this.animatedOrientation = entity.orientation();
+	}
+
+	public final long frameDuration() {
+		return this.frameDuration;
+	}
+
+	/*
+	 * Par défaut, une entité est animée dès qu'elle possède une vitesse linéaire ou
+	 * angulaire.
+	 *
+	 * Une spécialisation peut redéfinir cette règle.
+	 */
+	protected boolean shouldAnimate() {
+		return this.entity.isMoving();
+	}
+
+	/*
+	 * Une orientation différente peut correspondre à une autre séquence graphique.
+	 */
+	protected boolean resetOnOrientationChange() {
+		return true;
+	}
+
+	protected final void resetAnimation() {
+		this.elapsedSinceFrame = 0L;
+		resetFrame();
+	}
+
+	@Override
+	public void tick(long elapsed) {
+		assert elapsed >= 0L;
+
+		if (!this.entity.alive() || !this.entity.installed()) {
+
+			resetAnimation();
+			return;
+		}
+
+		int orientation = this.entity.orientation();
+
+		if (resetOnOrientationChange() && orientation != this.animatedOrientation) {
+
+			this.animatedOrientation = orientation;
+
+			resetAnimation();
+		}
+
+		if (!shouldAnimate()) {
+			resetAnimation();
+			return;
+		}
+
+		this.elapsedSinceFrame += elapsed;
+
+		/*
+		 * Un while permet de rattraper plusieurs frames après un tick
+		 * exceptionnellement long.
+		 */
+		while (this.elapsedSinceFrame >= this.frameDuration) {
+
+			this.elapsedSinceFrame -= this.frameDuration;
+
+			nextFrame();
+		}
+	}
+}

@@ -1,94 +1,23 @@
-// = AXIS =
 package engine.model;
 
+/*
+ * Représente un axe du monde.
+ *
+ * Un axe peut être normal ou torique.
+ * Sur un axe torique, les positions reviennent au début quand elles dépassent
+ * le périmètre, comme dans PacMan quand on sort d'un côté de la carte.
+ */
 public class Axis {
 
-	// FIELDS
 	private final boolean onTorus;
 	private final double perimeter;
-	private final double halfPerimeter;
-
-	// CONSTRUCTOR
 
 	public Axis(boolean onTorus, double perimeter) {
-		assert (perimeter > 0);
+		assert perimeter > 0.0 : perimeter;
+
 		this.onTorus = onTorus;
 		this.perimeter = perimeter;
-		this.halfPerimeter = perimeter / 2.0;
 	}
-
-	// NORMALIZE INTEGER POSITION
-	public int normalize(int length) {
-		if (!this.onTorus) {
-			return length;
-		}
-		return modp(length, (int) this.perimeter);
-	}
-
-	public int modp(int length, int perimeter) {
-		assert (perimeter > 0);
-		int r = length % perimeter;
-		if (r < 0) {
-			r += perimeter;
-		}
-		assert (r >= 0);
-		assert (r < perimeter);
-		return r;
-	}
-
-	// NORMALIZE REAL POSITION
-
-	public double normalize(double length) {
-
-		if (!this.onTorus) {
-			return length;
-		}
-		return modp(length, this.perimeter);
-	}
-
-	public double modp(double length, double perimeter) {
-		assert (perimeter > 0.0);
-		double r = length % perimeter;
-		if (r < 0.0) {
-			r += perimeter;
-		}
-		if (r >= perimeter || Math.abs(r - perimeter) < 1e-9) {
-			r = 0.0;
-		}
-
-		if (r < 0.0 && Math.abs(r) < 1e-9) {
-			r = 0.0;
-		}
-		assert (r >= 0.0);
-		assert (r < perimeter);
-		return r;
-	}
-
-	// NORMALIZE REAL DELTA
-	public double normalizeDelta(double length) {
-
-		if (!this.onTorus) {
-			return length;
-		}
-		double r = modp(length, this.perimeter);
-		if (r >= this.halfPerimeter) {
-			r -= this.perimeter;
-		}
-
-		return r;
-	}
-
-	// DISTANCE
-
-	public double distance(double position1, double position2) {
-		double d = position2 - position1;
-		if (!this.onTorus) {
-			return Math.abs(d);
-		}
-		return Math.abs(normalizeDelta(d));
-	}
-
-	// GETTERS
 
 	public boolean onTorus() {
 		return this.onTorus;
@@ -99,15 +28,166 @@ public class Axis {
 	}
 
 	public double halfPerimeter() {
-		return this.halfPerimeter;
+		return this.perimeter / 2.0;
 	}
 
-	// UTILITY FOR BOX / TORUS CASES
-
-	public double euclideanMax(double min, double max) {
-		if (this.onTorus && max < min) {
-			return max + this.perimeter;
+	public int normalize(int value) {
+		if (!this.onTorus) {
+			return value;
 		}
-		return max;
+
+		return modp(value, integerPerimeter());
+	}
+
+	/*
+	 * Modulo positif. En Java, -1 % 5 donne -1, mais pour une position on veut
+	 * obtenir 4.
+	 */
+	public int modp(int value, int perimeter) {
+		assert perimeter > 0 : perimeter;
+
+		int result = value % perimeter;
+
+		if (result < 0) {
+			result += perimeter;
+		}
+
+		return result;
+	}
+
+	public double normalize(double value) {
+		if (!this.onTorus) {
+			return value;
+		}
+
+		return modp(value, this.perimeter);
+	}
+
+	public double modp(double value, double perimeter) {
+		assert perimeter > 0.0 : perimeter;
+
+		double result = value % perimeter;
+
+		if (result < 0.0) {
+			result += perimeter;
+		}
+
+		return result;
+	}
+
+	public int normalizeDimension(int length) {
+		assert length > 0 : length;
+
+		int perimeter = integerPerimeter();
+
+		if (!this.onTorus) {
+			assert length <= perimeter : "dimension larger than a non-toric axis";
+
+			return length;
+		}
+
+		int normalized = modp(length, perimeter);
+
+		/*
+		 * Une dimension égale à un ou plusieurs périmètres représente tout l'axe, pas
+		 * une taille nulle.
+		 */
+		if (normalized == 0) {
+			return perimeter;
+		}
+
+		return normalized;
+	}
+
+	public double normalizeDimension(double length) {
+		assert length > 0.0 : length;
+
+		if (!this.onTorus) {
+			assert length <= this.perimeter : "dimension larger than a non-toric axis";
+
+			return length;
+		}
+
+		double normalized = modp(length, this.perimeter);
+
+		if (Math.abs(normalized) < 1.0e-9) {
+			return this.perimeter;
+		}
+
+		return normalized;
+	}
+
+	/*
+	 * Retourne le déplacement signé le plus court de from vers to. Sur un axe non
+	 * torique, on garde simplement to - from. Sur un axe torique, on choisit le
+	 * sens le plus court autour du tore.
+	 */
+	public double delta(double from, double to) {
+		double d = to - from;
+
+		if (!this.onTorus) {
+			return d;
+		}
+
+		d = modp(d, this.perimeter);
+
+		if (d > this.perimeter / 2.0) {
+			d -= this.perimeter;
+		}
+
+		return d;
+	}
+
+	public double distance(double position1, double position2) {
+		double delta = Math.abs(position2 - position1);
+
+		if (!this.onTorus) {
+			return delta;
+		}
+
+		delta = modp(delta, this.perimeter);
+
+		// Sur un tore, on garde le plus court chemin entre les deux sens.
+		return Math.min(delta, this.perimeter - delta);
+	}
+
+	public double euclidean(double xmin, double xmax) {
+		if (!this.onTorus) {
+			return xmax;
+		}
+
+		double nxmin = normalize(xmin);
+		double nxmax = normalize(xmax);
+
+		// Si l'intervalle traverse le bord du tore, on le déroule localement.
+		if (nxmax < nxmin) {
+			nxmax += this.perimeter;
+		}
+
+		return nxmax;
+	}
+
+	private int integerPerimeter() {
+		assert this.perimeter == Math.rint(this.perimeter) : "integer normalization requires an integer perimeter";
+
+		return (int) Math.rint(this.perimeter);
+	}
+
+	public int delta(int from, int to) {
+		int difference = to - from;
+
+		if (!this.onTorus) {
+			return difference;
+		}
+
+		int perimeter = integerPerimeter();
+
+		difference = modp(difference, perimeter);
+
+		if (difference > perimeter / 2) {
+			difference -= perimeter;
+		}
+
+		return difference;
 	}
 }

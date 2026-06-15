@@ -3,157 +3,193 @@ package engine.model;
 
 import java.io.PrintStream;
 
-public class Game {
+import engine.view.Picture;
 
-	// CONSTANT
+/*
+ * Game contient la configuration générale d'un jeu.
+ *
+ * Cette classe fait partie du moteur : elle ne décrit pas PacMan directement,
+ * mais les paramètres nécessaires pour construire le monde :
+ * taille, unités, géométrie du tore, grille, espace ISU et modèle.
+ */
+public abstract class Game {
 
-	protected final boolean torusOnXaxis; // vrai si l'axe X est une boucle fermée
-	protected final boolean torusOnYaxis; // vrai si l'axe Y est une boucle fermée
+	private static final double EPS = 0.000001;
 
-	protected final double cmPerCell; // échelle qui relie l'unité ncell à cm
-	protected final int pixelPerCm; // échelle qui relie l'unité pixel à cm
+	// Géométrie du monde : chaque axe peut être torique ou non.
+	private boolean torusOnXaxis;
+	private boolean torusOnYaxis;
 
-	// FIELDS
+	// Facteurs de conversion entre les différentes unités.
+	private double cmPerCell;
+	private int pixelPerCm;
 
-	protected final int width_ncell; // largeur du monde en nombre de cellules
-	protected final int height_ncell; // hauteur du monde en nombre de celluls
+	// Dimensions du monde en cellules.
+	private int width_ncell;
+	private int height_ncell;
 
-	protected final double width_cm; // largeur du monde en cm
-	protected final double height_cm; // hauteur du monde en cm
+	// Dimensions du monde en coordonnées ISU.
+	private double width_cm;
+	private double height_cm;
 
-	protected final Grid grid; // permet la création de coordonnées en unités ncell
-	protected final ISU isu; // permet la création de coordonnées en unités cm
-	protected Picture pict; // permet la création de coordonnées en unités pixel, ne sera utilisé qu'à
-							// partir de Task2
+	// Objets principaux construits à partir de la configuration du jeu.
+	private Grid grid;
+	private ISU isu;
+	private Picture pict;
+	private Model model;
 
-	// CONSTRUCTORS
-
-	protected Game(int w_ncell, int h_ncell, boolean torusOnX, boolean torusOnY, double cmParCell, int pixelParCm) {
+	public Game(int w_ncell, int h_ncell, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
+			int pixelPerCm) {
 		assert w_ncell > 0;
 		assert h_ncell > 0;
-		assert cmParCell > 0;
-		assert pixelParCm > 0;
+		assert cmPerCell > 0.0;
+		assert pixelPerCm > 0;
+
+		this.torusOnXaxis = torusOnXaxis;
+		this.torusOnYaxis = torusOnYaxis;
+
+		this.cmPerCell = cmPerCell;
+		this.pixelPerCm = pixelPerCm;
 
 		this.width_ncell = w_ncell;
 		this.height_ncell = h_ncell;
 
-		this.torusOnXaxis = torusOnX;
-		this.torusOnYaxis = torusOnY;
-
-		this.cmPerCell = cmParCell;
-		this.pixelPerCm = pixelParCm;
-
+		// Les dimensions en cm sont déduites des dimensions en cellules.
 		this.width_cm = this.width_ncell * this.cmPerCell;
 		this.height_cm = this.height_ncell * this.cmPerCell;
 
-		assert this.width_cm == this.width_ncell * this.cmPerCell;
-		assert this.height_cm == this.height_ncell * this.cmPerCell;
+		buildEngineObjects();
 
+		assert Math.abs(this.width_ncell * this.cmPerCell - this.width_cm) < EPS;
+		assert Math.abs(this.height_ncell * this.cmPerCell - this.height_cm) < EPS;
+	}
+
+	public Game(double w_cm, double h_cm, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
+			int pixelPerCm) {
+		assert w_cm > 0.0;
+		assert h_cm > 0.0;
+		assert cmPerCell > 0.0;
+		assert pixelPerCm > 0;
+
+		/*
+		 * Ici, on construit le jeu à partir des dimensions en cm. Elles doivent donc
+		 * tomber exactement sur un nombre entier de cellules.
+		 */
+		assert Math.abs(w_cm / cmPerCell - Math.round(w_cm / cmPerCell)) < EPS;
+		assert Math.abs(h_cm / cmPerCell - Math.round(h_cm / cmPerCell)) < EPS;
+
+		this.torusOnXaxis = torusOnXaxis;
+		this.torusOnYaxis = torusOnYaxis;
+
+		this.cmPerCell = cmPerCell;
+		this.pixelPerCm = pixelPerCm;
+
+		this.width_cm = w_cm;
+		this.height_cm = h_cm;
+
+		// Les dimensions en cellules sont déduites des dimensions en cm.
+		this.width_ncell = (int) Math.round(this.width_cm / this.cmPerCell);
+		this.height_ncell = (int) Math.round(this.height_cm / this.cmPerCell);
+
+		buildEngineObjects();
+
+		assert Math.abs(this.width_ncell * this.cmPerCell - this.width_cm) < EPS;
+		assert Math.abs(this.height_ncell * this.cmPerCell - this.height_cm) < EPS;
+	}
+
+	/*
+	 * Construit les objets du moteur qui dépendent de la configuration.
+	 *
+	 * L'ordre est important : - ISU utilise les dimensions du jeu ; - Grid utilise
+	 * aussi le jeu ; - ISU reçoit ensuite la Grid pour faire les conversions ; -
+	 * Model regroupe les entités du monde.
+	 */
+	private void buildEngineObjects() {
 		this.isu = new ISU(this);
 		this.grid = new Grid(this);
 		this.isu.set(this.grid);
 
 		this.pict = new Picture(this);
+		this.model = new Model(this);
 	}
-
-	protected Game(double w_cm, double h_cm, boolean torusOnX, boolean torusOnY, double cmParCell, int pixelParCm) {
-		assert w_cm > 0;
-		assert h_cm > 0;
-		assert cmParCell > 0;
-		assert pixelParCm > 0;
-		
-		 this.torusOnXaxis = torusOnX;
-	     this.torusOnYaxis = torusOnY;
-
-	     this.cmPerCell = cmParCell;
-	     this.pixelPerCm = pixelParCm;
-	     
-	     double w = w_cm / cmPerCell;
-	     double h = h_cm / cmPerCell;
-	     
-	     assert w == Math.floor(w); //floor(7.9)=7
-	     assert h == Math.floor(h);
-	     
-	     this.width_ncell = (int) w;
-	     this.height_ncell = (int) h;
-	     
-	     this.width_cm = w_cm;
-	     this.height_cm = h_cm;
-	     
-	     assert this.width_cm == this.width_ncell * this.cmPerCell;
-	     assert this.height_cm == this.height_ncell * this.cmPerCell;
-	     
-
-	     this.isu = new ISU(this);
-	     this.grid = new Grid(this);
-	     this.isu.set(this.grid);
-
-	     //this.pict = null;
-	}
-
-	// GETTER
-
-	Game game;
 
 	public Game game() {
 		return this;
 	}
-	
-	public boolean torusOnXaxis() {
-        return torusOnXaxis;
-    }
 
-    public boolean torusOnYaxis() {
-        return torusOnYaxis;
-    }
+	public double getWidthCm() {
+		return this.width_cm;
+	}
 
-    public double cmPerCell() {
-        return cmPerCell;
-    }
+	public double getHeightCm() {
+		return this.height_cm;
+	}
 
-    public int pixelPerCm() {
-        return pixelPerCm;
-    }
+	public int getWidthCell() {
+		return this.width_ncell;
+	}
 
-    public int width_ncell() {
-        return width_ncell;
-    }
+	public int getHeightCell() {
+		return this.height_ncell;
+	}
 
-    public int height_ncell() {
-        return height_ncell;
-    }
+	public double getWidthPixel() {
+		return this.width_cm * this.pixelPerCm;
+	}
 
-    public double width_cm() {
-        return width_cm;
-    }
+	public double getHeightPixel() {
+		return this.height_cm * this.pixelPerCm;
+	}
 
-    public double height_cm() {
-        return height_cm;
-    }
+	public boolean isTorusOnXaxis() {
+		return this.torusOnXaxis;
+	}
 
-    public Grid grid() {
-        return grid;
-    }
+	public boolean isTorusOnYaxis() {
+		return this.torusOnYaxis;
+	}
 
-    public ISU isu() {
-        return isu;
-    }
+	public boolean getTorusOnXaxis() {
+		return this.torusOnXaxis;
+	}
 
-    public Picture pict() {
-        return pict;
-    }
+	public boolean getTorusOnYaxis() {
+		return this.torusOnYaxis;
+	}
 
-	// SHOW
+	public double getCmPerCell() {
+		return this.cmPerCell;
+	}
+
+	public int getPixelPerCm() {
+		return this.pixelPerCm;
+	}
+
+	public ISU getIsu() {
+		return this.isu;
+	}
+
+	public Grid getGrid() {
+		return this.grid;
+	}
+
+	public Picture getPicture() {
+		return this.pict;
+	}
+
+	public Model model() {
+		return this.model;
+	}
 
 	public void show(PrintStream ps) {
-		ps.println("=== GAME ===");
-        ps.println("torusOnXaxis = " + torusOnXaxis);
-        ps.println("torusOnYaxis = " + torusOnYaxis);
-        ps.println("cmPerCell    = " + cmPerCell);
-        ps.println("pixelPerCm   = " + pixelPerCm);
-        ps.println("width_ncell  = " + width_ncell);
-        ps.println("height_ncell = " + height_ncell);
-        ps.println("width_cm     = " + width_cm);
-        ps.println("height_cm    = " + height_cm);
+		ps.println("Game:");
+		ps.println("width_ncell = " + this.width_ncell);
+		ps.println("height_ncell = " + this.height_ncell);
+		ps.println("width_cm = " + this.width_cm);
+		ps.println("height_cm = " + this.height_cm);
+		ps.println("cmPerCell = " + this.cmPerCell);
+		ps.println("pixelPerCm = " + this.pixelPerCm);
+		ps.println("torusOnXaxis = " + this.torusOnXaxis);
+		ps.println("torusOnYaxis = " + this.torusOnYaxis);
 	}
 }
