@@ -2,7 +2,6 @@
 package engine.model;
 
 import java.io.PrintStream;
-import java.util.function.BooleanSupplier;
 
 /*
  * ISU représente l'espace continu du jeu, en centimètres.
