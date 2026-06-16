@@ -2,6 +2,7 @@
 package engine.model;
 
 import java.io.PrintStream;
+import java.util.function.BooleanSupplier;
 
 /*
  * ISU représente l'espace continu du jeu, en centimètres.
@@ -116,23 +117,24 @@ public class ISU {
 			return new Dimension(this.x_cm, this.y_cm);
 		}
 
-		@Override
-		public int hashCode() {
-			return java.util.Objects.hash(ISU.this, Double.doubleToLongBits(this.x_cm),
-					Double.doubleToLongBits(this.y_cm));
-		}
-
 		public ISU isu() {
 			return ISU.this;
 		}
 
 		@Override
-		public boolean equals(Object o) {
-			if (o instanceof Dimension) {
-				return equiv((Dimension) o);
+		public boolean equals(Object object) {
+			if (this == object) {
+				return true;
 			}
 
-			return false;
+			if (!(object instanceof ISU.Dimension)) {
+				return false;
+			}
+
+			Dimension other = (Dimension) object;
+
+			return other.isu() == ISU.this && Double.compare(this.x_cm, other.x_cm) == 0
+					&& Double.compare(this.y_cm, other.y_cm) == 0;
 		}
 
 		public boolean equiv(Dimension d) {
@@ -227,13 +229,19 @@ public class ISU {
 		}
 
 		@Override
-		public boolean equals(Object o) {
-			if (o instanceof ISU.Coord) {
-				Coord coord = (ISU.Coord) o;
-				return coord.x_cm == this.x_cm && coord.y_cm == this.y_cm;
+		public boolean equals(Object object) {
+			if (this == object) {
+				return true;
 			}
 
-			return false;
+			if (!(object instanceof ISU.Coord)) {
+				return false;
+			}
+
+			Coord other = (Coord) object;
+
+			return other.isu() == ISU.this && Double.compare(this.x_cm, other.x_cm) == 0
+					&& Double.compare(this.y_cm, other.y_cm) == 0;
 		}
 
 		/*
@@ -245,6 +253,7 @@ public class ISU {
 		 */
 		public ISU.Vector mkVectorToward(Coord target) {
 			assert target != null;
+			assert target.isu() == ISU.this;
 
 			/*
 			 * Le choix du plus court chemin dépend de chaque axe. Exemple : PacMan peut
@@ -286,6 +295,7 @@ public class ISU {
 
 		public ISU.Coord mkTranslated(ISU.Vector v) {
 			assert v != null;
+			assert v.isu() == ISU.this;
 
 			return new ISU.Coord(this.x_cm + v.x_cm, this.y_cm + v.y_cm);
 		}
@@ -348,6 +358,21 @@ public class ISU {
 			double dy = yAxis.distance(this.y_cm, pt.y_cm);
 
 			return Math.sqrt(dx * dx + dy * dy);
+		}
+
+		/*
+		 * equiv compare uniquement les valeurs.
+		 *
+		 * Deux coordonnées de deux ISU différents peuvent être équivalentes, sans être
+		 * égales.
+		 */
+		public boolean equiv(Coord coord) {
+			if (coord == this) {
+				return true;
+			}
+
+			return coord != null && Double.compare(this.x_cm, coord.x_cm) == 0
+					&& Double.compare(this.y_cm, coord.y_cm) == 0;
 		}
 	}
 

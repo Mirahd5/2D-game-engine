@@ -270,7 +270,10 @@ public class Model {
 
 	public void place(Entity entity, Grid.Position position) {
 		assert position != null;
+		assert position.grid() == this.grid;
+
 		assertOwned(entity);
+
 		entity.applyPoseFromModel(position.toISUCoordCentered(), entity.orientation(), true);
 	}
 
@@ -298,7 +301,8 @@ public class Model {
 
 	public void translate(Entity entity, Grid.Vector vector) {
 		assert vector != null;
-
+		assert vector.grid() == this.grid;
+		
 		assertOwned(entity);
 
 		Grid.Position target = entity.position();

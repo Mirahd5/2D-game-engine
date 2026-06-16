@@ -138,11 +138,6 @@ public class Grid {
 		}
 
 		@Override
-		public int hashCode() {
-			return java.util.Objects.hash(Grid.this, this.x_ncell, this.y_ncell);
-		}
-
-		@Override
 		public boolean equals(Object object) {
 			if (this == object) {
 				return true;
@@ -198,6 +193,10 @@ public class Grid {
 
 		private int x_deplacement, y_deplacement;
 
+		Grid grid() {
+			return Grid.this;
+		}
+
 		public Vector(int x_ncell, int y_ncell) {
 			this.x_deplacement = x_ncell;
 			this.y_deplacement = y_ncell;
@@ -211,11 +210,12 @@ public class Grid {
 			return this.y_deplacement;
 		}
 
-		public void add(Vector v) {
-			assert v != null;
+		public void add(Vector vector) {
+			assert vector != null;
+			assert vector.grid() == Grid.this;
 
-			this.x_deplacement += v.x_deplacement;
-			this.y_deplacement += v.y_deplacement;
+			this.x_deplacement += vector.x_deplacement;
+			this.y_deplacement += vector.y_deplacement;
 		}
 
 		public void show(PrintStream ps) {
@@ -267,13 +267,18 @@ public class Grid {
 		}
 
 		@Override
-		public boolean equals(Object o) {
-			if (o instanceof Position) {
-				Position p = (Position) o;
-				return this.x_point == p.x_point && this.y_point == p.y_point;
+		public boolean equals(Object object) {
+			if (this == object) {
+				return true;
 			}
 
-			return false;
+			if (!(object instanceof Grid.Position)) {
+				return false;
+			}
+
+			Position other = (Position) object;
+
+			return other.grid() == Grid.this && this.x_point == other.x_point && this.y_point == other.y_point;
 		}
 
 		private void check() {
@@ -288,11 +293,12 @@ public class Grid {
 			}
 		}
 
-		public void translate(Vector v) {
-			assert v != null;
+		public void translate(Vector vector) {
+			assert vector != null;
+			assert vector.grid() == Grid.this;
 
-			this.x_point += v.x_deplacement;
-			this.y_point += v.y_deplacement;
+			this.x_point += vector.x_deplacement;
+			this.y_point += vector.y_deplacement;
 
 			normalize();
 		}
@@ -323,6 +329,7 @@ public class Grid {
 		 */
 		public void rotateAround(Grid.Position center, int angle_degree) {
 			assert center != null;
+			assert center.grid() == Grid.this;
 
 			int dx = Grid.this.xAxis.delta(center.x_point, this.x_point);
 
@@ -364,16 +371,22 @@ public class Grid {
 			normalize();
 		}
 
-		@Override
-		public int hashCode() {
-			return java.util.Objects.hash(Grid.this, this.x_point, this.y_point);
+		/*
+		 * Permet de vérifier que deux positions appartiennent à la même grille.
+		 *
+		 * Visibilité package : utile à Model, mais pas exposée aux jeux.
+		 */
+		Grid grid() {
+			return Grid.this;
 		}
 
-		public double distanceTo(Position p) {
-			assert p != null;
+		public double distanceTo(Position position) {
+			assert position != null;
+			assert position.grid() == Grid.this;
 
-			double dx = xAxis.distance(this.x_point, p.x_point);
-			double dy = yAxis.distance(this.y_point, p.y_point);
+			double dx = xAxis.distance(this.x_point, position.x_point);
+
+			double dy = yAxis.distance(this.y_point, position.y_point);
 
 			return Math.sqrt(dx * dx + dy * dy);
 		}

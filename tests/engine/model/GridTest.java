@@ -233,7 +233,8 @@ public class GridTest {
 		System.out.println("Expected d1.equiv(d2)  = true  | Actual = " + d1.equiv(d2));
 		System.out.println("Expected d1.equiv(d1)  = true  | Actual = " + d1.equiv(d1));
 		System.out.println("Expected d1.equals(d3) = false | Actual = " + d1.equals(d3));
-		System.out.println("Expected d1.equals(\"not a dimension\") = false | Actual = " + d1.equals("not a dimension"));
+		System.out
+				.println("Expected d1.equals(\"not a dimension\") = false | Actual = " + d1.equals("not a dimension"));
 
 		assertTrue(d1.equals(d2));
 		assertTrue(d1.equiv(d2));
@@ -443,6 +444,7 @@ public class GridTest {
 
 		assertDoesNotThrow(() -> cell.show(System.out));
 	}
+
 	@Test
 	void vectorIsNotNormalizedOnTorus() {
 		Game game = new TestGame();
@@ -457,5 +459,16 @@ public class GridTest {
 		assertEquals(-17, severalTurns.y());
 	}
 
+	@Test
+	void positionsFromDifferentGridsAreNotEqual() {
+		Game game1 = new TestGame();
+		Game game2 = new TestGame();
+
+		Grid.Position p1 = game1.getGrid().new Position(2, 3);
+
+		Grid.Position p2 = game2.getGrid().new Position(2, 3);
+
+		assertNotEquals(p1, p2, "Deux positions de grilles différentes ne sont pas égales");
+	}
 
 }
