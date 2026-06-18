@@ -1,5 +1,6 @@
 package game.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import engine.model.Bounding;
@@ -28,6 +29,8 @@ public final class Glacon extends Entity {
     private Grid.Position lastStablePosition;
     private long lastUpdate_ms;
 
+    private final List<Enemies> carriedEnemies;
+
     public Glacon(Model model, String name) {
         super(model, name);
 
@@ -45,6 +48,7 @@ public final class Glacon extends Entity {
         this.previousCenter = null;
         this.lastStablePosition = null;
         this.lastUpdate_ms = 0L;
+        this.carriedEnemies = new ArrayList<Enemies>();
 
         setZOrder(1);
         setSOrder(1);
@@ -156,6 +160,8 @@ public final class Glacon extends Entity {
         setLinearSpeed(model().isu().new Vector(0.0, 0.0));
         setAngularSpeed(0.0);
 
+        releaseCarriedEnemies();
+
         if (wasSliding && alive() && installed()) {
             Grid.Position snapPosition = safeSnapPosition();
             model().place(this, snapPosition);
@@ -176,7 +182,12 @@ public final class Glacon extends Entity {
         handleSlidingContact(other);
 
         if (isHardBlockForThisIce(other)) {
+            if (isCrushingObstacle(other)) {
+                crushCarriedEnemies();
+            }
             stopSliding();
+        } else {
+            carryEnemiesWithIce();
         }
 
         super.collision(other);
@@ -187,6 +198,7 @@ public final class Glacon extends Entity {
         assert entities != null;
 
         boolean mustStop = false;
+        boolean crushingObstacleMet = false;
 
         for (Entity other : entities) {
             if (other == this || !other.alive()) {
@@ -197,11 +209,21 @@ public final class Glacon extends Entity {
 
             if (isHardBlockForThisIce(other)) {
                 mustStop = true;
+
+                if (isCrushingObstacle(other)) {
+                    crushingObstacleMet = true;
+                }
             }
+        }
+
+        if (crushingObstacleMet) {
+            crushCarriedEnemies();
         }
 
         if (mustStop) {
             stopSliding();
+        } else {
+            carryEnemiesWithIce();
         }
 
         super.collision(entities);
@@ -318,23 +340,93 @@ public final class Glacon extends Entity {
             return;
         }
 
-        if (!isCrushedBySlidingIce(other)) {
+        Enemies enemy = (Enemies) other;
+
+        if (!isOnSlidingPath(enemy)) {
             return;
         }
 
-        Enemies enemy = (Enemies) other;
-        enemy.kill();
+        if (!this.carriedEnemies.contains(enemy)) {
+            this.carriedEnemies.add(enemy);
+        }
+
+        enemy.freeze();
+        enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+        enemy.setAngularSpeed(0.0);
+
+        carryEnemyWithIce(enemy);
     }
 
-    private boolean isCrushedBySlidingIce(Entity other) {
+    /**
+     * Le poisson est embarqué seulement s'il est réellement sur la ligne de
+     * glissade du glaçon. Cela évite de capturer un poisson qui touche le glaçon
+     * par le côté ou qui est dans une cellule voisine hors trajectoire.
+     */
+    private boolean isOnSlidingPath(Entity other) {
         if (other == null || !this.sliding) {
             return false;
         }
 
         ISU.Vector towardOther = center().mkVectorToward(other.center());
         double forward = forwardProjection(towardOther, this.slideDirection);
+        double lateral = Math.abs(lateralProjection(towardOther, this.slideDirection));
+        double cell = model().isu().cmPerCell();
 
-        return forward > -model().isu().cmPerCell() * 0.75;
+        /*
+         * La collision est notifiée après un déplacement accepté. Le glaçon peut donc
+         * avoir déjà légèrement dépassé le poisson, surtout à grande vitesse.
+         */
+        return forward > -cell * 0.75 && lateral <= cell * 0.45;
+    }
+
+    private void carryEnemiesWithIce() {
+        List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+
+        for (Enemies enemy : copy) {
+            if (!enemy.alive() || !enemy.installed()) {
+                this.carriedEnemies.remove(enemy);
+                continue;
+            }
+
+            carryEnemyWithIce(enemy);
+        }
+    }
+
+    private void carryEnemyWithIce(Enemies enemy) {
+        assert enemy != null;
+
+        if (!alive() || !installed() || !enemy.alive() || !enemy.installed()) {
+            return;
+        }
+
+        enemy.freeze();
+        enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+        enemy.setAngularSpeed(0.0);
+        model().place(enemy, center());
+    }
+
+    private void crushCarriedEnemies() {
+        List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+        this.carriedEnemies.clear();
+
+        for (Enemies enemy : copy) {
+            if (enemy.alive()) {
+                enemy.kill();
+            }
+        }
+    }
+
+    private void releaseCarriedEnemies() {
+        List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+        this.carriedEnemies.clear();
+
+        for (Enemies enemy : copy) {
+            if (enemy.alive()) {
+                enemy.unfreeze();
+                enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+                enemy.setAngularSpeed(0.0);
+            }
+        }
     }
 
     private boolean isHardBlockForThisIce(Entity other) {
@@ -392,6 +484,23 @@ public final class Glacon extends Entity {
         default:
             throw new AssertionError("Not a cardinal direction: " + direction);
         }
+    }
+
+    private double lateralProjection(ISU.Vector vector, int direction) {
+        switch (direction) {
+        case 0:
+        case 180:
+            return vector.y();
+        case 90:
+        case 270:
+            return vector.x();
+        default:
+            throw new AssertionError("Not a cardinal direction: " + direction);
+        }
+    }
+
+    private boolean isCrushingObstacle(Entity other) {
+        return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
     }
 
     private boolean isPhysicalBlock(Entity other) {
