@@ -24,7 +24,7 @@ public class Ticker implements Runnable {
 	private final Brain brain;
 	private final View view;
 
-	private final Entity followedEntity;
+	private Entity followedEntity;
 
 	private final int delay; // délai théorique en ms (ex: 16 pour ~60 FPS)
 	private long lastTime; // timestamp du dernier run()
@@ -50,6 +50,14 @@ public class Ticker implements Runnable {
 		this.followedEntity = followedEntity;
 
 		this.lastTime = System.currentTimeMillis();
+	}
+	
+	public void setFollowedEntity(Entity followedEntity) {
+	    if (followedEntity != null) {
+	        assert followedEntity.model() == this.model;
+	    }
+
+	    this.followedEntity = followedEntity;
 	}
 
 	@Override

@@ -13,7 +13,7 @@ public final class GlaconAvatar extends ImageAvatar {
 
     @Override
     protected double visualScale() {
-        return 1.0 / Glacon.collisionSizeFactor();
+        return 1.4 / Glacon.collisionSizeFactor();
     }
 
     @Override

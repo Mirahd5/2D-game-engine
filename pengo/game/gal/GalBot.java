@@ -1,0 +1,69 @@
+package game.gal;
+
+import java.util.List;
+
+import engine.brain.Bot;
+import engine.brain.Brain;
+import engine.model.BasicStunt;
+import engine.model.Entity;
+import gal.ast.Automaton;
+import game.model.Enemies;
+import game.model.Friend;
+
+public final class GalBot extends Bot {
+
+	private final Entity entity;
+	private final GalRuntime runtime;
+
+	public GalBot(Brain brain, BasicStunt stunt, Entity entity, Automaton automate, CurrentPlayer currentPlayer) {
+		super(brain, stunt);
+
+		this.entity = entity;
+		this.runtime = new GalRuntime(automate, new GalGameContext(entity, stunt, currentPlayer));
+
+		syncGalStateToEntity();
+	}
+
+	public String currentGalStateName() {
+		return runtime.currentState();
+	}
+
+	@Override
+	public void think() {
+		if (!valid() || entity.isMoving()) {
+			return;
+		}
+
+		if (entity instanceof Enemies e && e.isFrozen()) {
+			return;
+		}
+
+		if (entity instanceof Friend f && f.isControlled()) {
+			return;
+		}
+
+		this.runtime.step();
+		syncGalStateToEntity();
+	}
+
+	private void syncGalStateToEntity() {
+		if (this.entity instanceof Enemies e) {
+			e.setGalState(this.runtime.currentState());
+		}
+	}
+
+	@Override
+	public void done() {
+		think();
+	}
+
+	@Override
+	public void collision(Entity other) {
+		think();
+	}
+
+	@Override
+	public void collision(List<Entity> others) {
+		think();
+	}
+}

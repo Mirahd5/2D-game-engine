@@ -11,13 +11,14 @@ import engine.model.Rect;
  * Ennemi mobile du jeu Pengo.
  */
 public final class Enemies extends Entity {
-
-    private boolean frozen;
+	private boolean frozen;
+    private String galState;
 
     public Enemies(Model model, String name) {
         super(model, name);
 
         this.frozen = false;
+        this.galState = "normal";
 
         double size = model.isu().cmPerCell() * 0.78;
         setSize(model.isu().new Dimension(size, size));
@@ -29,6 +30,18 @@ public final class Enemies extends Entity {
         updateBounding();
     }
 
+    public String galState() {
+        return this.galState;
+    }
+
+    public void setGalState(String galState) {
+        if (galState == null || galState.trim().length() == 0) {
+            this.galState = "normal";
+            return;
+        }
+
+        this.galState = galState.trim();
+    }
     @Override
     protected Bounding createBounding(ISU.Coord center, ISU.Dimension size, int orientationDegree) {
         Bounding result = new Bounding();
