@@ -12,6 +12,7 @@ import engine.model.Orientation;
 public abstract class Player extends Entity {
 
 	// variables globales
+	private static final long HIT_COOLDOWN_MS = 900L;
 	private final Grid grid;
 	private final boolean torusOnXaxis;
 	private final boolean torusOnYaxis;
@@ -20,7 +21,7 @@ public abstract class Player extends Entity {
 
 	// champs
 	private int lives;
-	private Grid.Position respawnPosition;
+	private long lastHitTime_ms;
 
 	// constructeur dun player
 	protected Player(Model model, String name, int initialLives) {
@@ -29,11 +30,10 @@ public abstract class Player extends Entity {
 		this.grid = model.grid();
 		this.torusOnXaxis = model.game().isTorusOnXaxis();
 		this.torusOnYaxis = model.game().isTorusOnYaxis();
-		this.gridWidth = this.grid.width();
-		this.gridHeight = this.grid.height();
+		this.gridHeight = grid.height();
+		this.gridWidth = grid.width();
 
 		this.lives = initialLives;
-		this.respawnPosition = null;
 	}
 
 	public final int nLives() {
@@ -107,7 +107,7 @@ public abstract class Player extends Entity {
 	@Override
 	public void collision(Entity other) {
 		if (other instanceof Enemies && other.alive()) {
-			loseLifeIfNeeded();
+			hitByEnemy();
 			return;
 		}
 
@@ -117,54 +117,118 @@ public abstract class Player extends Entity {
 	@Override
 	public void collision(List<Entity> entities) {
 		List<Entity> physicalContacts = new ArrayList<Entity>();
-
+		boolean touchedEnemy = false;
 		for (Entity entity : entities) {
 			if (entity instanceof Enemies && entity.alive()) {
-				loseLifeIfNeeded();
+				touchedEnemy = true;
 			} else {
 				physicalContacts.add(entity);
 			}
+		}
+		if (touchedEnemy) {
+			hitByEnemy();
 		}
 		if (!physicalContacts.isEmpty()) {
 			super.collision(physicalContacts);
 		}
 	}
 
-	@Override
-	protected void deploy() {
-		super.deploy();
 
-		if (this.respawnPosition == null) {
-			this.respawnPosition = position();
-		}
-	}
 
 	private void respawnAtStart() {
-		if (this.respawnPosition == null) {
-			return;
-		}
+		Grid.Position respawn = centerRespawnPosition();
 
-		setPosition(this.respawnPosition.copy());
+		stopPlayer();
+
+		model().place(this, respawn);
 		setOrientation(0);
 	}
 
-	private void loseLifeIfNeeded() {
+	private void stopPlayer() {
+		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+		setAngularSpeed(0.0);
+	}
+
+	public final void hitByEnemy() {
+
+		if (!alive() || !installed()) {
+			return;
+		}
+
+		long now = System.currentTimeMillis();
+
+		if (now - this.lastHitTime_ms < HIT_COOLDOWN_MS) {
+			return;
+		}
+
 		boolean mustLoseLife = true;
 
 		if (this instanceof Friend) {
 			Friend friend = (Friend) this;
 			mustLoseLife = friend.isControlled();
 		}
-
-		if (mustLoseLife && !hasEnemyProtection()) {
-			loseLife();
-
-			if (isGameOver()) {
-				death();
-			} else {
-				respawnAtStart();
-			}
+		if (!mustLoseLife || hasEnemyProtection()) {
+			return;
 		}
+
+		this.lastHitTime_ms = now;
+		loseLife();
+
+		if (isGameOver()) {
+			setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+			setAngularSpeed(0.0);
+			death();
+			return;
+		}
+
+		respawnAtStart();
 	}
 
+	private Grid.Position centerRespawnPosition() {
+		int centerX = this.gridWidth / 2;
+		int centerY = this.gridHeight / 2;
+
+		Grid.Position center = this.grid.new Position(centerX, centerY);
+
+		if (canRespawnOn(center)) {
+			return center;
+		}
+
+		int maxRadius = Math.max(this.gridWidth, this.gridHeight);
+
+		for (int radius = 1; radius <= maxRadius; radius++) {
+			for (int y = centerY - radius; y <= centerY + radius; y++) {
+				for (int x = centerX - radius; x <= centerX + radius; x++) {
+					if (x < 0 || x >= this.gridWidth || y < 0 || y >= this.gridHeight) {
+						continue;
+					}
+
+					Grid.Position position = this.grid.new Position(x, y);
+
+					if (canRespawnOn(position)) {
+						return position;
+					}
+				}
+			}
+		}
+
+		return center;
+	}
+	private boolean canRespawnOn(Grid.Position position) {
+		Grid.Cell cell = this.grid.cellAt(position);
+
+		for (Entity entity : cell.entities()) {
+			if (entity == this || !entity.alive()) {
+				continue;
+			}
+
+			if (entity instanceof Mur
+					|| entity instanceof Glacon
+					|| entity instanceof Spawner) {
+				return false;
+			}
+		}
+
+		return true;
+	}
 }

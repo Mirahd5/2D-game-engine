@@ -70,8 +70,8 @@ public final class Power extends Entity {
             break;
 
         case BOOMFISH:
-            pengo.loseLife();
-            break;
+        	pengo.hitByEnemy();
+        	break;
 
         case FRIEND_ACTIVATOR:
             pengo.activateFriendActivator();

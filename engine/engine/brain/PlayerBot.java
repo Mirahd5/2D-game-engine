@@ -97,6 +97,12 @@ public final class PlayerBot extends Bot implements RotationCommands {
 		tryToMove();
 	}
 
+	public void stopWishing() {
+		this.wishedDirection = null;
+		this.currentDirection = null;
+		this.state = State.IDLE;
+	}
+
 	@Override
 	public void think() {
 		tryToMove();

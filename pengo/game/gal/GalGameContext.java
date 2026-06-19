@@ -106,7 +106,7 @@ public final class GalGameContext {
 		if (!isPlayerCategory(normalizeName(targetName))) {
 			return false;
 		}
-		Entity target = currentPlayer.currentPlayer();
+		Entity target = findPengo();
 		if (target == null || !target.alive()) {
 			return false;
 		}
@@ -136,14 +136,27 @@ public final class GalGameContext {
 
 	// verife si free pour self
 	private boolean free(Grid.Cell cell) {
+		if (this.self instanceof Enemies) {
+			Grid.Position center = this.grid.new Position(this.gridWidth / 2, this.gridHeight / 2);
+
+			if (cell.position().equals(center)) {
+				return false;
+			}
+		}
 		List<Entity> entities = cell.entities();
+
 		for (Entity e : entities) {
 			if (e != self && e.alive()) {
+				if (e instanceof Enemies) {
+					return false;
+				}
+
 				if (self.blocks(e) || e.blocks(self)) {
 					return false;
 				}
 			}
 		}
+
 		return true;
 	}
 
@@ -155,8 +168,9 @@ public final class GalGameContext {
 		}
 		// Got(D) Pengo has only one life left
 		if (isDanger(category)) {
-			Pengo pengo = findPengo();
-			return pengo != null && pengo.nLives() <= 1;
+			/*Pengo pengo = findPengo();
+			return pengo != null && pengo.nLives() <= 1;*/
+			return false;
 		}
 		return false;
 

@@ -1,5 +1,6 @@
 package game.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import engine.model.Bounding;
@@ -28,11 +29,14 @@ public final class Glacon extends Entity implements Pushable {
 	private Grid.Position lastStablePosition;
 	private long lastUpdate_ms;
 
+	private final List<Enemies> carriedEnemies;
+
 	public Glacon(Model model, String name) {
 		super(model, name);
 
 		double cell = model.isu().cmPerCell();
 		double collisionSize = cell * COLLISION_SIZE_FACTOR;
+
 		setSize(model.isu().new Dimension(collisionSize, collisionSize));
 		setStep(model.isu().new Dimension(cell, cell));
 
@@ -45,6 +49,7 @@ public final class Glacon extends Entity implements Pushable {
 		this.previousCenter = null;
 		this.lastStablePosition = null;
 		this.lastUpdate_ms = 0L;
+		this.carriedEnemies = new ArrayList<Enemies>();
 
 		setZOrder(1);
 		setSOrder(1);
@@ -85,8 +90,8 @@ public final class Glacon extends Entity implements Pushable {
 		this.lastUpdate_ms = System.currentTimeMillis();
 
 		double initialSpeed = model().isu().cmPerCell() * INITIAL_SPEED_NCELL_PER_SECOND;
-		this.currentSpeed_cmPerSecond = initialSpeed;
 
+		this.currentSpeed_cmPerSecond = initialSpeed;
 		this.deceleration_cmPerSecond2 = (initialSpeed * initialSpeed) / (2.0 * this.maximumDistance_cm);
 
 		setOrientation(direction);
@@ -137,6 +142,7 @@ public final class Glacon extends Entity implements Pushable {
 		}
 
 		setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
+		carryEnemiesWithIce();
 	}
 
 	/** Arrête immédiatement le glaçon et le recale au centre d'une cellule. */
@@ -156,6 +162,8 @@ public final class Glacon extends Entity implements Pushable {
 		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
 		setAngularSpeed(0.0);
 
+		releaseCarriedEnemies();
+
 		if (wasSliding && alive() && installed()) {
 			Grid.Position snapPosition = safeSnapPosition();
 			model().place(this, snapPosition);
@@ -163,7 +171,7 @@ public final class Glacon extends Entity implements Pushable {
 		}
 	}
 
-	/** Détruit le glaçon lorsque Pengo appuie sur Espace. */
+	/** Détruit le glaçon lorsque Pengo appuie sur Espace contre un obstacle. */
 	public void breakIce() {
 		stopSliding();
 		death();
@@ -176,7 +184,13 @@ public final class Glacon extends Entity implements Pushable {
 		handleSlidingContact(other);
 
 		if (isHardBlockForThisIce(other)) {
+			if (isCrushingObstacle(other)) {
+				crushCarriedEnemies();
+			}
+
 			stopSliding();
+		} else {
+			carryEnemiesWithIce();
 		}
 
 		super.collision(other);
@@ -187,21 +201,30 @@ public final class Glacon extends Entity implements Pushable {
 		assert entities != null;
 
 		boolean mustStop = false;
+		boolean crushingObstacleMet = false;
 
 		for (Entity other : entities) {
-			if (other == this || !other.alive()) {
-				continue;
-			}
+			if (other != this && other.alive()) {
+				handleSlidingContact(other);
 
-			handleSlidingContact(other);
+				if (isHardBlockForThisIce(other)) {
+					mustStop = true;
 
-			if (isHardBlockForThisIce(other)) {
-				mustStop = true;
+					if (isCrushingObstacle(other)) {
+						crushingObstacleMet = true;
+					}
+				}
 			}
+		}
+
+		if (crushingObstacleMet) {
+			crushCarriedEnemies();
 		}
 
 		if (mustStop) {
 			stopSliding();
+		} else {
+			carryEnemiesWithIce();
 		}
 
 		super.collision(entities);
@@ -212,7 +235,6 @@ public final class Glacon extends Entity implements Pushable {
 		assert other != null;
 
 		if (other instanceof Enemies) {
-
 			return !this.sliding && !sameGridCell(other);
 		}
 
@@ -284,12 +306,10 @@ public final class Glacon extends Entity implements Pushable {
 		Grid.Cell cell = model().grid().cellAt(position);
 
 		for (Entity other : cell.entities()) {
-			if (other == this || !other.alive()) {
-				continue;
-			}
-
-			if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
-				return false;
+			if (other != this && other.alive()) {
+				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
+					return false;
+				}
 			}
 		}
 
@@ -300,12 +320,10 @@ public final class Glacon extends Entity implements Pushable {
 		Grid.Cell targetCell = model().grid().cellAt(target);
 
 		for (Entity other : targetCell.entities()) {
-			if (other == this || !other.alive()) {
-				continue;
-			}
-
-			if (isHardBlockForThisIce(other)) {
-				return true;
+			if (other != this && other.alive()) {
+				if (isHardBlockForThisIce(other)) {
+					return true;
+				}
 			}
 		}
 
@@ -317,23 +335,87 @@ public final class Glacon extends Entity implements Pushable {
 			return;
 		}
 
-		if (!isCrushedBySlidingIce(other)) {
+		Enemies enemy = (Enemies) other;
+
+		if (!isOnSlidingPath(enemy)) {
 			return;
 		}
 
-		Enemies enemy = (Enemies) other;
-		enemy.kill();
+		if (!this.carriedEnemies.contains(enemy)) {
+			this.carriedEnemies.add(enemy);
+		}
+
+		enemy.freeze();
+		enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+		enemy.setAngularSpeed(0.0);
+
+		carryEnemyWithIce(enemy);
 	}
 
-	private boolean isCrushedBySlidingIce(Entity other) {
+	/**
+	 * L'ennemi est embarqué seulement s'il est vraiment sur la trajectoire du
+	 * glaçon.
+	 */
+	private boolean isOnSlidingPath(Entity other) {
 		if (other == null || !this.sliding) {
 			return false;
 		}
 
 		ISU.Vector towardOther = center().mkVectorToward(other.center());
 		double forward = forwardProjection(towardOther, this.slideDirection);
+		double lateral = Math.abs(lateralProjection(towardOther, this.slideDirection));
+		double cell = model().isu().cmPerCell();
 
-		return forward > -model().isu().cmPerCell() * 0.75;
+		return forward > -cell * 0.75 && lateral <= cell * 0.45;
+	}
+
+	private void carryEnemiesWithIce() {
+		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+
+		for (Enemies enemy : copy) {
+			if (!enemy.alive() || !enemy.installed()) {
+				this.carriedEnemies.remove(enemy);
+			} else {
+				carryEnemyWithIce(enemy);
+			}
+		}
+	}
+
+	private void carryEnemyWithIce(Enemies enemy) {
+		assert enemy != null;
+
+		if (!alive() || !installed() || !enemy.alive() || !enemy.installed()) {
+			return;
+		}
+
+		enemy.freeze();
+		enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+		enemy.setAngularSpeed(0.0);
+		model().place(enemy, center());
+	}
+
+	private void crushCarriedEnemies() {
+		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+		this.carriedEnemies.clear();
+
+		for (Enemies enemy : copy) {
+			if (enemy.alive()) {
+				enemy.kill();
+			}
+		}
+	}
+
+	private void releaseCarriedEnemies() {
+		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
+		this.carriedEnemies.clear();
+
+		for (Enemies enemy : copy) {
+			if (enemy.alive()) {
+				enemy.unfreeze();
+				enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+				enemy.setAngularSpeed(0.0);
+			}
+		}
 	}
 
 	private boolean isHardBlockForThisIce(Entity other) {
@@ -349,7 +431,6 @@ public final class Glacon extends Entity implements Pushable {
 		}
 
 		if (!this.sliding) {
-
 			if ((other instanceof Pengo || other instanceof Friend) && sameGridCell(other)) {
 				return false;
 			}
@@ -379,15 +460,38 @@ public final class Glacon extends Entity implements Pushable {
 		switch (direction) {
 		case 0:
 			return vector.x();
+
 		case 90:
 			return vector.y();
+
 		case 180:
 			return -vector.x();
+
 		case 270:
 			return -vector.y();
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
+	}
+
+	private double lateralProjection(ISU.Vector vector, int direction) {
+		switch (direction) {
+		case 0:
+		case 180:
+			return vector.y();
+
+		case 90:
+		case 270:
+			return vector.x();
+
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
+	}
+
+	private boolean isCrushingObstacle(Entity other) {
+		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
 	}
 
 	private boolean isPhysicalBlock(Entity other) {
@@ -406,12 +510,16 @@ public final class Glacon extends Entity implements Pushable {
 		switch (direction) {
 		case 0:
 			return model().isu().new Vector(speed, 0.0);
+
 		case 90:
 			return model().isu().new Vector(0.0, speed);
+
 		case 180:
 			return model().isu().new Vector(-speed, 0.0);
+
 		case 270:
 			return model().isu().new Vector(0.0, -speed);
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
@@ -425,15 +533,19 @@ public final class Glacon extends Entity implements Pushable {
 		case 0:
 			dx = 1;
 			break;
+
 		case 90:
 			dy = 1;
 			break;
+
 		case 180:
 			dx = -1;
 			break;
+
 		case 270:
 			dy = -1;
 			break;
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
@@ -449,7 +561,19 @@ public final class Glacon extends Entity implements Pushable {
 			return null;
 		}
 
+		if (model().game().isTorusOnXaxis()) {
+			x = wrapCoordinate(x, model().grid().width());
+		}
+
+		if (model().game().isTorusOnYaxis()) {
+			y = wrapCoordinate(y, model().grid().height());
+		}
+
 		return model().grid().new Position(x, y);
+	}
+
+	private int wrapCoordinate(int value, int size) {
+		return ((value % size) + size) % size;
 	}
 
 	private int normalizeCardinal(int degree) {
@@ -458,12 +582,15 @@ public final class Glacon extends Entity implements Pushable {
 		if (d < 45 || d >= 315) {
 			return 0;
 		}
+
 		if (d < 135) {
 			return 90;
 		}
+
 		if (d < 225) {
 			return 180;
 		}
+
 		return 270;
 	}
 }

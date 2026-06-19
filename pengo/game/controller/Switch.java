@@ -14,6 +14,7 @@ import game.gal.CurrentPlayer;
 import game.gal.GalBot;
 import game.model.Friend;
 import game.model.Pengo;
+import game.model.Player;
 
 public final class Switch {
 
@@ -30,6 +31,14 @@ public final class Switch {
 
 	public Switch(Brain brain, Model model, Ticker ticker, Pengo pengo, List<Friend> friends, Automaton randomAutomaton,
 			CurrentPlayer currentPlayer) {
+		assert brain != null;
+		assert model != null;
+		assert ticker != null;
+		assert pengo != null;
+		assert friends != null;
+		assert randomAutomaton != null;
+		assert currentPlayer != null;
+
 		this.brain = brain;
 		this.model = model;
 		this.ticker = ticker;
@@ -37,6 +46,10 @@ public final class Switch {
 		this.friends = new ArrayList<Friend>(friends);
 		this.randomAutomaton = randomAutomaton;
 		this.currentPlayer = currentPlayer;
+
+		this.controlledEntity = null;
+		this.playerBot = null;
+
 		control(this.pengo);
 	}
 
@@ -50,6 +63,10 @@ public final class Switch {
 
 	public void switchControl() {
 		updateControlledEntity();
+
+		if (this.pengo.isGameOver() || !this.pengo.alive()) {
+			return;
+		}
 
 		Entity next = nextControlledEntity();
 
@@ -68,14 +85,14 @@ public final class Switch {
 			return;
 		}
 
-		Entity deadControlledEntity = this.controlledEntity;
+		Entity previousControlledEntity = this.controlledEntity;
 
-		if (deadControlledEntity instanceof Friend) {
-			Friend friend = (Friend) deadControlledEntity;
+		if (previousControlledEntity instanceof Friend) {
+			Friend friend = (Friend) previousControlledEntity;
 			friend.setControlled(false);
 		}
 
-		if (this.pengo.alive() && this.pengo.installed()) {
+		if (this.pengo.alive() && this.pengo.installed() && this.pengo.nLives() > 0) {
 			control(this.pengo);
 			return;
 		}
@@ -112,6 +129,10 @@ public final class Switch {
 		if (entity instanceof Friend) {
 			Friend friend = (Friend) entity;
 			friend.setControlled(false);
+		}
+
+		if (!(entity instanceof Player)) {
+			return;
 		}
 
 		BasicStunt autoStunt = new BasicStunt(this.model, entity);

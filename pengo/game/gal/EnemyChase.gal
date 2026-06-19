@@ -1,46 +1,33 @@
 EnemyChase(Normal){
 
   * (Normal):
-  | Got(D) ? Rest :(Happy)
   | Got(A) ? Rest :(Angry)
 
-  | Cell(F,V) ? 65% Move(F) / 17% Turn(L) / 18% Turn(R) :(Normal)
+  | Cell(F,V) ? 85% Move(F) / 8% Turn(L) / 7% Turn(R) :(Normal)
 
   | Cell(L,V) & Cell(R,V) ? 50% Turn(L) / 50% Turn(R) :(Normal)
   | Cell(L,V) ? Turn(L) :(Normal)
   | Cell(R,V) ? Turn(R) :(Normal)
-  | Cell(B,V) ? Turn(B) :(Normal)
 
+  | Cell(B,V) ? Turn(B) :(Normal)
   | True ? Rest :(Normal)
 
 
- * (Angry):
-  | Got(D) ? Rest :(Happy)
+  * (Angry):
   | ! Got(A) ? Rest :(Normal)
 
   | Closest(@,F) & Cell(F,V) ? Move(F) :(Angry)
   | Closest(@,L) & Cell(L,V) ? Turn(L) :(Angry)
   | Closest(@,R) & Cell(R,V) ? Turn(R) :(Angry)
-  | Closest(@,B) & Cell(B,V) ? Turn(B) :(Angry)
 
-  | Cell(F,V) ? 70% Move(F) / 15% Turn(L) / 15% Turn(R) :(Angry)
+  | Cell(F,V) ? 90% Move(F) / 5% Turn(L) / 5% Turn(R) :(Angry)
+
   | Cell(L,V) & Cell(R,V) ? 50% Turn(L) / 50% Turn(R) :(Angry)
   | Cell(L,V) ? Turn(L) :(Angry)
   | Cell(R,V) ? Turn(R) :(Angry)
+
+  | Closest(@,B) & Cell(B,V) ? Turn(B) :(Angry)
   | Cell(B,V) ? Turn(B) :(Angry)
 
   | True ? Rest :(Angry)
-
-  * (Happy):
-  | ! Got(D) & Got(A) ? Rest :(Angry)
-  | ! Got(D) ? Rest :(Normal)
-
-  | Cell(F,V) ? 55% Move(F) / 22% Turn(L) / 23% Turn(R) :(Happy)
-
-  | Cell(L,V) & Cell(R,V) ? 50% Turn(L) / 50% Turn(R) :(Happy)
-  | Cell(L,V) ? Turn(L) :(Happy)
-  | Cell(R,V) ? Turn(R) :(Happy)
-  | Cell(B,V) ? Turn(B) :(Happy)
-
-  | True ? Rest :(Happy)
 }

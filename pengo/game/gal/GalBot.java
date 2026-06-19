@@ -59,11 +59,11 @@ public final class GalBot extends Bot {
 
 	@Override
 	public void collision(Entity other) {
-		think();
+		
 	}
 
 	@Override
 	public void collision(List<Entity> others) {
-		think();
+	
 	}
 }
