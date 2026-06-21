@@ -104,9 +104,13 @@ public final class PengoGameRunner {
 		installIceBots(brain, model, builder);
 
 		PengoController controller = new PengoController(controlSwitcher, config.continuousWalk());
+
 		if (controller.continuousWalk()) {
 			installContinuousWalkTask(controller, config.tickDelayMs());
 		}
+
+		installPengoPowerTimer(pengo, config.tickDelayMs());
+
 		painter.visible(canvas);
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());
 
@@ -124,6 +128,19 @@ public final class PengoGameRunner {
 			@Override
 			public void run() {
 				controller.updateContinuousWalk();
+				Runtime.post(this, delayMs);
+			}
+		}, delayMs);
+	}
+	
+	private static void installPengoPowerTimer(final Pengo pengo, final int delayMs) {
+		assert pengo != null;
+		assert delayMs > 0;
+
+		Runtime.post(new Runnable() {
+			@Override
+			public void run() {
+				pengo.updateTimedPowers();
 				Runtime.post(this, delayMs);
 			}
 		}, delayMs);

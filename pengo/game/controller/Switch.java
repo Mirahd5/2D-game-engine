@@ -64,6 +64,10 @@ public final class Switch {
 	public void switchControl() {
 		updateControlledEntity();
 
+		if (!this.pengo.hasFriendActivator()) {
+			return;
+		}
+
 		if (this.pengo.isGameOver() || !this.pengo.alive()) {
 			return;
 		}
@@ -79,7 +83,7 @@ public final class Switch {
 		makeAutomatic(previous);
 		control(next);
 	}
-
+	
 	public void updateControlledEntity() {
 		if (this.controlledEntity != null && this.controlledEntity.alive() && this.controlledEntity.installed()) {
 			return;

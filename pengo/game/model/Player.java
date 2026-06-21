@@ -107,6 +107,17 @@ public abstract class Player extends Entity {
 	@Override
 	public void collision(Entity other) {
 		if (other instanceof Enemies && other.alive()) {
+			Enemies enemy = (Enemies) other;
+
+			if (this instanceof Pengo) {
+				Pengo pengo = (Pengo) this;
+
+				if (pengo.hasStar()) {
+					enemy.kill();
+					return;
+				}
+			}
+
 			hitByEnemy();
 			return;
 		}
@@ -118,19 +129,50 @@ public abstract class Player extends Entity {
 	public void collision(List<Entity> entities) {
 		List<Entity> physicalContacts = new ArrayList<Entity>();
 		boolean touchedEnemy = false;
+
 		for (Entity entity : entities) {
 			if (entity instanceof Enemies && entity.alive()) {
+				Enemies enemy = (Enemies) entity;
+
+				if (this instanceof Pengo) {
+					Pengo pengo = (Pengo) this;
+
+					if (pengo.hasStar()) {
+						enemy.kill();
+						continue;
+					}
+				}
+
 				touchedEnemy = true;
 			} else {
 				physicalContacts.add(entity);
 			}
 		}
+
 		if (touchedEnemy) {
 			hitByEnemy();
 		}
+
 		if (!physicalContacts.isEmpty()) {
 			super.collision(physicalContacts);
 		}
+	}
+
+	public final void forceLoseLife() {
+		if (!alive() || !installed()) {
+			return;
+		}
+
+		loseLife();
+
+		if (isGameOver()) {
+			setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+			setAngularSpeed(0.0);
+			death();
+			return;
+		}
+
+		respawnAtStart();
 	}
 
 
