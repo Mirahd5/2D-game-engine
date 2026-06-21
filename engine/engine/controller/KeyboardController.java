@@ -4,7 +4,7 @@ import engine.brain.PlayerBot;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
 
-public class KeyboardController implements Canvas.KeyListener {
+public class KeyboardController extends Controller {
 
 	private final PlayerBot playerBot;
 

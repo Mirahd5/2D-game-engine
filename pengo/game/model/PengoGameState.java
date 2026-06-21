@@ -11,7 +11,8 @@ public class PengoGameState {
 	private final int targetTotalEnemies;
 
 	private int spawnedEnemies;
-	private int score;
+
+	private static final int ENEMY_KILL_SCORE = 100;
 
 	private boolean won;
 	private boolean lost;
@@ -27,7 +28,6 @@ public class PengoGameState {
 		this.pengo = pengo;
 
 		this.spawnedEnemies = initialEnemies;
-		this.score = 0;
 
 		/*
 		 * Si la map contient des spawners, le but est de survivre jusqu'à ce que le
@@ -52,11 +52,6 @@ public class PengoGameState {
 		this.spawnedEnemies++;
 	}
 
-	public void addScore(int value) {
-		assert value >= 0;
-		this.score += value;
-	}
-
 	public void update() {
 		if (this.won || this.lost) {
 			return;
@@ -67,15 +62,17 @@ public class PengoGameState {
 			return;
 		}
 
-		if (this.targetTotalEnemies > 0
-				&& this.spawnedEnemies >= this.targetTotalEnemies
-				&& livingEnemies() == 0) {
+		if (this.targetTotalEnemies > 0 && this.spawnedEnemies >= this.targetTotalEnemies && livingEnemies() == 0) {
 			this.won = true;
 		}
 	}
 
 	public boolean finished() {
 		return this.won || this.lost;
+	}
+	
+	public boolean playing() {
+		return !this.won && !this.lost;
 	}
 
 	public boolean won() {
@@ -91,7 +88,17 @@ public class PengoGameState {
 	}
 
 	public int score() {
-		return this.score;
+		return killedEnemies() * ENEMY_KILL_SCORE;
+	}
+
+	public int killedEnemies() {
+		int killed = this.spawnedEnemies - livingEnemies();
+
+		if (killed < 0) {
+			return 0;
+		}
+
+		return killed;
 	}
 
 	public int spawnedEnemies() {
@@ -146,4 +153,5 @@ public class PengoGameState {
 			}
 		}
 	}
+
 }

@@ -121,11 +121,13 @@ public final class PengoGameRunner {
 
 		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState);
 
-		installIceBots(brain, model, builder);
+		installIceBots(brain, model, builder, gameState);
 
 		installGameStateBot(brain, model, gameState);
 
-		PengoController controller = new PengoController(controlSwitcher, config.continuousWalk());
+		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk());
+
+		controller.setGameState(gameState);
 
 		if (controller.continuousWalk()) {
 			installContinuousWalkTask(controller, config.tickDelayMs());
@@ -242,19 +244,25 @@ public final class PengoGameRunner {
 		}
 	}
 
-	private static void installIceBots(Brain brain, Model model, BuildMap builder) {
-		for (Glacon ice : builder.iceBlocks()) {
-			BasicStunt iceStunt = new BasicStunt(model, ice);
-			ice.setStunt(iceStunt);
+	private static void installIceBots(Brain brain, Model model, BuildMap builder, PengoGameState gameState) {
+		for (final Glacon ice : builder.iceBlocks()) {
+			BasicStunt stunt = new BasicStunt(model, ice);
 
-			Bot iceBot = new Bot(brain, iceStunt) {
+			Bot bot = new Bot(brain, stunt) {
 				@Override
 				public void think() {
+					gameState.update();
+
+					if (gameState.finished()) {
+						gameState.stopAllEntities();
+						return;
+					}
+
 					ice.updateSliding();
 				}
 			};
 
-			brain.add(iceBot);
+			brain.add(bot);
 		}
 	}
 

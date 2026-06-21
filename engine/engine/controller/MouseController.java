@@ -13,7 +13,7 @@ import oop.graphics.Canvas;
  *
  * La classe ne connaît pas Pac-Man, le Model ou le RotationStunt.
  */
-public final class MouseController implements Canvas.MouseListener {
+public final class MouseController extends Controller {
 
 	/*
 	 * FSM demandée dans les slides.

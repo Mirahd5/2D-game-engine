@@ -1,6 +1,7 @@
 package game.controller;
 
 import engine.brain.PlayerBot;
+import engine.controller.Controller;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
 
@@ -10,25 +11,18 @@ import oop.graphics.VirtualKeyCodes;
  * Il traduit les touches du clavier en souhaits
  * de direction transmis au PlayerBot.
  */
-public final class PacManController
-		implements Canvas.KeyListener {
+public final class PacManController extends Controller {
 
 	private final PlayerBot playerBot;
 
-	public PacManController(
-		PlayerBot playerBot
-	) {
+	public PacManController(PlayerBot playerBot) {
 		assert playerBot != null;
 
 		this.playerBot = playerBot;
 	}
 
 	@Override
-	public void pressed(
-		Canvas canvas,
-		int keyCode,
-		char keyChar
-	) {
+	public void pressed(Canvas canvas, int keyCode, char keyChar) {
 		switch (keyCode) {
 		case VirtualKeyCodes.VK_RIGHT:
 		case VirtualKeyCodes.VK_D:
@@ -56,22 +50,14 @@ public final class PacManController
 	}
 
 	@Override
-	public void released(
-		Canvas canvas,
-		int keyCode,
-		char keyChar
-	) {
+	public void released(Canvas canvas, int keyCode, char keyChar) {
 		/*
-		 * Pac-Man continue dans sa direction après
-		 * le relâchement de la touche.
+		 * Pac-Man continue dans sa direction après le relâchement de la touche.
 		 */
 	}
 
 	@Override
-	public void typed(
-		Canvas canvas,
-		char keyChar
-	) {
+	public void typed(Canvas canvas, char keyChar) {
 		// Non utilisé.
 	}
 }

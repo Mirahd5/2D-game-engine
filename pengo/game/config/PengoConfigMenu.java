@@ -335,7 +335,8 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	@Override
 	public void pressed(Canvas canvas, int button, int x, int y) {
-		if (this.started) {
+		if (this.started && this.gameSession != null) {
+			this.gameSession.controller().pressed(canvas, button, x, y);
 			return;
 		}
 

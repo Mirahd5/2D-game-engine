@@ -4,39 +4,67 @@ import java.util.HashSet;
 import java.util.Set;
 
 import engine.brain.PlayerBot;
+import engine.controller.Controller;
 import engine.model.Entity;
 import engine.model.Orientation;
+import game.model.PengoGameState;
 import game.model.Player;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
+import engine.view.View;
 
-public final class PengoController implements Canvas.KeyListener {
+public final class PengoController extends Controller {
 
 	private final Switch controlSwitcher;
 	private final boolean continuousWalk;
 
+	private PengoGameState gameState;
+
+	private final View view;
+
 	private final Set<Integer> pressedKeys;
 	private Integer continuousDirection;
 
-	public PengoController(Switch controlSwitcher) {
-		this(controlSwitcher, false);
+	public PengoController(Switch controlSwitcher, View view) {
+		this(controlSwitcher, view, false);
 	}
 
-	public PengoController(Switch controlSwitcher, boolean continuousWalk) {
+	public PengoController(Switch controlSwitcher, View view, boolean continuousWalk) {
 		assert controlSwitcher != null;
+		assert view != null;
 
 		this.controlSwitcher = controlSwitcher;
+		this.view = view;
 		this.continuousWalk = continuousWalk;
+		this.gameState = null;
+
 		this.pressedKeys = new HashSet<Integer>();
 		this.continuousDirection = null;
+	}
+
+	public void setGameState(PengoGameState gameState) {
+		assert gameState != null;
+		this.gameState = gameState;
 	}
 
 	public boolean continuousWalk() {
 		return this.continuousWalk;
 	}
 
+	// =========================
+	// Keyboard
+	// =========================
+
 	@Override
 	public void pressed(Canvas canvas, int keyCode, char keyChar) {
+		if (!enabled()) {
+			return;
+		}
+
+		if (this.gameState != null && this.gameState.finished()) {
+			return;
+		}
+
 		this.controlSwitcher.updateControlledEntity();
 
 		switch (keyCode) {
@@ -92,6 +120,14 @@ public final class PengoController implements Canvas.KeyListener {
 	}
 
 	public void updateContinuousWalk() {
+		if (!enabled()) {
+			return;
+		}
+
+		if (this.gameState != null && this.gameState.finished()) {
+			return;
+		}
+
 		if (!this.continuousWalk) {
 			return;
 		}
@@ -140,6 +176,14 @@ public final class PengoController implements Canvas.KeyListener {
 
 	@Override
 	public void released(Canvas canvas, int keyCode, char keyChar) {
+		if (!enabled()) {
+			return;
+		}
+
+		if (this.gameState != null && this.gameState.finished()) {
+			return;
+		}
+
 		this.pressedKeys.remove(keyCode);
 
 		Integer releasedDirection = directionForKey(keyCode);
@@ -203,5 +247,126 @@ public final class PengoController implements Canvas.KeyListener {
 	@Override
 	public void typed(Canvas canvas, char keyChar) {
 		// Non utilisé.
+	}
+
+	// =========================
+	// Mouse
+	// =========================
+
+	@Override
+	public void moved(Canvas canvas, int x, int y) {
+		// Non utilisé pour l'instant.
+	}
+
+	@Override
+	public void pressed(Canvas canvas, int button, int x, int y) {
+		if (!enabled()) {
+			return;
+		}
+
+		if (this.gameState != null && this.gameState.finished()) {
+			return;
+		}
+
+		if (button == 1) {
+			int direction = directionFromMouseClick(x, y);
+			faceOnly(direction);
+			return;
+		}
+
+		if (button == 3) {
+			useAction();
+		}
+	}
+
+	private int directionFromMouseClick(int mouseX, int mouseY) {
+		this.controlSwitcher.updateControlledEntity();
+
+		Entity controlled = this.controlSwitcher.controlledEntity();
+
+		if (!(controlled instanceof Player)) {
+			return 90;
+		}
+
+		/*
+		 * Si le clic est dans le HUD à droite, on ignore et on garde l'orientation.
+		 */
+		if (mouseX > this.view.widthPixel()) {
+			return Orientation.normalizeCardinal(controlled.orientation());
+		}
+
+		int centerX = this.view.toPixelX(controlled.center().x());
+		int centerY = this.view.toPixelY(controlled.center().y());
+
+		int dx = mouseX - centerX;
+		int dy = mouseY - centerY;
+
+		if (Math.abs(dx) >= Math.abs(dy)) {
+			if (dx >= 0) {
+				return 0; // droite
+			}
+
+			return 180; // gauche
+		}
+
+		if (dy >= 0) {
+			return 90; // bas
+		}
+
+		return 270; // haut
+	}
+
+	private void faceOnly(int direction) {
+		this.controlSwitcher.updateControlledEntity();
+
+		Entity controlled = this.controlSwitcher.controlledEntity();
+
+		if (!(controlled instanceof Player)) {
+			return;
+		}
+
+		int normalized = Orientation.normalizeCardinal(direction);
+
+		controlled.setOrientation(normalized);
+
+		PlayerBot bot = this.controlSwitcher.playerBot();
+
+		if (bot != null) {
+			bot.stopWishing();
+		}
+	}
+
+	@Override
+	public void released(Canvas canvas, int x, int y, int button) {
+		// Rien : un clic fait une rotation immédiate.
+	}
+
+	private void turnControlledLeft() {
+		turnControlled(-90);
+	}
+
+	private void turnControlledRight() {
+		turnControlled(90);
+	}
+
+	private void turnControlled(int angleDelta) {
+		this.controlSwitcher.updateControlledEntity();
+
+		Entity controlled = this.controlSwitcher.controlledEntity();
+
+		if (!(controlled instanceof Player)) {
+			return;
+		}
+
+		int newOrientation = controlled.orientation() + angleDelta;
+		newOrientation = Orientation.normalizeCardinal(newOrientation);
+
+		controlled.setOrientation(newOrientation);
+
+		PlayerBot bot = this.controlSwitcher.playerBot();
+
+		if (bot != null) {
+			bot.stopWishing();
+		}
 	}
 }

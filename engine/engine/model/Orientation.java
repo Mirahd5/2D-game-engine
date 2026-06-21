@@ -1,7 +1,5 @@
 package engine.model;
 
-import engine.model.Grid.Position;
-
 public final class Orientation {
 	
 	// classe utile pour ne pas repeter du code
