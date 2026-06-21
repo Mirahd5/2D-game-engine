@@ -1,7 +1,6 @@
 package engine.brain;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import engine.model.Entity;
@@ -73,7 +72,7 @@ public final class FleeBot extends Bot {
 	}
 
 	public List<Entity> enemies() {
-		return Collections.unmodifiableList(this.enemies);
+		return new ArrayList<Entity>(this.enemies);
 	}
 
 	/*

@@ -36,6 +36,11 @@ import oop.tasks.Runtime;
 
 public final class PengoGameRunner {
 
+	private static final double PLAYER_SPEED = 5.0;
+	private static final double FRIEND_SPEED = 4.0;
+	private static final double ENEMY_SPEED = 3.0;
+	private static final double ICE_STUNT_SPEED = 5.0;
+
 	private static final String ENEMY_GAL_PATH = "pengo/game/gal/EnemyChase.gal";
 	private static final String FRIEND_GAL_PATH = "pengo/game/gal/FriendRandom.gal";
 
@@ -143,7 +148,7 @@ public final class PengoGameRunner {
 				continue;
 			}
 
-			BasicStunt friendStunt = new BasicStunt(model, friend);
+			BasicStunt friendStunt = new BasicStunt(model, friend, FRIEND_SPEED);
 			friend.setStunt(friendStunt);
 
 			GalBot friendBot = new GalBot(brain, friendStunt, friend, friendAutomaton, currentPlayer);
@@ -155,7 +160,7 @@ public final class PengoGameRunner {
 	private static void installEnemyGalBots(Brain brain, Model model, BuildMap builder, Automaton enemyAutomaton,
 			CurrentPlayer currentPlayer) {
 		for (Enemies enemy : builder.enemies()) {
-			BasicStunt enemyStunt = new BasicStunt(model, enemy);
+			BasicStunt enemyStunt = new BasicStunt(model, enemy, ENEMY_SPEED);
 			enemy.setStunt(enemyStunt);
 
 			GalBot enemyBot = new GalBot(brain, enemyStunt, enemy, enemyAutomaton, currentPlayer);
@@ -258,7 +263,7 @@ public final class PengoGameRunner {
 
 		totalSpawnedEnemies++;
 
-		BasicStunt enemyStunt = new BasicStunt(model, enemy);
+		BasicStunt enemyStunt = new BasicStunt(model, enemy, ENEMY_SPEED);
 		enemy.setStunt(enemyStunt);
 
 		GalBot enemyBot = new GalBot(brain, enemyStunt, enemy, enemyAutomaton, currentPlayer);

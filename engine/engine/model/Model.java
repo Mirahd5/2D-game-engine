@@ -1,7 +1,6 @@
 package engine.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -74,7 +73,7 @@ public class Model {
 	}
 
 	public List<Entity> entities() {
-		return Collections.unmodifiableList(this.entities);
+		return new ArrayList<Entity>(this.entities);
 	}
 
 	public ViewPort viewPort() {
@@ -302,7 +301,7 @@ public class Model {
 	public void translate(Entity entity, Grid.Vector vector) {
 		assert vector != null;
 		assert vector.grid() == this.grid;
-		
+
 		assertOwned(entity);
 
 		Grid.Position target = entity.position();

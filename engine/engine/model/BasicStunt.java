@@ -7,10 +7,9 @@ public class BasicStunt extends Stunt {
 	private static final double EPS = 0.000001;
 	private static final double TURN_SNAP_RATIO = 0.30;
 
-	/*
-	 * Facteur de vitesse. 5.0 veut dire : 5 cellules par seconde.
-	 */
-	private static final double WALK_SPEED = 5.0;
+	private static final double DEFAULT_WALK_SPEED = 5.0;
+
+	private final double walkSpeed;
 
 	private boolean walking;
 
@@ -20,7 +19,15 @@ public class BasicStunt extends Stunt {
 	private boolean pendingDone;
 
 	public BasicStunt(Model model, Entity entity) {
+		this(model, entity, DEFAULT_WALK_SPEED);
+	}
+
+	public BasicStunt(Model model, Entity entity, double walkSpeed) {
 		super(model, entity);
+
+		assert walkSpeed > 0.0 : walkSpeed;
+
+		this.walkSpeed = walkSpeed;
 
 		this.walking = false;
 		this.startCenter = null;
@@ -30,6 +37,10 @@ public class BasicStunt extends Stunt {
 
 	public boolean walking() {
 		return this.walking;
+	}
+
+	public double walkSpeed() {
+		return this.walkSpeed;
 	}
 
 	@Override
@@ -312,16 +323,16 @@ public class BasicStunt extends Stunt {
 	private ISU.Vector speedForOrientation(int orientation) {
 		switch (orientation) {
 		case 0:
-			return model.isu().new Vector(entity.step().x() * WALK_SPEED, 0.0);
+			return model.isu().new Vector(entity.step().x() * this.walkSpeed, 0.0);
 
 		case 90:
-			return model.isu().new Vector(0.0, entity.step().y() * WALK_SPEED);
+			return model.isu().new Vector(0.0, entity.step().y() * this.walkSpeed);
 
 		case 180:
-			return model.isu().new Vector(-entity.step().x() * WALK_SPEED, 0.0);
+			return model.isu().new Vector(-entity.step().x() * this.walkSpeed, 0.0);
 
 		case 270:
-			return model.isu().new Vector(0.0, -entity.step().y() * WALK_SPEED);
+			return model.isu().new Vector(0.0, -entity.step().y() * this.walkSpeed);
 
 		default:
 			throw new AssertionError();

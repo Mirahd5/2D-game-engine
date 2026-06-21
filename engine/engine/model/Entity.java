@@ -2,7 +2,6 @@
 package engine.model;
 
 import java.io.PrintStream;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -276,7 +275,7 @@ public abstract class Entity {
 	}
 
 	public Set<Grid.Cell> occupied() {
-		return Collections.unmodifiableSet(this.occupied);
+		return new HashSet<Grid.Cell>(this.occupied);
 	}
 
 	public Stunt stunt() {

@@ -1,7 +1,6 @@
 package engine.brain;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import engine.model.Entity;
@@ -38,19 +37,37 @@ public class Brain {
 			}
 		}
 
-		/*
-		 * Les bots dont l'entité est morte ou retirée sont supprimés après l'itération.
-		 */
-		this.bots.removeIf(bot -> !bot.valid());
-	}
+		List<Bot> toRemove = new ArrayList<Bot>();
 
-	public List<Bot> bots() {
-		return Collections.unmodifiableList(this.bots);
+		for (Bot bot : this.bots) {
+			if (!bot.valid()) {
+				toRemove.add(bot);
+			}
+		}
+
+		for (Bot bot : toRemove) {
+			this.bots.remove(bot);
+		}
 	}
 
 	public void removeBotsOf(Entity entity) {
 		assert entity != null;
 
-		this.bots.removeIf(bot -> bot.stunt().entity() == entity);
+		List<Bot> toRemove = new ArrayList<Bot>();
+
+		for (Bot bot : this.bots) {
+			if (bot.stunt().entity() == entity) {
+				toRemove.add(bot);
+			}
+		}
+
+		for (Bot bot : toRemove) {
+			this.bots.remove(bot);
+		}
 	}
+
+	public List<Bot> bots() {
+		return new ArrayList<Bot>(this.bots);
+	}
+
 }

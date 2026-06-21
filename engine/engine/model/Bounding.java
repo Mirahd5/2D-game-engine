@@ -1,6 +1,5 @@
 package engine.model;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -52,7 +51,7 @@ public final class Bounding {
 	 * La collection ne doit pas être modifiable directement depuis l'extérieur.
 	 */
 	public Set<IShape> shapes() {
-		return Collections.unmodifiableSet(this.shapes);
+		return new LinkedHashSet<IShape>(this.shapes);
 	}
 
 	public ISU isu() {
