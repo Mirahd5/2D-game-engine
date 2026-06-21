@@ -82,11 +82,17 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	@Override
 	public void revoked(Canvas canvas) {
-		/*
-		 * Ne pas arrêter la partie ici. Sur la plateforme donnée, un redimensionnement
-		 * peut provoquer une révocation/recréation de surface. Si on stoppe la session
-		 * ici, la fenêtre devient grise après resize.
-		 */
+		if (this.gameSession != null) {
+			this.gameSession.detach(canvas);
+		}
+
+		if (this.canvas == canvas) {
+			this.canvas = null;
+		}
+
+		if (this.gameCanvas == canvas) {
+			this.gameCanvas = null;
+		}
 	}
 
 	@Override
@@ -479,5 +485,18 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	private boolean inside(int px, int py, int x, int y, int w, int h) {
 		return px >= x && px <= x + w && py >= y && py <= y + h;
+	}
+
+	public boolean repaintIfPossible() {
+		if (this.canvas == null) {
+			return false;
+		}
+
+		if (this.started) {
+			return false;
+		}
+
+		this.canvas.repaint();
+		return true;
 	}
 }

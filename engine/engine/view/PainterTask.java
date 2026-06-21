@@ -18,6 +18,7 @@ public final class PainterTask implements Runnable {
 	private final int delay;
 
 	private long lastTime;
+	private boolean stopped;
 
 	public PainterTask(Painter painter, int delay) {
 		assert painter != null;
@@ -26,10 +27,20 @@ public final class PainterTask implements Runnable {
 		this.painter = painter;
 		this.delay = delay;
 		this.lastTime = System.currentTimeMillis();
+		this.stopped = false;
+	}
+
+	public void stop() {
+		this.stopped = true;
 	}
 
 	@Override
 	public void run() {
+
+		if (this.stopped) {
+			return;
+		}
+
 		long now = System.currentTimeMillis();
 
 		long elapsed = now - this.lastTime;
@@ -59,6 +70,8 @@ public final class PainterTask implements Runnable {
 			nextDelay = 1;
 		}
 
-		Runtime.post(this, nextDelay);
+		if (!this.stopped) {
+			Runtime.post(this, nextDelay);
+		}
 	}
 }

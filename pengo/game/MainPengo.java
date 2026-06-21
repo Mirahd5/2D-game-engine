@@ -14,10 +14,10 @@ public final class MainPengo {
 	private static final int WINDOW_HEIGHT_PIXEL = 600;
 
 	/*
-	 * Important pour le resize.
-	 * La plateforme donnée recrée/agrandit le double-buffer en gris quand la
-	 * fenêtre change de taille. Elle ne redemande pas forcément un repaint
-	 * applicatif juste après. Donc on garde une demande de repaint régulière.
+	 * Important pour le resize. La plateforme donnée recrée/agrandit le
+	 * double-buffer en gris quand la fenêtre change de taille. Elle ne redemande
+	 * pas forcément un repaint applicatif juste après. Donc on garde une demande de
+	 * repaint régulière.
 	 */
 	private static final int REPAINT_DELAY_MS = 33;
 
@@ -44,18 +44,21 @@ public final class MainPengo {
 		canvas.set((Canvas.KeyListener) menu);
 		canvas.set((Canvas.MouseListener) menu);
 
-		startRepaintLoop(canvas);
+		startRepaintLoop(menu);
 		canvas.repaint();
 	}
 
-	private static void startRepaintLoop(final Canvas canvas) {
-		assert canvas != null;
+	private static void startRepaintLoop(final PengoConfigMenu menu) {
+		assert menu != null;
 
 		Runtime.post(new Runnable() {
 			@Override
 			public void run() {
-				canvas.repaint();
-				Runtime.post(this, REPAINT_DELAY_MS);
+				boolean keepGoing = menu.repaintIfPossible();
+
+				if (keepGoing) {
+					Runtime.post(this, REPAINT_DELAY_MS);
+				}
 			}
 		}, REPAINT_DELAY_MS);
 	}
