@@ -5,9 +5,9 @@ import engine.view.View;
 import game.model.Spawner;
 
 /** Avatar du point d'apparition présent sur la carte. */
-public final class CrystalAvatar extends ImageAvatar {
+public final class SpawnerAvatar extends ImageAvatar {
 
-    public CrystalAvatar(View view, Spawner spawner) {
+    public SpawnerAvatar(View view, Spawner spawner) {
         super(view, spawner, new String[] { "pengo_rsrc/spawner_bleu.png" });
     }
 

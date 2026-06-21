@@ -62,11 +62,18 @@ public final class PengoGameSession {
 			return;
 		}
 
-		if (this.view.widthPixel() == width && this.view.heightPixel() == height) {
+		int overlayWidth = this.view.overlayWidthPixel();
+		int worldWidth = width - overlayWidth;
+
+		if (worldWidth < 200) {
+			worldWidth = width;
+		}
+
+		if (this.view.widthPixel() == worldWidth && this.view.heightPixel() == height) {
 			return;
 		}
 
-		this.view.resize(width, height);
+		this.view.resize(worldWidth, height);
 	}
 
 	public void repaint() {
@@ -90,7 +97,7 @@ public final class PengoGameSession {
 			this.canvas = null;
 		}
 	}
-	
+
 	// utile quand le canvas est supprime ou recreee
 	public void detach(Canvas canvas) {
 		if (canvas == null) {

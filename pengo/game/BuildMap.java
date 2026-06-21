@@ -17,7 +17,7 @@ import game.model.Glacon;
 import game.model.Mur;
 import game.model.Pengo;
 import game.model.Spawner;
-import game.view.CrystalAvatar;
+import game.view.SpawnerAvatar;
 import game.view.EnemiesAvatar;
 import game.view.FriendAvatar;
 import game.view.GlaconAvatar;
@@ -197,7 +197,7 @@ public final class BuildMap {
 
 	private void addSpawner(int x, int y) {
 		Spawner spawner = new Spawner(this.model, "spawner-" + x + "-" + y);
-		spawner.setAvatar(new CrystalAvatar(this.view, spawner));
+		spawner.setAvatar(new SpawnerAvatar(this.view, spawner));
 		this.spawners.add(install(spawner, x, y));
 	}
 

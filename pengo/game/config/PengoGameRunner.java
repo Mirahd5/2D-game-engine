@@ -29,8 +29,10 @@ import game.model.Friend;
 import game.model.Glacon;
 import game.model.Mur;
 import game.model.Pengo;
+import game.model.PengoGameState;
 import game.model.Spawner;
 import game.view.EnemiesAvatar;
+import game.view.PengoOverlay;
 import oop.graphics.Canvas;
 import oop.tasks.Runtime;
 
@@ -83,6 +85,7 @@ public final class PengoGameRunner {
 		try {
 			builder = new BuildMap(game, view, config.mapPath());
 			builder.build();
+
 			totalSpawnedEnemies = builder.enemies().size();
 		} catch (IOException exception) {
 			throw new IllegalStateException("Unable to load Pengo map: " + config.mapPath(), exception);
@@ -90,6 +93,15 @@ public final class PengoGameRunner {
 
 		Pengo pengo = builder.pengo();
 		assert pengo != null;
+
+		/*
+		 * Etat global de la partie : - vies - score - ennemis vivants - ennemis générés
+		 * - victoire / défaite
+		 */
+		PengoGameState gameState = new PengoGameState(model, pengo, builder.enemies().size(), builder.spawners().size(),
+				config.maxTotalSpawnedEnemies());
+
+		view.setOverlay(new PengoOverlay(gameState));
 
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);
@@ -104,15 +116,23 @@ public final class PengoGameRunner {
 				currentPlayer);
 
 		installFriendGalBots(brain, model, builder, friendAutomaton, currentPlayer, controlSwitcher);
+
 		installEnemyGalBots(brain, model, builder, enemyAutomaton, currentPlayer);
-		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config);
+
+		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState);
+
 		installIceBots(brain, model, builder);
 
+		installGameStateBot(brain, model, gameState);
+
 		PengoController controller = new PengoController(controlSwitcher, config.continuousWalk());
+
 		if (controller.continuousWalk()) {
 			installContinuousWalkTask(controller, config.tickDelayMs());
 		}
+
 		painter.visible(canvas);
+
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());
 
 		Runtime.post(ticker);
@@ -170,7 +190,7 @@ public final class PengoGameRunner {
 	}
 
 	private static void installSpawnerBots(Brain brain, Model model, View view, BuildMap builder,
-			Automaton enemyAutomaton, CurrentPlayer currentPlayer, PengoConfig config) {
+			Automaton enemyAutomaton, CurrentPlayer currentPlayer, PengoConfig config, PengoGameState gameState) {
 		for (Spawner spawner : builder.spawners()) {
 			BasicStunt spawnerStunt = new BasicStunt(model, spawner);
 			spawner.setStunt(spawnerStunt);
@@ -180,6 +200,14 @@ public final class PengoGameRunner {
 
 				@Override
 				public void think() {
+
+					gameState.update();
+
+					if (gameState.finished()) {
+						gameState.stopAllEntities();
+						return;
+					}
+
 					spawner.updateSliding();
 
 					if (spawner.isSliding()) {
@@ -206,7 +234,8 @@ public final class PengoGameRunner {
 						return;
 					}
 
-					createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, spawner.position());
+					createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, spawner.position(),
+							gameState);
 				}
 			};
 			brain.add(spawnerBot);
@@ -255,13 +284,15 @@ public final class PengoGameRunner {
 	}
 
 	private static void createSpawnedEnemy(Model model, View view, Brain brain, Automaton enemyAutomaton,
-			CurrentPlayer currentPlayer, Grid.Position position) {
+			CurrentPlayer currentPlayer, Grid.Position position, PengoGameState gameState) {
 		Enemies enemy = new Enemies(model, "spawned-enemy-" + spawnedEnemyCounter++);
 		enemy.setAvatar(new EnemiesAvatar(view, enemy));
 
 		model.add(enemy, position);
 
 		totalSpawnedEnemies++;
+
+		gameState.enemySpawned();
 
 		BasicStunt enemyStunt = new BasicStunt(model, enemy, ENEMY_SPEED);
 		enemy.setStunt(enemyStunt);
@@ -283,5 +314,39 @@ public final class PengoGameRunner {
 		} catch (Exception exception) {
 			throw new IllegalStateException("Unable to load GAL file: " + path, exception);
 		}
+	}
+
+	private static void installGameStateBot(Brain brain, Model model, PengoGameState gameState) {
+		assert brain != null;
+		assert model != null;
+		assert gameState != null;
+
+		Entity dummy = null;
+
+		for (Entity entity : model.entities()) {
+			if (entity.alive()) {
+				dummy = entity;
+				break;
+			}
+		}
+
+		if (dummy == null) {
+			return;
+		}
+
+		BasicStunt dummyStunt = new BasicStunt(model, dummy);
+
+		Bot stateBot = new Bot(brain, dummyStunt) {
+			@Override
+			public void think() {
+				gameState.update();
+
+				if (gameState.finished()) {
+					gameState.stopAllEntities();
+				}
+			}
+		};
+
+		brain.add(stateBot);
 	}
 }

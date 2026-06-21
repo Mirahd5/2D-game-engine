@@ -10,7 +10,7 @@ import oop.tasks.Task;
 
 public final class MainPengo {
 
-	private static final int WINDOW_WIDTH_PIXEL = 720;
+	private static final int WINDOW_WIDTH_PIXEL = 950;
 	private static final int WINDOW_HEIGHT_PIXEL = 600;
 
 	/*
