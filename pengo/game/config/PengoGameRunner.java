@@ -147,7 +147,7 @@ public final class PengoGameRunner {
 		installPengoPowerTimer(pengo, config.tickDelayMs());
 
 		resetPowerSpawnCounters();
-		installRandomPowerSpawner(model, view, gameState);
+		installRandomPowerSpawner(model, view, gameState, builder);
 
 		painter.visible(canvas);
 
@@ -396,10 +396,12 @@ public final class PengoGameRunner {
 		}
 	}
 
-	private static void installRandomPowerSpawner(final Model model, final View view, final PengoGameState gameState) {
+	private static void installRandomPowerSpawner(final Model model, final View view,
+			final PengoGameState gameState, final BuildMap builder) {
 		assert model != null;
 		assert view != null;
 		assert gameState != null;
+		assert builder != null;
 
 		Runtime.post(new Runnable() {
 			@Override
@@ -410,7 +412,7 @@ public final class PengoGameRunner {
 					return;
 				}
 
-				spawnOneRandomPowerIfPossible(model, view);
+				spawnOneRandomPowerIfPossible(model, view, builder);
 
 				Runtime.post(this, randomPowerDelay());
 			}
@@ -421,19 +423,21 @@ public final class PengoGameRunner {
 		return POWER_MIN_DELAY_MS + RANDOM.nextInt(POWER_MAX_DELAY_MS - POWER_MIN_DELAY_MS + 1);
 	}
 
-	private static void spawnOneRandomPowerIfPossible(Model model, View view) {
+	private static void spawnOneRandomPowerIfPossible(Model model, View view, BuildMap builder) {
 		List<PowerType> possibleTypes = possiblePowerTypes(model);
 
 		if (possibleTypes.isEmpty()) {
 			return;
 		}
 
-		PowerType type = possibleTypes.get(RANDOM.nextInt(possibleTypes.size()));
-		Grid.Position position = randomFreePowerPosition(model);
+		Grid.Position position = randomFreePowerPosition(model, builder);
 
 		if (position == null) {
+			System.out.println("No free position for random power.");
 			return;
 		}
+
+		PowerType type = possibleTypes.get(RANDOM.nextInt(possibleTypes.size()));
 
 		Power power = new Power(model, "random-power-" + type + "-" + System.currentTimeMillis(), type);
 		power.setAvatar(new PowerAvatar(view, power));
@@ -480,7 +484,7 @@ public final class PengoGameRunner {
 		return false;
 	}
 
-	private static Grid.Position randomFreePowerPosition(Model model) {
+	private static Grid.Position randomFreePowerPosition(Model model, BuildMap builder) {
 		List<Grid.Position> freePositions = new ArrayList<Grid.Position>();
 		Grid grid = model.grid();
 
@@ -488,7 +492,7 @@ public final class PengoGameRunner {
 			for (int x = 0; x < grid.width(); x++) {
 				Grid.Position position = grid.new Position(x, y);
 
-				if (isFreeForPower(model, position)) {
+				if (isFreeForPower(model, builder, position)) {
 					freePositions.add(position);
 				}
 			}
@@ -501,16 +505,51 @@ public final class PengoGameRunner {
 		return freePositions.get(RANDOM.nextInt(freePositions.size()));
 	}
 
-	private static boolean isFreeForPower(Model model, Grid.Position position) {
-		Grid.Cell cell = model.grid().cellAt(position);
+	private static boolean isFreeForPower(Model model, BuildMap builder, Grid.Position position) {
+		char[][] map = builder.getMap();
 
-		for (Entity entity : cell.entities()) {
-			if (!entity.alive()) {
+		int x = position.x();
+		int y = position.y();
+
+		if (y < 0 || y >= map.length || x < 0 || x >= map[y].length) {
+			return false;
+		}
+
+		/*
+		 * On autorise uniquement les cases '.' de la map.
+		 * Donc pas de génération sur :
+		 * # mur
+		 * I glaçon
+		 * P Pengo
+		 * E ennemi
+		 * S spawner
+		 * F Friend
+		 */
+		if (map[y][x] != '.') {
+			return false;
+		}
+
+		/*
+		 * Vérification robuste :
+		 * on regarde toutes les entités du modèle,
+		 * pas seulement cell.entities().
+		 */
+		for (Entity entity : model.entities()) {
+			if (entity == null) {
 				continue;
 			}
 
-			if (entity instanceof Mur || entity instanceof Glacon || entity instanceof Spawner || entity instanceof Pengo
-					|| entity instanceof Friend || entity instanceof Enemies || entity instanceof Power) {
+			if (!entity.alive() || !entity.installed()) {
+				continue;
+			}
+
+			Grid.Position entityPosition = entity.position();
+
+			if (entityPosition == null) {
+				continue;
+			}
+
+			if (entityPosition.x() == x && entityPosition.y() == y) {
 				return false;
 			}
 		}
