@@ -1,8 +1,15 @@
 package game.config;
 
 import java.io.IOException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import oop.tasks.Runnable;
-
+import game.model.Power;
+import game.model.PowerType;
 import engine.brain.Bot;
 import engine.brain.Brain;
 import engine.model.BasicStunt;
@@ -33,6 +40,7 @@ import game.model.PengoGameState;
 import game.model.Spawner;
 import game.view.EnemiesAvatar;
 import game.view.PengoOverlay;
+import game.view.PowerAvatar;
 import oop.graphics.Canvas;
 import oop.tasks.Runtime;
 
@@ -48,6 +56,13 @@ public final class PengoGameRunner {
 
 	private static int spawnedEnemyCounter = 0;
 	private static int totalSpawnedEnemies = 0;
+	private static final int POWER_MAX_SPAWN_PER_TYPE = 2;
+	private static final int POWER_MIN_DELAY_MS = 4000;
+	private static final int POWER_MAX_DELAY_MS = 9000;
+
+	private static final Random RANDOM = new Random();
+	private static final Map<PowerType, Integer> spawnedPowers =
+			new EnumMap<PowerType, Integer>(PowerType.class);
 
 	private PengoGameRunner() {
 	}
@@ -130,6 +145,9 @@ public final class PengoGameRunner {
 		}
 
 		installPengoPowerTimer(pengo, config.tickDelayMs());
+
+		resetPowerSpawnCounters();
+		installRandomPowerSpawner(model, view, gameState);
 
 		painter.visible(canvas);
 
@@ -369,5 +387,134 @@ public final class PengoGameRunner {
 		};
 
 		brain.add(stateBot);
+	}
+	private static void resetPowerSpawnCounters() {
+		spawnedPowers.clear();
+
+		for (PowerType type : PowerType.values()) {
+			spawnedPowers.put(type, Integer.valueOf(0));
+		}
+	}
+
+	private static void installRandomPowerSpawner(final Model model, final View view, final PengoGameState gameState) {
+		assert model != null;
+		assert view != null;
+		assert gameState != null;
+
+		Runtime.post(new Runnable() {
+			@Override
+			public void run() {
+				gameState.update();
+
+				if (gameState.finished()) {
+					return;
+				}
+
+				spawnOneRandomPowerIfPossible(model, view);
+
+				Runtime.post(this, randomPowerDelay());
+			}
+		}, randomPowerDelay());
+	}
+
+	private static int randomPowerDelay() {
+		return POWER_MIN_DELAY_MS + RANDOM.nextInt(POWER_MAX_DELAY_MS - POWER_MIN_DELAY_MS + 1);
+	}
+
+	private static void spawnOneRandomPowerIfPossible(Model model, View view) {
+		List<PowerType> possibleTypes = possiblePowerTypes(model);
+
+		if (possibleTypes.isEmpty()) {
+			return;
+		}
+
+		PowerType type = possibleTypes.get(RANDOM.nextInt(possibleTypes.size()));
+		Grid.Position position = randomFreePowerPosition(model);
+
+		if (position == null) {
+			return;
+		}
+
+		Power power = new Power(model, "random-power-" + type + "-" + System.currentTimeMillis(), type);
+		power.setAvatar(new PowerAvatar(view, power));
+
+		model.add(power, position);
+
+		int currentCount = spawnedPowers.get(type).intValue();
+		spawnedPowers.put(type, Integer.valueOf(currentCount + 1));
+
+		System.out.println("Random power spawned: " + type + " at (" + position.x() + ", " + position.y() + ")");
+	}
+
+	private static List<PowerType> possiblePowerTypes(Model model) {
+		List<PowerType> result = new ArrayList<PowerType>();
+
+		for (PowerType type : PowerType.values()) {
+			int count = spawnedPowers.get(type).intValue();
+
+			if (count >= POWER_MAX_SPAWN_PER_TYPE) {
+				continue;
+			}
+
+			if (hasActivePower(model, type)) {
+				continue;
+			}
+
+			result.add(type);
+		}
+
+		return result;
+	}
+
+	private static boolean hasActivePower(Model model, PowerType type) {
+		for (Entity entity : model.entities()) {
+			if (entity instanceof Power && entity.alive()) {
+				Power power = (Power) entity;
+
+				if (power.getType() == type) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	private static Grid.Position randomFreePowerPosition(Model model) {
+		List<Grid.Position> freePositions = new ArrayList<Grid.Position>();
+		Grid grid = model.grid();
+
+		for (int y = 0; y < grid.height(); y++) {
+			for (int x = 0; x < grid.width(); x++) {
+				Grid.Position position = grid.new Position(x, y);
+
+				if (isFreeForPower(model, position)) {
+					freePositions.add(position);
+				}
+			}
+		}
+
+		if (freePositions.isEmpty()) {
+			return null;
+		}
+
+		return freePositions.get(RANDOM.nextInt(freePositions.size()));
+	}
+
+	private static boolean isFreeForPower(Model model, Grid.Position position) {
+		Grid.Cell cell = model.grid().cellAt(position);
+
+		for (Entity entity : cell.entities()) {
+			if (!entity.alive()) {
+				continue;
+			}
+
+			if (entity instanceof Mur || entity instanceof Glacon || entity instanceof Spawner || entity instanceof Pengo
+					|| entity instanceof Friend || entity instanceof Enemies || entity instanceof Power) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 }
