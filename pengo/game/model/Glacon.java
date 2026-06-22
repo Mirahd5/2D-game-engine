@@ -352,10 +352,6 @@ public final class Glacon extends Entity implements Pushable {
 		carryEnemyWithIce(enemy);
 	}
 
-	/**
-	 * L'ennemi est embarqué seulement s'il est vraiment sur la trajectoire du
-	 * glaçon.
-	 */
 	private boolean isOnSlidingPath(Entity other) {
 		if (other == null || !this.sliding) {
 			return false;
@@ -387,11 +383,73 @@ public final class Glacon extends Entity implements Pushable {
 		if (!alive() || !installed() || !enemy.alive() || !enemy.installed()) {
 			return;
 		}
+		Grid.Position enemyPosition = neighbor(position(), this.slideDirection);
+
+		if (enemyPosition == null || containsCrushingObstacle(enemyPosition)) {
+			killCarriedEnemy(enemy);
+			return;
+		}
+
+		Grid.Position afterEnemy = neighbor(enemyPosition, this.slideDirection);
+
+		if (afterEnemy == null || containsCrushingObstacle(afterEnemy)) {
+			killCarriedEnemy(enemy);
+			return;
+		}
 
 		enemy.freeze();
 		enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
 		enemy.setAngularSpeed(0.0);
-		model().place(enemy, center());
+		model().place(enemy, carriedEnemyCenter());
+	}
+	
+	private ISU.Coord carriedEnemyCenter() {
+		return center().mkTranslated(forwardOffset(this.slideDirection, model().isu().cmPerCell()));
+	}
+
+	private ISU.Vector forwardOffset(int direction, double distance_cm) {
+		switch (direction) {
+		case 0:
+			return model().isu().new Vector(distance_cm, 0.0);
+
+		case 90:
+			return model().isu().new Vector(0.0, distance_cm);
+
+		case 180:
+			return model().isu().new Vector(-distance_cm, 0.0);
+
+		case 270:
+			return model().isu().new Vector(0.0, -distance_cm);
+
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
+	}
+
+	private void killCarriedEnemy(Enemies enemy) {
+		assert enemy != null;
+
+		this.carriedEnemies.remove(enemy);
+
+		if (enemy.alive()) {
+			enemy.kill();
+		}
+	}
+
+	private boolean containsCrushingObstacle(Grid.Position position) {
+		if (position == null) {
+			return true;
+		}
+
+		Grid.Cell cell = model().grid().cellAt(position);
+
+		for (Entity other : cell.entities()) {
+			if (other != this && other.alive() && isCrushingObstacle(other)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void crushCarriedEnemies() {
@@ -492,10 +550,6 @@ public final class Glacon extends Entity implements Pushable {
 
 	private boolean isCrushingObstacle(Entity other) {
 		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
-	}
-
-	private boolean isPhysicalBlock(Entity other) {
-		return this.blocks(other) || other.blocks(this);
 	}
 
 	private double axisLength(int direction) {
