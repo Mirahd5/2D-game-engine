@@ -38,6 +38,21 @@ public class BasicStunt extends Stunt {
 	public boolean walking() {
 		return this.walking;
 	}
+	// i added this because the enemy’s BasicStunt still thinks it is in the middle of a walk
+	public void cancelCurrentAction() {
+		if (!valid()) {
+			return;
+		}
+
+		resetAction();
+
+		entity.setLinearSpeed(model.isu().new Vector(0.0, 0.0));
+		entity.setAngularSpeed(0.0);
+
+		if (entity.installed()) {
+			model.placeSilently(entity, entity.position().toISUCoordCentered());
+		}
+	}
 
 	public double walkSpeed() {
 		return this.walkSpeed;

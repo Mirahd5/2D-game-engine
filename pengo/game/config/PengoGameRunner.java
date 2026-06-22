@@ -94,10 +94,6 @@ public final class PengoGameRunner {
 		Pengo pengo = builder.pengo();
 		assert pengo != null;
 
-		/*
-		 * Etat global de la partie : - vies - score - ennemis vivants - ennemis générés
-		 * - victoire / défaite
-		 */
 		PengoGameState gameState = new PengoGameState(model, pengo, builder.enemies().size(), builder.spawners().size(),
 				config.maxTotalSpawnedEnemies());
 
@@ -133,6 +129,8 @@ public final class PengoGameRunner {
 			installContinuousWalkTask(controller, config.tickDelayMs());
 		}
 
+		installPengoPowerTimer(pengo, config.tickDelayMs());
+
 		painter.visible(canvas);
 
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());
@@ -151,6 +149,19 @@ public final class PengoGameRunner {
 			@Override
 			public void run() {
 				controller.updateContinuousWalk();
+				Runtime.post(this, delayMs);
+			}
+		}, delayMs);
+	}
+
+	private static void installPengoPowerTimer(final Pengo pengo, final int delayMs) {
+		assert pengo != null;
+		assert delayMs > 0;
+
+		Runtime.post(new Runnable() {
+			@Override
+			public void run() {
+				pengo.updateTimedPowers();
 				Runtime.post(this, delayMs);
 			}
 		}, delayMs);
@@ -202,7 +213,6 @@ public final class PengoGameRunner {
 
 				@Override
 				public void think() {
-
 					gameState.update();
 
 					if (gameState.finished()) {
@@ -240,6 +250,7 @@ public final class PengoGameRunner {
 							gameState);
 				}
 			};
+
 			brain.add(spawnerBot);
 		}
 	}
@@ -268,11 +279,13 @@ public final class PengoGameRunner {
 
 	private static int livingEnemies(Model model) {
 		int count = 0;
+
 		for (Entity entity : model.entities()) {
 			if (entity instanceof Enemies && entity.alive()) {
 				count++;
 			}
 		}
+
 		return count;
 	}
 

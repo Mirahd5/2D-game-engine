@@ -16,19 +16,37 @@ import game.model.Friend;
 import game.model.Glacon;
 import game.model.Mur;
 import game.model.Pengo;
+import game.model.Power;
+import game.model.PowerType;
 import game.model.Spawner;
-import game.view.SpawnerAvatar;
 import game.view.EnemiesAvatar;
 import game.view.FriendAvatar;
 import game.view.GlaconAvatar;
 import game.view.MurAvatar;
 import game.view.PengoAvatar;
+import game.view.PowerAvatar;
+import game.view.SpawnerAvatar;
 
 /**
  * Lit la carte textuelle de Pengo et installe les entités dans le Model.
  *
- * Symboles actuellement reconnus : # mur, . case libre, I bloc de glace, P
- * joueur, S spawner, E ennemi, F allié.
+ * Symboles actuellement reconnus :
+ * # mur
+ * . case libre
+ * I bloc de glace
+ * P joueur
+ * S spawner
+ * E ennemi
+ * F ami
+ *
+ * Pouvoirs :
+ * 1 bouclier
+ * 2 vitesse
+ * 3 freeze
+ * 4 étoile
+ * 5 vie supplémentaire
+ * 6 malus BoomFish -1 vie
+ * A activateur Friend
  */
 public final class BuildMap {
 
@@ -46,6 +64,7 @@ public final class BuildMap {
 	private final List<Spawner> spawners;
 	private final List<Enemies> enemies;
 	private final List<Friend> friends;
+	private final List<Power> powers;
 
 	private boolean built;
 
@@ -67,6 +86,7 @@ public final class BuildMap {
 		this.spawners = new ArrayList<Spawner>();
 		this.enemies = new ArrayList<Enemies>();
 		this.friends = new ArrayList<Friend>();
+		this.powers = new ArrayList<Power>();
 
 		this.pengo = null;
 		this.built = false;
@@ -136,7 +156,6 @@ public final class BuildMap {
 			break;
 
 		case '.':
-			// Case de déplacement libre : aucune entité n'est installée.
 			break;
 
 		case 'I':
@@ -157,6 +176,34 @@ public final class BuildMap {
 
 		case 'F':
 			addFriend(x, y);
+			break;
+
+		case '1':
+			addPower(x, y, PowerType.SHIELD);
+			break;
+
+		case '2':
+			addPower(x, y, PowerType.SPEED);
+			break;
+
+		case '3':
+			addPower(x, y, PowerType.FREEZE);
+			break;
+
+		case '4':
+			addPower(x, y, PowerType.STAR);
+			break;
+
+		case '5':
+			addPower(x, y, PowerType.EXTRA_LIFE);
+			break;
+
+		case '6':
+			addPower(x, y, PowerType.BOOMFISH);
+			break;
+
+		case 'A':
+			addPower(x, y, PowerType.FRIEND_ACTIVATOR);
 			break;
 
 		case ' ':
@@ -213,6 +260,12 @@ public final class BuildMap {
 		this.friends.add(install(friend, x, y));
 	}
 
+	private void addPower(int x, int y, PowerType type) {
+		Power power = new Power(this.model, "power-" + type + "-" + x + "-" + y, type);
+		power.setAvatar(new PowerAvatar(this.view, power));
+		this.powers.add(install(power, x, y));
+	}
+
 	public void printMap() {
 		for (char[] line : this.map) {
 			System.out.println(new String(line));
@@ -251,5 +304,9 @@ public final class BuildMap {
 
 	public List<Friend> friends() {
 		return new ArrayList<Friend>(this.friends);
+	}
+
+	public List<Power> powers() {
+		return new ArrayList<Power>(this.powers);
 	}
 }

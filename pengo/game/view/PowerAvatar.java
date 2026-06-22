@@ -51,9 +51,9 @@ public final class PowerAvatar extends Avatar {
 
         this.images.put(PowerType.SHIELD, graphics.load("pengo_rsrc/shield.png"));
         this.images.put(PowerType.SPEED, graphics.load("pengo_rsrc/piment.png"));
-        this.images.put(PowerType.FREEZE, graphics.load("pengo_rsrc/glacon.png"));
+        this.images.put(PowerType.FREEZE, graphics.load("pengo_rsrc/bonbon.png"));
         this.images.put(PowerType.STAR, graphics.load("pengo_rsrc/etoile.png"));
-        this.images.put(PowerType.EXTRA_LIFE, graphics.load("pengo_rsrc/bonbon.png"));
+        this.images.put(PowerType.EXTRA_LIFE, graphics.load("pengo_rsrc/crevette.png"));
         this.images.put(PowerType.BOOMFISH, graphics.load("pengo_rsrc/boom_fish.png"));
         this.images.put(PowerType.FRIEND_ACTIVATOR, graphics.load("pengo_rsrc/friend_activator.png"));
 

@@ -94,6 +94,14 @@ public final class Enemies extends Entity {
 	public void collision(Entity other) {
 		if (other instanceof Player && other.alive()) {
 			Player player = (Player) other;
+			if (player instanceof Pengo) {
+				Pengo pengo = (Pengo) player;
+
+				if (pengo.hasStar()) {
+					kill();
+					return;
+				}
+			}
 			player.hitByEnemy();
 		}
 
@@ -112,8 +120,18 @@ public final class Enemies extends Entity {
 		}
 
 		if (touchedPlayer != null) {
+			if (touchedPlayer instanceof Pengo) {
+				Pengo pengo = (Pengo) touchedPlayer;
+
+				if (pengo.hasStar()) {
+					kill();
+					return;
+				}
+			}
+
 			touchedPlayer.hitByEnemy();
 		}
+
 
 		super.collision(entities);
 	}
