@@ -229,6 +229,9 @@ public final class Pengo extends Player {
 	@Override
 	public void collision(Entity other) {
 		if (other instanceof Power) {
+			if (!isControlled()) {
+				return;
+			}
 			Power power = (Power) other;
 			power.apply(this);
 			power.death();
@@ -244,6 +247,9 @@ public final class Pengo extends Player {
 
 		for (Entity entity : entities) {
 			if (entity instanceof Power) {
+				if (!isControlled()) {
+					return;
+				}
 				Power power = (Power) entity;
 				power.apply(this);
 				power.death();

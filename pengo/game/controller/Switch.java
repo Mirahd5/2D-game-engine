@@ -130,9 +130,9 @@ public final class Switch {
 
 		this.brain.removeBotsOf(entity);
 
-		if (entity instanceof Friend) {
-			Friend friend = (Friend) entity;
-			friend.setControlled(false);
+		if (entity instanceof Player) {
+			Player player = (Player) entity;
+			player.setControlled(false);
 		}
 
 		if (!(entity instanceof Player)) {
@@ -151,15 +151,15 @@ public final class Switch {
 		if (entity == null || !entity.alive() || !entity.installed()) {
 			return;
 		}
-
+		
 		this.brain.removeBotsOf(entity);
 
 		BasicStunt playerStunt = new BasicStunt(this.model, entity);
 		entity.setStunt(playerStunt);
 
-		if (entity instanceof Friend) {
-			Friend friend = (Friend) entity;
-			friend.setControlled(true);
+		if (entity instanceof Player) {
+			Player player = (Player) entity;
+			player.setControlled(true);
 		}
 
 		this.playerBot = new PlayerBot(this.brain, playerStunt);
