@@ -307,7 +307,8 @@ public final class Glacon extends Entity implements Pushable {
 
 		for (Entity other : cell.entities()) {
 			if (other != this && other.alive()) {
-				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
+				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner
+						|| other instanceof Power) {
 					return false;
 				}
 			}
@@ -482,7 +483,7 @@ public final class Glacon extends Entity implements Pushable {
 		}
 
 		boolean hardType = other instanceof Mur || other instanceof Glacon || other instanceof Spawner
-				|| other instanceof Pengo || other instanceof Friend;
+				|| other instanceof Pengo || other instanceof Friend || other instanceof Power;
 
 		if (!hardType) {
 			return false;
