@@ -31,11 +31,14 @@ public class Ticker implements Runnable {
 	private final int delay; // délai théorique en ms (ex: 16 pour ~60 FPS)
 	private long lastTime; // timestamp du dernier run()
 
-	public Ticker(Model model, Brain brain, View view, int delay) {
-		this(model, brain, view, delay, null);
-	}
+	private final PerformanceMonitor performanceMonitor;
 
 	public Ticker(Model model, Brain brain, View view, int delay, Entity followedEntity) {
+		this(model, brain, view, delay, followedEntity, null);
+	}
+
+	public Ticker(Model model, Brain brain, View view, int delay, Entity followedEntity,
+			PerformanceMonitor performanceMonitor) {
 		assert model != null;
 		assert brain != null;
 		assert view != null;
@@ -50,9 +53,9 @@ public class Ticker implements Runnable {
 		this.view = view;
 		this.delay = delay;
 		this.followedEntity = followedEntity;
+		this.performanceMonitor = performanceMonitor;
 
 		this.lastTime = System.currentTimeMillis();
-
 		this.stopped = false;
 	}
 
@@ -78,6 +81,10 @@ public class Ticker implements Runnable {
 		long now = System.currentTimeMillis();
 		long elapsed = now - this.lastTime;
 		this.lastTime = now;
+
+		if (this.performanceMonitor != null) {
+			this.performanceMonitor.recordTick(elapsed);
+		}
 
 		if (this.view.startupRevealActive()) {
 			this.view.tick(elapsed);

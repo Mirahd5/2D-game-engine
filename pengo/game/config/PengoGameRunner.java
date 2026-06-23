@@ -44,6 +44,8 @@ import game.view.PengoClassicOverlay;
 import game.view.PowerAvatar;
 import oop.graphics.Canvas;
 import oop.tasks.Runtime;
+import engine.view.DebugOptions;
+import engine.view.PerformanceMonitor;
 
 public final class PengoGameRunner {
 
@@ -92,10 +94,14 @@ public final class PengoGameRunner {
 
 		Brain brain = new Brain();
 
+		DebugOptions debugOptions = new DebugOptions();
+		PerformanceMonitor performanceMonitor = new PerformanceMonitor();
+
 		View view = new View(model, config.windowWidthPixel(), config.windowHeightPixel());
+		view.setDebugOptions(debugOptions);
+		view.setPerformanceMonitor(performanceMonitor);
 
-		Painter painter = new Painter(view);
-
+		Painter painter = new Painter(view, performanceMonitor);
 		BuildMap builder;
 
 		try {
@@ -127,7 +133,8 @@ public final class PengoGameRunner {
 			viewPort.centerOn(pengo);
 		}
 
-		Ticker ticker = new Ticker(model, brain, view, config.tickDelayMs(), viewportDemo ? pengo : null);
+		Ticker ticker = new Ticker(model, brain, view, config.tickDelayMs(), viewportDemo ? pengo : null,
+				performanceMonitor);
 
 		Switch controlSwitcher = new Switch(brain, model, ticker, pengo, builder.friends(), friendAutomaton,
 				currentPlayer);
@@ -138,11 +145,13 @@ public final class PengoGameRunner {
 
 		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState);
 
+		installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer, builder, gameState);
+
 		installIceBots(brain, model, builder, gameState);
 
 		installGameStateBot(brain, model, gameState);
 
-		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk());
+		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk(), debugOptions);
 
 		controller.setGameState(gameState);
 
@@ -630,8 +639,10 @@ public final class PengoGameRunner {
 
 		return true;
 	}
-	
+
 	private static boolean hasLivingFriend(Model model) {
+		assert model != null;
+
 		for (Entity entity : model.entities()) {
 			if (entity instanceof Friend && entity.alive()) {
 				return true;
@@ -639,5 +650,34 @@ public final class PengoGameRunner {
 		}
 
 		return false;
+	}
+
+	// debug
+	private static void installDebugLoadSpawner(final DebugOptions debugOptions, final Model model, final View view,
+			final Brain brain, final Automaton enemyAutomaton, final CurrentPlayer currentPlayer,
+			final BuildMap builder, final PengoGameState gameState) {
+		assert debugOptions != null;
+		assert model != null;
+		assert view != null;
+		assert brain != null;
+		assert enemyAutomaton != null;
+		assert currentPlayer != null;
+		assert builder != null;
+		assert gameState != null;
+
+		Runtime.post(new Runnable() {
+			@Override
+			public void run() {
+				if (debugOptions.loadTest()) {
+					Grid.Position position = randomFreePowerPosition(model, builder);
+
+					if (position != null) {
+						createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, position, gameState);
+					}
+				}
+
+				Runtime.post(this, 300);
+			}
+		}, 300);
 	}
 }

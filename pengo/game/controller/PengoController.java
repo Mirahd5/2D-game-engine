@@ -12,6 +12,7 @@ import game.model.Player;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
 import engine.view.View;
+import engine.view.DebugOptions;
 
 public final class PengoController extends Controller {
 
@@ -25,17 +26,27 @@ public final class PengoController extends Controller {
 	private final Set<Integer> pressedKeys;
 	private Integer continuousDirection;
 
-	public PengoController(Switch controlSwitcher, View view) {
-		this(controlSwitcher, view, false);
-	}
+	// debug
+	private final DebugOptions debugOptions;
+
+	private static final int KEY_F1 = 112;
+	private static final int KEY_F2 = 113;
+	private static final int KEY_F3 = 114;
+	private static final int KEY_F4 = 115;
+	private static final int KEY_F5 = 116;
 
 	public PengoController(Switch controlSwitcher, View view, boolean continuousWalk) {
+		this(controlSwitcher, view, continuousWalk, null);
+	}
+
+	public PengoController(Switch controlSwitcher, View view, boolean continuousWalk, DebugOptions debugOptions) {
 		assert controlSwitcher != null;
 		assert view != null;
 
 		this.controlSwitcher = controlSwitcher;
 		this.view = view;
 		this.continuousWalk = continuousWalk;
+		this.debugOptions = debugOptions;
 		this.gameState = null;
 
 		this.pressedKeys = new HashSet<Integer>();
@@ -57,6 +68,11 @@ public final class PengoController extends Controller {
 
 	@Override
 	public void pressed(Canvas canvas, int keyCode, char keyChar) {
+
+		if (handleDebugKey(keyCode)) {
+			return;
+		}
+		
 		if (!enabled()) {
 			return;
 		}
@@ -367,6 +383,37 @@ public final class PengoController extends Controller {
 
 		if (bot != null) {
 			bot.stopWishing();
+		}
+	}
+
+	private boolean handleDebugKey(int keyCode) {
+		if (this.debugOptions == null) {
+			return false;
+		}
+
+		switch (keyCode) {
+		case KEY_F1:
+			this.debugOptions.toggleEnabled();
+			return true;
+
+		case KEY_F2:
+			this.debugOptions.toggleBoundingBoxes();
+			return true;
+
+		case KEY_F3:
+			this.debugOptions.toggleActions();
+			return true;
+
+		case KEY_F4:
+			this.debugOptions.togglePerformance();
+			return true;
+
+		case KEY_F5:
+			this.debugOptions.toggleLoadTest();
+			return true;
+
+		default:
+			return false;
 		}
 	}
 }

@@ -485,6 +485,11 @@ public abstract class Entity {
 		}
 	}
 
+	public String debugLabel() {
+		String status = isMoving() ? "MOVING" : "IDLE";
+		return this.name + " " + status;
+	}
+
 	// NOTIFICATIONS VERS LE STUNT
 
 	private void notifyOrientationChanged() {

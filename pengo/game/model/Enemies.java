@@ -282,7 +282,19 @@ public final class Enemies extends Entity {
 			touchedPlayer.hitByEnemy();
 		}
 
-
 		super.collision(entities);
+	}
+
+	@Override
+	public String debugLabel() {
+		if (this.frozen) {
+			return "Enemy FROZEN " + this.galState;
+		}
+
+		if (isMoving()) {
+			return "Enemy " + this.galState + " WALK";
+		}
+
+		return "Enemy " + this.galState;
 	}
 }
