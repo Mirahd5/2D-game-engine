@@ -34,7 +34,7 @@ public final class EnemiesBot extends Bot {
 
     @Override
     public void think() {
-        if (!valid() || this.enemy.isFrozen() || this.enemy.isMoving()) {
+        if (!valid() || this.enemy.isFrozen() || this.enemy.isCrushed() || this.enemy.isMoving()) {
             return;
         }
 

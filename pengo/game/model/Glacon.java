@@ -11,7 +11,6 @@ import engine.model.Model;
 import engine.model.Orientation;
 import engine.model.Rect;
 import oop.tasks.Runnable;
-import oop.tasks.Runtime;
 
 public final class Glacon extends Entity implements Pushable {
 
@@ -214,7 +213,7 @@ public final class Glacon extends Entity implements Pushable {
 
 		if (this.sliding && isStaticObstacle(other)) {
 			if (isCrushingObstacle(other)) {
-				crushCarriedEnemies();
+				crushCarriedEnemies(other);
 			}
 
 			stopSliding();
@@ -223,7 +222,7 @@ public final class Glacon extends Entity implements Pushable {
 
 		if (isHardBlockForThisIce(other)) {
 			if (isCrushingObstacle(other)) {
-				crushCarriedEnemies();
+				crushCarriedEnemies(other);
 			}
 
 			stopSliding();
@@ -240,7 +239,7 @@ public final class Glacon extends Entity implements Pushable {
 		assert entities != null;
 
 		boolean mustStop = false;
-		boolean crushingObstacleMet = false;
+		Entity crushingObstacle = null;
 
 		for (Entity other : entities) {
 			if (other == this || !other.alive()) {
@@ -253,7 +252,7 @@ public final class Glacon extends Entity implements Pushable {
 				mustStop = true;
 
 				if (isCrushingObstacle(other)) {
-					crushingObstacleMet = true;
+					crushingObstacle = other;
 				}
 
 				continue;
@@ -263,13 +262,13 @@ public final class Glacon extends Entity implements Pushable {
 				mustStop = true;
 
 				if (isCrushingObstacle(other)) {
-					crushingObstacleMet = true;
+					crushingObstacle = other;
 				}
 			}
 		}
 
-		if (crushingObstacleMet) {
-			crushCarriedEnemies();
+		if (crushingObstacle != null) {
+			crushCarriedEnemies(crushingObstacle);
 		}
 
 		if (mustStop) {
@@ -390,6 +389,10 @@ public final class Glacon extends Entity implements Pushable {
 
 		Enemies enemy = (Enemies) other;
 
+		if (enemy.isCrushed()) {
+			return;
+		}
+
 		if (!isOnSlidingPath(enemy)) {
 			return;
 		}
@@ -438,15 +441,29 @@ public final class Glacon extends Entity implements Pushable {
 		}
 		Grid.Position enemyPosition = neighbor(position(), this.slideDirection);
 
-		if (enemyPosition == null || containsCrushingObstacle(enemyPosition)) {
-			killCarriedEnemy(enemy);
+		if (enemyPosition == null) {
+			crushCarriedEnemyWithoutObstacle(enemy);
+			return;
+		}
+
+		Entity obstacleOnEnemyCell = crushingObstacleAt(enemyPosition);
+
+		if (obstacleOnEnemyCell != null) {
+			killCarriedEnemy(enemy, obstacleOnEnemyCell);
 			return;
 		}
 
 		Grid.Position afterEnemy = neighbor(enemyPosition, this.slideDirection);
 
-		if (afterEnemy == null || containsCrushingObstacle(afterEnemy)) {
-			killCarriedEnemy(enemy);
+		if (afterEnemy == null) {
+			crushCarriedEnemyWithoutObstacle(enemy);
+			return;
+		}
+
+		Entity obstacleAfterEnemy = crushingObstacleAt(afterEnemy);
+
+		if (obstacleAfterEnemy != null) {
+			killCarriedEnemy(enemy, obstacleAfterEnemy);
 			return;
 		}
 
@@ -479,14 +496,40 @@ public final class Glacon extends Entity implements Pushable {
 		}
 	}
 
-	private void killCarriedEnemy(Enemies enemy) {
+	private void killCarriedEnemy(Enemies enemy, Entity obstacle) {
 		assert enemy != null;
 
 		this.carriedEnemies.remove(enemy);
 
 		if (enemy.alive()) {
-			enemy.kill();
+			enemy.crushBetweenAt(this, obstacle, this.slideDirection, carriedEnemyCenter());
 		}
+	}
+
+	private void crushCarriedEnemyWithoutObstacle(Enemies enemy) {
+		assert enemy != null;
+
+		this.carriedEnemies.remove(enemy);
+
+		if (enemy.alive()) {
+			enemy.crushAt(this.slideDirection, carriedEnemyCenter());
+		}
+	}
+
+	private Entity crushingObstacleAt(Grid.Position position) {
+		if (position == null) {
+			return null;
+		}
+
+		Grid.Cell cell = model().grid().cellAt(position);
+
+		for (Entity other : cell.entities()) {
+			if (other != this && other.alive() && isCrushingObstacle(other)) {
+				return other;
+			}
+		}
+
+		return null;
 	}
 
 	private boolean containsCrushingObstacle(Grid.Position position) {
@@ -505,15 +548,34 @@ public final class Glacon extends Entity implements Pushable {
 		return false;
 	}
 
-	private void crushCarriedEnemies() {
+	private void crushCarriedEnemies(Entity obstacle) {
 		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
 		this.carriedEnemies.clear();
 
 		for (Enemies enemy : copy) {
 			if (enemy.alive()) {
-				enemy.kill();
+				enemy.crushBetweenAt(this, obstacle, this.slideDirection, carriedEnemyCenter());
 			}
 		}
+	}
+
+	/**
+	 * Centre final de l'ennemi ecrase : une case devant la position finale du
+	 * glaçon. Ainsi l'image est placee dans la case entre le glaçon pousseur et
+	 * le mur/glaçon/spawner qui arrete le mouvement.
+	 */
+	private ISU.Coord crushCenterForCarriedEnemy() {
+		Grid.Position iceStopPosition = safeSnapPosition();
+
+		if (iceStopPosition != null) {
+			Grid.Position enemyPosition = neighbor(iceStopPosition, this.slideDirection);
+
+			if (enemyPosition != null && !containsCrushingObstacle(enemyPosition)) {
+				return enemyPosition.toISUCoordCentered();
+			}
+		}
+
+		return carriedEnemyCenter();
 	}
 
 	private void releaseCarriedEnemies() {

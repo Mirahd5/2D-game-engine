@@ -120,6 +120,10 @@ public abstract class Player extends Entity {
 		if (other instanceof Enemies && other.alive()) {
 			Enemies enemy = (Enemies) other;
 
+			if (enemy.isCrushed()) {
+				return;
+			}
+
 			if (this instanceof Pengo) {
 				Pengo pengo = (Pengo) this;
 
@@ -144,6 +148,10 @@ public abstract class Player extends Entity {
 		for (Entity entity : entities) {
 			if (entity instanceof Enemies && entity.alive()) {
 				Enemies enemy = (Enemies) entity;
+
+				if (enemy.isCrushed()) {
+					continue;
+				}
 
 				if (this instanceof Pengo) {
 					Pengo pengo = (Pengo) this;

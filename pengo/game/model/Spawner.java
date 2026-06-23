@@ -289,12 +289,17 @@ public final class Spawner extends Entity implements Pushable {
 			return;
 		}
 
-		if (!isCrushedBySlidingSpawner(other)) {
+		Enemies enemy = (Enemies) other;
+
+		if (enemy.isCrushed()) {
 			return;
 		}
 
-		Enemies enemy = (Enemies) other;
-		enemy.kill();
+		if (!isCrushedBySlidingSpawner(enemy)) {
+			return;
+		}
+
+		enemy.crushAt(this.slideDirection, center().mkTranslated(forwardOffset(this.slideDirection, model().isu().cmPerCell())));
 	}
 
 	private boolean isCrushedBySlidingSpawner(Entity other) {
@@ -372,6 +377,21 @@ public final class Spawner extends Entity implements Pushable {
 		}
 
 		return model().isu().height();
+	}
+
+	private ISU.Vector forwardOffset(int direction, double distance_cm) {
+		switch (direction) {
+		case 0:
+			return model().isu().new Vector(distance_cm, 0.0);
+		case 90:
+			return model().isu().new Vector(0.0, distance_cm);
+		case 180:
+			return model().isu().new Vector(-distance_cm, 0.0);
+		case 270:
+			return model().isu().new Vector(0.0, -distance_cm);
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
 	}
 
 	private ISU.Vector speedVector(int direction, double speed) {
