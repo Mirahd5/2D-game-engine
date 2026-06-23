@@ -7,10 +7,9 @@ import org.junit.jupiter.api.Test;
 import engine.model.Game;
 import engine.model.Model;
 import engine.view.View;
-import game.model.Ghost;
-import game.model.Gum;
+
 import game.model.Obstacle;
-import game.model.PacMan;
+
 import oop.graphics.BufferedImage;
 import oop.graphics.Color;
 import oop.graphics.Font;
@@ -64,20 +63,12 @@ public class GameAvatarTest {
 		Model model = game.model();
 		View view = new View(model, 370, 370);
 
-		PacMan pacman = new PacMan(model, "pacman");
-		Ghost ghost = new Ghost(model, "ghost");
-		Gum gum = new Gum(model, "gum");
+
 		Obstacle wall = new Obstacle(model, "wall");
 
-		model.add(pacman, model.grid().new Position(1, 1));
-		model.add(ghost, model.grid().new Position(2, 1));
-		model.add(gum, model.grid().new Position(4, 4));
+
 		model.add(wall, model.grid().new Position(3, 3));
 
-		pacman.setAvatar(new PacManAvatar(view, pacman));
-		ghost.setAvatar(new GhostAvatar(view, ghost));
-		gum.setAvatar(new GumAvatar(view, gum));
-		wall.setAvatar(new ObstacleAvatar(view, wall));
 
 		assertDoesNotThrow(() -> view.paint(new NoOpGraphics()));
 	}

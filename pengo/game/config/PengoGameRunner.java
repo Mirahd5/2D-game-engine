@@ -543,6 +543,16 @@ public final class PengoGameRunner {
 				continue;
 			}
 
+			if (type == PowerType.FRIEND_ACTIVATOR) {
+				if (!hasLivingFriend(model)) {
+					continue;
+				}
+
+				if (count >= 1) {
+					continue;
+				}
+			}
+
 			result.add(type);
 		}
 
@@ -619,5 +629,15 @@ public final class PengoGameRunner {
 		}
 
 		return true;
+	}
+	
+	private static boolean hasLivingFriend(Model model) {
+		for (Entity entity : model.entities()) {
+			if (entity instanceof Friend && entity.alive()) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 }

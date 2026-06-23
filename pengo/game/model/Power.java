@@ -9,7 +9,7 @@ import engine.model.Model;
 /**
  * Bonus ramassable par Pengo.
  */
-public final class Power extends Entity {
+public final class Power extends Obstacle {
 
     private PowerType type;
 
@@ -80,5 +80,14 @@ public final class Power extends Entity {
         default:
             throw new AssertionError("Unhandled power type: " + this.type);
         }
+    }
+    
+    @Override
+    public boolean blocks(Entity other) {
+    	/*
+    	 * Le power bloque seulement les glaçons.
+    	 * Pengo et Friend doivent pouvoir marcher dessus pour le ramasser.
+    	 */
+    	return other instanceof Glacon;
     }
 }
