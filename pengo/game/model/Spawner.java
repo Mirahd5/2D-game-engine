@@ -8,6 +8,7 @@ import engine.model.Grid;
 import engine.model.ISU;
 import engine.model.Model;
 import engine.model.Rect;
+import game.config.PengoRunState;
 
 public final class Spawner extends Entity implements Pushable {
 
@@ -27,6 +28,7 @@ public final class Spawner extends Entity implements Pushable {
 	private ISU.Coord previousCenter;
 	private Grid.Position lastStablePosition;
 	private long lastUpdate_ms;
+	private PengoRunState runState;
 
 	public Spawner(Model model, String name) {
 		super(model, name);
@@ -45,11 +47,24 @@ public final class Spawner extends Entity implements Pushable {
 		this.previousCenter = null;
 		this.lastStablePosition = null;
 		this.lastUpdate_ms = 0L;
+		this.runState = null;
 
 		setZOrder(1);
 		setSOrder(2);
 
 		updateBounding();
+	}
+
+	public void setRunState(PengoRunState runState) {
+		this.runState = runState;
+	}
+
+	private long gameTimeMs() {
+		if (this.runState == null) {
+			return System.currentTimeMillis();
+		}
+
+		return this.runState.nowMs();
 	}
 
 	@Override
@@ -77,7 +92,7 @@ public final class Spawner extends Entity implements Pushable {
 		this.maximumDistance_cm = axisLength(direction) * MAX_TRAVEL_FACTOR;
 		this.previousCenter = center();
 		this.lastStablePosition = position().copy();
-		this.lastUpdate_ms = System.currentTimeMillis();
+		this.lastUpdate_ms = gameTimeMs();
 
 		double initialSpeed = model().isu().cmPerCell() * INITIAL_SPEED_NCELL_PER_SECOND;
 		this.currentSpeed_cmPerSecond = initialSpeed;
@@ -101,7 +116,7 @@ public final class Spawner extends Entity implements Pushable {
 			return;
 		}
 
-		long now = System.currentTimeMillis();
+		long now = gameTimeMs();
 		long elapsed = this.lastUpdate_ms == 0L ? 0L : now - this.lastUpdate_ms;
 		this.lastUpdate_ms = now;
 
@@ -143,6 +158,7 @@ public final class Spawner extends Entity implements Pushable {
 		this.deceleration_cmPerSecond2 = 0.0;
 		this.previousCenter = null;
 		this.lastUpdate_ms = 0L;
+		this.runState = null;
 
 		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
 		setAngularSpeed(0.0);

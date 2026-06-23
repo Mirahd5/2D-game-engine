@@ -7,17 +7,6 @@ import engine.model.Model;
 import oop.tasks.Runtime;
 import oop.tasks.Runnable;
 
-/**
- * Ticker est la tâche périodique qui fait avancer le jeu.
- *
- * Il ne dessine rien. Il fait seulement évoluer la simulation : - le Brain
- * choisit les actions des bots ; - le Model applique les mouvements et
- * collisions ; - la View met à jour les animations.
- *
- * Correction Part IV slides 7-8 : Le délai de re-post est corrigé par le skew
- * pour maintenir la fréquence cible (ex: 60 ticks/s pour delay=16ms). Sans
- * cette correction, les ticks dérivent progressivement.
- */
 public class Ticker implements Runnable {
 
 	private final Model model;
@@ -25,6 +14,7 @@ public class Ticker implements Runnable {
 	private final View view;
 
 	private boolean stopped;
+	private boolean paused;
 
 	private Entity followedEntity;
 
@@ -57,10 +47,32 @@ public class Ticker implements Runnable {
 
 		this.lastTime = System.currentTimeMillis();
 		this.stopped = false;
+		this.paused = false;
 	}
 
 	public void stop() {
 		this.stopped = true;
+	}
+
+	public void pause() {
+		if (this.stopped) {
+			return;
+		}
+
+		this.paused = true;
+	}
+
+	public void resume() {
+		if (this.stopped) {
+			return;
+		}
+
+		this.paused = false;
+		this.lastTime = System.currentTimeMillis();
+	}
+
+	public boolean paused() {
+		return this.paused;
 	}
 
 	public void setFollowedEntity(Entity followedEntity) {
@@ -75,6 +87,16 @@ public class Ticker implements Runnable {
 	public void run() {
 
 		if (this.stopped) {
+			return;
+		}
+
+		if (this.paused) {
+			this.lastTime = System.currentTimeMillis();
+
+			if (!this.stopped) {
+				Runtime.post(this, this.delay);
+			}
+
 			return;
 		}
 
@@ -118,7 +140,6 @@ public class Ticker implements Runnable {
 
 		this.view.tick(elapsed);
 
-		// --- Correction du skew (Part IV slides 7-8) ---
 		// skew = combien de ms de retard/avance par rapport au délai théorique.
 		// Si elapsed = 20ms et delay = 16ms → skew = 4ms → on re-poste dans 12ms.
 		// Si elapsed = 10ms et delay = 16ms → skew = -6ms → on re-poste dans 22ms.

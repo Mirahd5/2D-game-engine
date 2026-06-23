@@ -96,6 +96,7 @@ public final class PengoGameRunner {
 
 		DebugOptions debugOptions = new DebugOptions();
 		PerformanceMonitor performanceMonitor = new PerformanceMonitor();
+		PengoRunState runState = new PengoRunState();
 
 		View view = new View(model, config.windowWidthPixel(), config.windowHeightPixel());
 		view.setDebugOptions(debugOptions);
@@ -117,6 +118,8 @@ public final class PengoGameRunner {
 		Pengo pengo = builder.pengo();
 
 		assert pengo != null;
+
+		installRunState(builder, pengo, runState);
 
 		PengoGameState gameState = new PengoGameState(model, pengo, builder.enemies().size(), builder.spawners().size(),
 				config.maxTotalSpawnedEnemies());
@@ -143,9 +146,10 @@ public final class PengoGameRunner {
 
 		installEnemyGalBots(brain, model, builder, enemyAutomaton, currentPlayer);
 
-		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState);
+		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState, runState);
 
-		installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer, builder, gameState);
+		installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer, builder, gameState,
+				runState);
 
 		installIceBots(brain, model, builder, gameState);
 
@@ -156,24 +160,48 @@ public final class PengoGameRunner {
 		controller.setGameState(gameState);
 
 		if (controller.continuousWalk()) {
-			installContinuousWalkTask(controller, config.tickDelayMs());
+			installContinuousWalkTask(controller, config.tickDelayMs(), runState);
 		}
 
-		installPengoPowerTimer(pengo, config.tickDelayMs());
+		installPengoPowerTimer(pengo, config.tickDelayMs(), runState);
 
 		resetPowerSpawnCounters();
-		installRandomPowerSpawner(model, view, gameState, builder);
+		installRandomPowerSpawner(model, view, gameState, builder, runState);
 
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());
 
 		Runtime.post(ticker);
 		Runtime.post(painterTask);
 
-		PengoGameSession session = new PengoGameSession(painter, controller, ticker, painterTask, view);
+		PengoGameSession session = new PengoGameSession(painter, controller, ticker, painterTask, view, runState);
 
 		session.attach(canvas);
 
 		return session;
+	}
+
+	private static void installRunState(BuildMap builder, Pengo pengo, PengoRunState runState) {
+		assert builder != null;
+		assert pengo != null;
+		assert runState != null;
+
+		pengo.setRunState(runState);
+
+		for (Friend friend : builder.friends()) {
+			friend.setRunState(runState);
+		}
+
+		for (Enemies enemy : builder.enemies()) {
+			enemy.setRunState(runState);
+		}
+
+		for (Glacon ice : builder.iceBlocks()) {
+			ice.setRunState(runState);
+		}
+
+		for (Spawner spawner : builder.spawners()) {
+			spawner.setRunState(runState);
+		}
 	}
 
 	private static boolean useViewportDemo(PengoConfig config) {
@@ -207,28 +235,41 @@ public final class PengoGameRunner {
 		return new ViewPort(model, isu.new Coord(0.0, 0.0), isu.new Dimension(width, height));
 	}
 
-	private static void installContinuousWalkTask(final PengoController controller, final int delayMs) {
+	private static void installContinuousWalkTask(final PengoController controller, final int delayMs,
+			final PengoRunState runState) {
 		assert controller != null;
 		assert delayMs > 0;
 
 		Runtime.post(new Runnable() {
 			@Override
 			public void run() {
-				controller.updateContinuousWalk();
+				if (runState.stopped()) {
+					return;
+				}
+
+				if (!runState.paused()) {
+					controller.updateContinuousWalk();
+				}
 
 				Runtime.post(this, delayMs);
 			}
 		}, delayMs);
 	}
 
-	private static void installPengoPowerTimer(final Pengo pengo, final int delayMs) {
+	private static void installPengoPowerTimer(final Pengo pengo, final int delayMs, final PengoRunState runState) {
 		assert pengo != null;
 		assert delayMs > 0;
 
 		Runtime.post(new Runnable() {
 			@Override
 			public void run() {
-				pengo.updateTimedPowers();
+				if (runState.stopped()) {
+					return;
+				}
+
+				if (!runState.paused()) {
+					pengo.updateTimedPowers();
+				}
 
 				Runtime.post(this, delayMs);
 			}
@@ -277,7 +318,8 @@ public final class PengoGameRunner {
 	}
 
 	private static void installSpawnerBots(Brain brain, Model model, View view, BuildMap builder,
-			Automaton enemyAutomaton, CurrentPlayer currentPlayer, PengoConfig config, PengoGameState gameState) {
+			Automaton enemyAutomaton, CurrentPlayer currentPlayer, PengoConfig config, PengoGameState gameState,
+			PengoRunState runState) {
 		assert brain != null;
 		assert model != null;
 		assert view != null;
@@ -292,7 +334,7 @@ public final class PengoGameRunner {
 			spawner.setStunt(spawnerStunt);
 
 			Bot spawnerBot = new Bot(brain, spawnerStunt) {
-				private long lastSpawnMs = System.currentTimeMillis();
+				private long lastSpawnMs = runState.nowMs();
 
 				@Override
 				public void think() {
@@ -309,7 +351,7 @@ public final class PengoGameRunner {
 						return;
 					}
 
-					long now = System.currentTimeMillis();
+					long now = runState.nowMs();
 
 					if (now - this.lastSpawnMs < config.spawnDelayMs()) {
 						return;
@@ -329,8 +371,8 @@ public final class PengoGameRunner {
 						return;
 					}
 
-					createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, spawner.position(),
-							gameState);
+					createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, spawner.position(), gameState,
+							runState);
 				}
 			};
 
@@ -397,7 +439,7 @@ public final class PengoGameRunner {
 	}
 
 	private static void createSpawnedEnemy(Model model, View view, Brain brain, Automaton enemyAutomaton,
-			CurrentPlayer currentPlayer, Grid.Position position, PengoGameState gameState) {
+			CurrentPlayer currentPlayer, Grid.Position position, PengoGameState gameState, PengoRunState runState) {
 		assert model != null;
 		assert view != null;
 		assert brain != null;
@@ -405,9 +447,11 @@ public final class PengoGameRunner {
 		assert currentPlayer != null;
 		assert position != null;
 		assert gameState != null;
+		assert runState != null;
 
 		Enemies enemy = new Enemies(model, "spawned-enemy-" + spawnedEnemyCounter++);
 
+		enemy.setRunState(runState);
 		enemy.setAvatar(new EnemiesAvatar(view, enemy));
 
 		model.add(enemy, position);
@@ -484,26 +528,56 @@ public final class PengoGameRunner {
 	}
 
 	private static void installRandomPowerSpawner(final Model model, final View view, final PengoGameState gameState,
-			final BuildMap builder) {
+			final BuildMap builder, final PengoRunState runState) {
 		assert model != null;
 		assert view != null;
 		assert gameState != null;
 		assert builder != null;
 
 		Runtime.post(new Runnable() {
+			private long nextSpawnMs = runState.nowMs() + randomPowerDelay();
+
 			@Override
 			public void run() {
+				if (runState.stopped()) {
+					return;
+				}
+
+				if (runState.paused()) {
+					Runtime.post(this, 100);
+					return;
+				}
+
 				gameState.update();
 
 				if (gameState.finished()) {
 					return;
 				}
 
-				spawnOneRandomPowerIfPossible(model, view, builder);
+				long now = runState.nowMs();
 
-				Runtime.post(this, randomPowerDelay());
+				if (now >= this.nextSpawnMs) {
+					spawnOneRandomPowerIfPossible(model, view, builder);
+					this.nextSpawnMs = runState.nowMs() + randomPowerDelay();
+				}
+
+				Runtime.post(this, delayUntil(this.nextSpawnMs, runState));
 			}
-		}, randomPowerDelay());
+		}, 100);
+	}
+
+	private static int delayUntil(long targetGameTimeMs, PengoRunState runState) {
+		long remaining = targetGameTimeMs - runState.nowMs();
+
+		if (remaining < 1L) {
+			return 1;
+		}
+
+		if (remaining > 1000L) {
+			return 1000;
+		}
+
+		return (int) remaining;
 	}
 
 	private static int randomPowerDelay() {
@@ -655,7 +729,7 @@ public final class PengoGameRunner {
 	// debug
 	private static void installDebugLoadSpawner(final DebugOptions debugOptions, final Model model, final View view,
 			final Brain brain, final Automaton enemyAutomaton, final CurrentPlayer currentPlayer,
-			final BuildMap builder, final PengoGameState gameState) {
+			final BuildMap builder, final PengoGameState gameState, final PengoRunState runState) {
 		assert debugOptions != null;
 		assert model != null;
 		assert view != null;
@@ -668,11 +742,16 @@ public final class PengoGameRunner {
 		Runtime.post(new Runnable() {
 			@Override
 			public void run() {
-				if (debugOptions.loadTest()) {
+				if (runState.stopped()) {
+					return;
+				}
+
+				if (!runState.paused() && debugOptions.loadTest()) {
 					Grid.Position position = randomFreePowerPosition(model, builder);
 
 					if (position != null) {
-						createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, position, gameState);
+						createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, position, gameState,
+								runState);
 					}
 				}
 

@@ -21,18 +21,13 @@ public class ViewPaintTest {
 	static class TestEntity extends Entity {
 		TestEntity(Model model, String name) {
 			super(model, name);
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			engine.model.ISU.Coord center,
-			engine.model.ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
-			return result;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
 		}
 	}
 	
@@ -42,13 +37,9 @@ public class ViewPaintTest {
 		Model model = game.model();
 
 		Entity gum = new TestEntity(model, "gum");
-		model.add(gum);
 		Entity wall = new TestEntity(model, "wall");
-		model.add(wall);
 		Entity pacman = new TestEntity(model, "pacman");
-		model.add(pacman);
 		Entity ghost = new TestEntity(model, "ghost");
-		model.add(ghost);
 
 		gum.setZOrder(0);
 		gum.setSOrder(0);
@@ -74,9 +65,7 @@ public class ViewPaintTest {
 		Model model = game.model();
 
 		Entity low = new TestEntity(model, "low");
-		model.add(low);
 		Entity high = new TestEntity(model, "high");
-		model.add(high);
 
 		low.setZOrder(0);
 		high.setZOrder(2);

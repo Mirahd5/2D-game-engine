@@ -22,8 +22,7 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 
 		assertEquals(2, obstacle.position().x());
 		assertEquals(3, obstacle.position().y());
@@ -37,8 +36,7 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 
 		assertEquals(game.getCmPerCell(), obstacle.size().x(), EPS);
 		assertEquals(game.getCmPerCell(), obstacle.size().y(), EPS);
@@ -49,8 +47,7 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 
 		
 		assertNotNull(obstacle.bounding());
@@ -62,10 +59,8 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		pacman.setPosition(game.getGrid().new Position(2, 3));
 
@@ -81,10 +76,8 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		pacman.setPosition(game.getGrid().new Position(8, 8));
 
@@ -97,8 +90,7 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 
 		assertEquals(1, obstacle.occupied().size());
 		assertTrue(game.getGrid().cellAt(game.getGrid().new Position(2, 3)).contains(obstacle));
@@ -109,8 +101,7 @@ public class ObstacleTest {
 		Game game = new TestGame();
 
 		Model model = game.model();
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 3));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 3);
 		
 		double xminBefore = obstacle.bounding().hitbox().xmin();
 		double xmaxBefore = obstacle.bounding().hitbox().xmax();

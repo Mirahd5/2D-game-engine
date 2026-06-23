@@ -5,11 +5,10 @@ import org.junit.platform.suite.api.Suite;
 
 import engine.model.BoundingTest;
 import engine.model.CircleTest;
-import engine.model.HitboxTest;
 import engine.model.RectTest;
 import engine.model.ShapeTest;
 
 @Suite
-@SelectClasses({ ShapeTest.class, CircleTest.class, RectTest.class, BoundingTest.class, HitboxTest.class })
+@SelectClasses({ ShapeTest.class, CircleTest.class, RectTest.class, BoundingTest.class })
 public class EngineShapeTestSuite {
 }

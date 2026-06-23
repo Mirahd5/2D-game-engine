@@ -17,23 +17,13 @@ public class BasicStuntTest {
 	static class TestEntity extends Entity {
 		TestEntity(Model model, String name) {
 			super(model, name);
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			engine.model.ISU.Coord center,
-			engine.model.ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
-			return result;
-		}
-
-		@Override
-		public boolean blocks(Entity other) {
-			return true;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
 		}
 	}
 
@@ -57,10 +47,10 @@ public class BasicStuntTest {
 		assertEquals(0, entity.position().y());
 		assertEquals(0, entity.orientation());
 
-		assertEquals(5.0 * game.getCmPerCell(), entity.linearSpeed().x(), EPS);
+		assertEquals(game.getCmPerCell(), entity.linearSpeed().x(), EPS);
 		assertEquals(0.0, entity.linearSpeed().y(), EPS);
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, entity.position().x());
 		assertEquals(0, entity.position().y());
@@ -90,9 +80,9 @@ public class BasicStuntTest {
 		assertEquals(90, entity.orientation());
 
 		assertEquals(0.0, entity.linearSpeed().x(), EPS);
-		assertEquals(5.0 * game.getCmPerCell(), entity.linearSpeed().y(), EPS);
+		assertEquals(game.getCmPerCell(), entity.linearSpeed().y(), EPS);
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(0, entity.position().x());
 		assertEquals(1, entity.position().y());
@@ -121,10 +111,10 @@ public class BasicStuntTest {
 		assertEquals(0, entity.position().y());
 		assertEquals(180, entity.orientation());
 
-		assertEquals(-5.0 * game.getCmPerCell(), entity.linearSpeed().x(), EPS);
+		assertEquals(-game.getCmPerCell(), entity.linearSpeed().x(), EPS);
 		assertEquals(0.0, entity.linearSpeed().y(), EPS);
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(9, entity.position().x());
 		assertEquals(0, entity.position().y());
@@ -154,9 +144,9 @@ public class BasicStuntTest {
 		assertEquals(270, entity.orientation());
 
 		assertEquals(0.0, entity.linearSpeed().x(), EPS);
-		assertEquals(-5.0 * game.getCmPerCell(), entity.linearSpeed().y(), EPS);
+		assertEquals(-game.getCmPerCell(), entity.linearSpeed().y(), EPS);
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(0, entity.position().x());
 		assertEquals(9, entity.position().y());
@@ -185,7 +175,7 @@ public class BasicStuntTest {
 		assertEquals(0, entity.position().y());
 		assertEquals(0, entity.orientation());
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, entity.position().x());
 		assertEquals(0, entity.position().y());
@@ -201,27 +191,26 @@ public class BasicStuntTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(e1);
+		model.add(e2);
 
 		BasicStunt stunt = new BasicStunt(model, e1);
 		e1.setStunt(stunt);
 
 		boolean started = stunt.walk(0);
 
-		assertFalse(started);
-		assertFalse(stunt.walking());
+		assertTrue(started);
 
-		// La cellule cible est bloquée : aucun mouvement ne commence.
+		// Avant tick, l'entité n'a pas encore bougé.
 		assertEquals(0, e1.position().x());
 		assertEquals(0, e1.position().y());
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		// Le tick tente d'aller en (1,0), collisionne, puis revient en (0,0).
 		assertEquals(0, e1.position().x());
@@ -255,7 +244,7 @@ public class BasicStuntTest {
 		assertEquals(0, entity.position().x());
 		assertEquals(0, entity.position().y());
 
-		assertEquals(5.0 * game.getCmPerCell(), entity.linearSpeed().x(), EPS);
+		assertEquals(game.getCmPerCell(), entity.linearSpeed().x(), EPS);
 		assertEquals(0.0, entity.linearSpeed().y(), EPS);
 	}
 
@@ -272,7 +261,7 @@ public class BasicStuntTest {
 
 		assertTrue(stunt.walk(0));
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, entity.position().x());
 		assertEquals(0, entity.position().y());
@@ -296,7 +285,7 @@ public class BasicStuntTest {
 
 		assertTrue(stunt.walk(0));
 
-		model.tick(100L);
+		model.tick(500L);
 
 		assertTrue(stunt.walking());
 
@@ -308,7 +297,7 @@ public class BasicStuntTest {
 		assertEquals(game.getCmPerCell(), entity.center().x(), EPS);
 		assertEquals(game.getCmPerCell() / 2.0, entity.center().y(), EPS);
 
-		model.tick(100L);
+		model.tick(500L);
 
 		assertFalse(stunt.walking());
 		assertEquals(1, entity.position().x());
@@ -334,12 +323,12 @@ public class BasicStuntTest {
 
 		assertTrue(stunt.walk(0));
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, entity.position().x());
 		assertFalse(stunt.walking());
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, entity.position().x());
 		assertEquals(0, entity.position().y());
@@ -351,21 +340,20 @@ public class BasicStuntTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(e1);
+		model.add(e2);
 
 		BasicStunt stunt = new BasicStunt(model, e1);
 		e1.setStunt(stunt);
 
-		assertFalse(stunt.walk(0));
-		assertFalse(stunt.walking());
+		assertTrue(stunt.walk(0));
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(0, e1.position().x());
 		assertEquals(0, e1.position().y());

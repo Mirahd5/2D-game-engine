@@ -10,6 +10,7 @@ import engine.model.ISU;
 import engine.model.Model;
 import engine.model.Orientation;
 import engine.model.Rect;
+import game.config.PengoRunState;
 import oop.tasks.Runnable;
 
 public final class Glacon extends Entity implements Pushable {
@@ -31,6 +32,7 @@ public final class Glacon extends Entity implements Pushable {
 	private ISU.Coord previousCenter;
 	private Grid.Position lastStablePosition;
 	private long lastUpdate_ms;
+	private PengoRunState runState;
 
 	private final List<Enemies> carriedEnemies;
 
@@ -52,12 +54,33 @@ public final class Glacon extends Entity implements Pushable {
 		this.previousCenter = null;
 		this.lastStablePosition = null;
 		this.lastUpdate_ms = 0L;
+		this.runState = null;
 		this.carriedEnemies = new ArrayList<Enemies>();
 
 		setZOrder(1);
 		setSOrder(1);
 
 		updateBounding();
+	}
+
+	public void setRunState(PengoRunState runState) {
+		this.runState = runState;
+	}
+
+	private long gameTimeMs() {
+		if (this.runState == null) {
+			return System.currentTimeMillis();
+		}
+
+		return this.runState.nowMs();
+	}
+
+	private boolean pausedByRunState() {
+		return this.runState != null && this.runState.paused();
+	}
+
+	private boolean stoppedByRunState() {
+		return this.runState != null && this.runState.stopped();
 	}
 
 	@Override
@@ -90,7 +113,7 @@ public final class Glacon extends Entity implements Pushable {
 		this.maximumDistance_cm = axisLength(direction) * MAX_TRAVEL_FACTOR;
 		this.previousCenter = center();
 		this.lastStablePosition = position().copy();
-		this.lastUpdate_ms = System.currentTimeMillis();
+		this.lastUpdate_ms = gameTimeMs();
 
 		double initialSpeed = model().isu().cmPerCell() * INITIAL_SPEED_NCELL_PER_SECOND;
 
@@ -117,7 +140,7 @@ public final class Glacon extends Entity implements Pushable {
 			return;
 		}
 
-		long now = System.currentTimeMillis();
+		long now = gameTimeMs();
 		long elapsed = this.lastUpdate_ms == 0L ? 0L : now - this.lastUpdate_ms;
 		this.lastUpdate_ms = now;
 
@@ -190,6 +213,15 @@ public final class Glacon extends Entity implements Pushable {
 		oop.tasks.Runtime.post(new Runnable() {
 			@Override
 			public void run() {
+				if (stoppedByRunState()) {
+					return;
+				}
+
+				if (pausedByRunState()) {
+					oop.tasks.Runtime.post(this, 50);
+					return;
+				}
+
 				if (alive()) {
 					death();
 				}

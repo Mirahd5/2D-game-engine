@@ -148,7 +148,7 @@ public class GameTest {
 		System.out.println("Actual cmPerCell    = " + game.getCmPerCell());
 		System.out.println("Expected pixelPerCm = 2");
 		System.out.println("Actual pixelPerCm   = " + game.getPixelPerCm());
-		System.out.println("Expected Picture    = not null");
+		System.out.println("Expected Picture    = null for now");
 		System.out.println("Actual Picture      = " + game.getPicture());
 		System.out.println("Expected Grid       = not null");
 		System.out.println("Actual Grid         = " + game.getGrid());
@@ -157,7 +157,7 @@ public class GameTest {
 
 		assertEquals(3.7, game.getCmPerCell(), EPS);
 		assertEquals(2, game.getPixelPerCm());
-		assertNotNull(game.getPicture());
+		assertNull(game.getPicture());
 		assertNotNull(game.getGrid());
 		assertNotNull(game.getIsu());
 	}

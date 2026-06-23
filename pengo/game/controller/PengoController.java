@@ -58,6 +58,17 @@ public final class PengoController extends Controller {
 		this.gameState = gameState;
 	}
 
+	public void clearInputs() {
+		this.pressedKeys.clear();
+		this.continuousDirection = null;
+
+		PlayerBot bot = this.controlSwitcher.playerBot();
+
+		if (bot != null) {
+			bot.stopWishing();
+		}
+	}
+
 	public boolean continuousWalk() {
 		return this.continuousWalk;
 	}

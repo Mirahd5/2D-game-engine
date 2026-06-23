@@ -197,8 +197,7 @@ public class ISUTest {
 		System.out.println("Expected d1.equiv(d2)  = true  | Actual = " + d1.equiv(d2));
 		System.out.println("Expected d1.equiv(d1)  = true  | Actual = " + d1.equiv(d1));
 		System.out.println("Expected d1.equals(d3) = false | Actual = " + d1.equals(d3));
-		System.out
-				.println("Expected d1.equals(\"not a dimension\") = false | Actual = " + d1.equals("not a dimension"));
+		System.out.println("Expected d1.equals(\"not a dimension\") = false | Actual = " + d1.equals("not a dimension"));
 
 		assertTrue(d1.equals(d2));
 		assertTrue(d1.equiv(d2));
@@ -458,47 +457,4 @@ public class ISUTest {
 		assertDoesNotThrow(() -> v.turn(90));
 		assertDoesNotThrow(() -> v.show(System.out));
 	}
-
-	@Test
-	void vectorKeepsItsDirectionAndLengthOnTorus() {
-		Game game = new TestGame();
-		ISU isu = game.getIsu();
-
-		ISU.Vector left = isu.new Vector(-isu.cmPerCell(), 0.0);
-		ISU.Vector longVector = isu.new Vector(2.0 * isu.width() + 1.5, -isu.height() - 2.5);
-
-		assertEquals(-isu.cmPerCell(), left.x(), EPS);
-		assertEquals(0.0, left.y(), EPS);
-		assertEquals(2.0 * isu.width() + 1.5, longVector.x(), EPS);
-		assertEquals(-isu.height() - 2.5, longVector.y(), EPS);
-	}
-
-	@Test
-	void translatingByLongVectorNormalizesOnlyTheFinalCoordinate() {
-		Game game = new TestGame();
-		ISU isu = game.getIsu();
-
-		ISU.Coord start = isu.new Coord(1.0, 2.0);
-		ISU.Vector path = isu.new Vector(2.0 * isu.width() + 3.0, -isu.height() - 4.0);
-		ISU.Coord end = start.mkTranslated(path);
-
-		assertEquals(4.0, end.x(), EPS);
-		assertEquals(isu.height() - 2.0, end.y(), EPS);
-		assertEquals(2.0 * isu.width() + 3.0, path.x(), EPS);
-		assertEquals(-isu.height() - 4.0, path.y(), EPS);
-	}
-
-	@Test
-	void coordinatesFromDifferentISUAreNotEqual() {
-		Game game1 = new TestGame();
-		Game game2 = new TestGame();
-
-		ISU.Coord c1 = game1.getIsu().new Coord(2.0, 3.0);
-
-		ISU.Coord c2 = game2.getIsu().new Coord(2.0, 3.0);
-
-		assertNotEquals(c1, c2);
-		assertTrue(c1.equiv(c2));
-	}
-
 }

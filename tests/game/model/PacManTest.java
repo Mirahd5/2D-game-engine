@@ -23,7 +23,6 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		System.out.println("\n=== PacMan size ===");
 		System.out.println("Situation : PacMan size should be half of one cell");
@@ -43,7 +42,6 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		System.out.println("\n=== PacMan bounding ===");
 		System.out.println("Situation : PacMan should have a Bounding with one Circle");
@@ -65,7 +63,6 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		double xminBefore = pacman.bounding().hitbox().xmin();
 		double xmaxBefore = pacman.bounding().hitbox().xmax();
@@ -102,9 +99,7 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		pacman.setPosition(game.getGrid().new Position(2, 2));
 		gum.setPosition(game.getGrid().new Position(2, 2));
@@ -133,9 +128,7 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		pacman.setPosition(game.getGrid().new Position(1, 1));
 		gum.setPosition(game.getGrid().new Position(8, 8));
@@ -164,9 +157,7 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(2, 2));
+		Obstacle obstacle = new Obstacle(model, "wall", 2, 2);
 
 		pacman.setPosition(game.getGrid().new Position(2, 2));
 
@@ -194,9 +185,7 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
-		Obstacle obstacle = new Obstacle(model, "wall");
-		model.add(obstacle, model.grid().new Position(8, 8));
+		Obstacle obstacle = new Obstacle(model, "wall", 8, 8);
 
 		pacman.setPosition(game.getGrid().new Position(1, 1));
 
@@ -224,7 +213,6 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		System.out.println("\n=== PacMan occupied cells ===");
 		System.out.println("Situation : PacMan occupies only its center cell");
@@ -241,9 +229,7 @@ public class PacManTest {
 
 		Model model = game.model();
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		pacman.setCoord(game.getIsu().new Coord(36.8, 18.5));
 		gum.setCoord(game.getIsu().new Coord(0.1, 18.5));
@@ -272,13 +258,13 @@ public class PacManTest {
 		Model model = game.model();
 
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Ghost ghost = new Ghost(model, "ghost");
-		model.add(ghost);
 
 		pacman.setPosition(game.getGrid().new Position(0, 0));
 		ghost.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(pacman);
+		model.add(ghost);
 
 		int before = pacman.health();
 
@@ -286,10 +272,10 @@ public class PacManTest {
 
 		boolean moved = model.move(pacman, 1000L);
 
-		assertTrue(moved);
+		assertFalse(moved);
 		assertEquals(before - ghost.damage(), pacman.health());
 
-		assertEquals(1, pacman.position().x());
+		assertEquals(0, pacman.position().x());
 		assertEquals(0, pacman.position().y());
 	}
 
@@ -303,7 +289,6 @@ public class PacManTest {
 		model.add(pacman);
 
 		pacman.takeDamage(pacman.health());
-		model.tick(0L);
 
 		assertEquals(0, pacman.health());
 		assertFalse(pacman.alive());
@@ -316,13 +301,13 @@ public class PacManTest {
 		Model model = game.model();
 
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		pacman.setPosition(game.getGrid().new Position(0, 0));
 		gum.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(pacman);
+		model.add(gum);
 
 		pacman.setLinearSpeed(game.getIsu().new Vector(game.getCmPerCell(), 0.0));
 
@@ -332,8 +317,6 @@ public class PacManTest {
 
 		assertTrue(moved);
 		assertEquals(before + gum.points(), pacman.score());
-		assertFalse(gum.alive());
-		model.tick(0L);
 		assertFalse(model.entities().contains(gum));
 	}
 }

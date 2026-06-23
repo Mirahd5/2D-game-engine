@@ -26,23 +26,13 @@ public class ModelTest {
 
 		TestEntity(Model model, String name) {
 			super(model, name);
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			engine.model.ISU.Coord center,
-			engine.model.ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
-			return result;
-		}
-
-		@Override
-		public boolean blocks(Entity other) {
-			return true;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
 		}
 	}
 
@@ -87,16 +77,17 @@ public class ModelTest {
 	}
 
 	@Test
-	void addingSameEntityTwiceIsRejected() {
+	void modelDoesNotAddSameEntityTwice() {
 		/*
-		 * Une entité ne peut être installée qu'une seule fois dans un Model.
-		 * Le second ajout est donc une erreur de programmation attendue.
+		 * Situation : On ajoute deux fois la même entité.
+		 *
+		 * Résultat attendu : Elle ne doit apparaître qu'une seule fois.
 		 */
 		Entity entity = new TestEntity(model, "e");
 
 		model.add(entity);
+		model.add(entity);
 
-		assertThrows(AssertionError.class, () -> model.add(entity));
 		assertEquals(1, model.entities().size());
 		assertTrue(model.entities().contains(entity));
 	}
@@ -160,13 +151,13 @@ public class ModelTest {
 		 * Résultat attendu : Model.collisions(e1) doit retourner e2.
 		 */
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(2, 2));
 		e2.setPosition(game.getGrid().new Position(2, 2));
 
+		model.add(e1);
+		model.add(e2);
 
 		assertEquals(1, model.collisions(e1).size());
 		assertTrue(model.collisions(e1).contains(e2));
@@ -180,13 +171,13 @@ public class ModelTest {
 		 * Résultat attendu : Model.collisions(e1) doit être vide.
 		 */
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(5, 5));
 
+		model.add(e1);
+		model.add(e2);
 
 		assertTrue(model.collisions(e1).isEmpty());
 	}
@@ -263,13 +254,13 @@ public class ModelTest {
 		 * son ancienne position.
 		 */
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(e1);
+		model.add(e2);
 
 		e1.setLinearSpeed(game.getIsu().new Vector(game.getCmPerCell(), 0.0));
 
@@ -293,13 +284,13 @@ public class ModelTest {
 		 * zéro.
 		 */
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(e1);
+		model.add(e2);
 
 		e1.setLinearSpeed(game.getIsu().new Vector(game.getCmPerCell(), 0.0));
 		e1.setAngularSpeed(90.0);
@@ -350,7 +341,6 @@ public class ModelTest {
 		assertTrue(entity.alive());
 
 		entity.death();
-		model.tick(0L);
 
 		assertFalse(entity.alive());
 		assertFalse(model.entities().contains(entity));
@@ -372,7 +362,6 @@ public class ModelTest {
 		assertTrue(entity.occupied().contains(cell));
 
 		entity.death();
-		model.tick(0L);
 
 		assertFalse(cell.contains(entity));
 		assertTrue(entity.occupied().isEmpty());
@@ -384,13 +373,13 @@ public class ModelTest {
 		Model model = game.model();
 
 		Entity e1 = new TestEntity(model, "visible");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "hidden");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(1, 1));
 		e2.setPosition(game.getGrid().new Position(8, 8));
 
+		model.add(e1);
+		model.add(e2);
 
 		ViewPort vp = new ViewPort(model, game.getIsu().new Coord(0.0, 0.0), game.getIsu().new Dimension(18.5, 18.5));
 
@@ -410,13 +399,13 @@ public class ModelTest {
 		 * cellules couvertes par le ViewPort.
 		 */
 		Entity visible = new TestEntity(model, "visible");
-		model.add(visible);
 		Entity hidden = new TestEntity(model, "hidden");
-		model.add(hidden);
 
 		visible.setPosition(game.getGrid().new Position(1, 1));
 		hidden.setPosition(game.getGrid().new Position(8, 8));
 
+		model.add(visible);
+		model.add(hidden);
 
 		ViewPort vp = new ViewPort(model, game.getIsu().new Coord(0.0, 0.0), game.getIsu().new Dimension(18.5, 18.5));
 
@@ -443,9 +432,9 @@ public class ModelTest {
 		 * sélectionner les entités depuis les cellules couvertes par le ViewPort.
 		 */
 		Entity entity = new TestEntity(model, "entity");
-		model.add(entity);
 
 		entity.setPosition(game.getGrid().new Position(2, 0));
+		model.add(entity);
 
 		ViewPort vp = new ViewPort(model, game.getIsu().new Coord(2 * game.getCmPerCell(), 0.0),
 				game.getIsu().new Dimension(0.5, game.getCmPerCell()));
@@ -466,11 +455,11 @@ public class ModelTest {
 		 * liste visible.
 		 */
 		Entity entity = new TestEntity(model, "big");
-		model.add(entity);
 
 		entity.setSize(game.getGrid().new Dimension(2, 2));
 		entity.setPosition(game.getGrid().new Position(1, 1));
 
+		model.add(entity);
 
 		ViewPort vp = new ViewPort(model, game.getIsu().new Coord(0.0, 0.0), game.getIsu().new Dimension(18.5, 18.5));
 
@@ -496,31 +485,31 @@ public class ModelTest {
 		 * blocker parce que sa cellule est traversée.
 		 */
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity blocker = new TestEntity(model, "blocker");
-		model.add(blocker);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(moving);
+		model.add(blocker);
 
 		ISU.Coord from = moving.center().mkCopy();
 
 		ISU.Coord to = game.getIsu().new Coord((2 + 0.5) * game.getCmPerCell(), (0 + 0.5) * game.getCmPerCell());
 
-		assertTrue(model.collisionsAlongMotion(moving, from, from.mkVectorToward(to)).contains(blocker));
+		assertTrue(model.collisionsAlongMotion(moving, from, to).contains(blocker));
 	}
 
 	@Test
 	void moveDetectsCollisionOnPathNotOnlyAtDestination() {
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity blocker = new TestEntity(model, "blocker");
-		model.add(blocker);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(moving);
+		model.add(blocker);
 
 		moving.setLinearSpeed(game.getIsu().new Vector(2 * game.getCmPerCell(), 0.0));
 
@@ -538,13 +527,13 @@ public class ModelTest {
 	@Test
 	void motionHitboxDetectsPotentialCollisionAlongPath() {
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity blocker = new TestEntity(model, "blocker");
-		model.add(blocker);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(2, 0));
 
+		model.add(moving);
+		model.add(blocker);
 
 		ISU.Coord from = moving.center().mkCopy();
 
@@ -563,13 +552,13 @@ public class ModelTest {
 		 * ne décide pas à lui seul si le mouvement est bloqué.
 		 */
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity blocker = new TestEntity(model, "blocker");
-		model.add(blocker);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(2, 0));
 
+		model.add(moving);
+		model.add(blocker);
 
 		ISU.Coord from = moving.center().mkCopy();
 
@@ -588,13 +577,13 @@ public class ModelTest {
 		 * l'interpolation détecte que les formes se touchent pendant le mouvement.
 		 */
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity blocker = new TestEntity(model, "blocker");
-		model.add(blocker);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		blocker.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(moving);
+		model.add(blocker);
 
 		moving.setLinearSpeed(game.getIsu().new Vector(2 * game.getCmPerCell(), 0.0));
 
@@ -617,13 +606,13 @@ public class ModelTest {
 		 * pas être bloqué.
 		 */
 		Entity moving = new TestEntity(model, "moving");
-		model.add(moving);
 		Entity candidate = new TestEntity(model, "candidate");
-		model.add(candidate);
 
 		moving.setPosition(game.getGrid().new Position(0, 0));
 		candidate.setPosition(game.getGrid().new Position(2, 2));
 
+		model.add(moving);
+		model.add(candidate);
 
 		moving.setLinearSpeed(game.getIsu().new Vector(2 * game.getCmPerCell(), 0.0));
 
@@ -651,18 +640,13 @@ public class ModelTest {
 
 			setSize(model.isu().new Dimension(2 * model.isu().cmPerCell(), model.isu().cmPerCell()));
 
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			ISU.Coord center,
-			ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Rect(center, size, orientationDegree));
-			return result;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Rect(this.center, this.size, this.orientation_degree));
 		}
 	}
 
@@ -676,17 +660,17 @@ public class ModelTest {
 		 * initiale et couvrir aussi la position tournée.
 		 */
 		Entity entity = new RectEntity(model, "rotating");
-		model.add(entity);
 
 		entity.setPosition(game.getGrid().new Position(4, 4));
 
+		model.add(entity);
 
 		ISU.Coord from = entity.center().mkCopy();
 		ISU.Coord to = entity.center().mkCopy();
 
 		Hitbox initial = entity.bounding().hitbox();
 
-		Hitbox motion = entity.motionHitboxBetween(from, from.mkVectorToward(to), 0, 90, 8);
+		Hitbox motion = entity.motionHitboxBetween(from, to, 0, 90, 8);
 
 		assertTrue(motion.xmin() <= initial.xmin());
 		assertTrue(motion.xmax() >= initial.xmax());

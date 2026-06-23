@@ -6,6 +6,7 @@ import engine.model.Entity;
 import engine.model.ISU;
 import engine.model.Model;
 import engine.model.Rect;
+import game.config.PengoRunState;
 import java.util.List;
 
 import oop.tasks.Runnable;
@@ -20,16 +21,13 @@ public final class Enemies extends Entity {
 	private boolean frozen;
 	private String galState;
 	private boolean crushed;
-	/*
-	 * Nom historique conserve pour ne pas casser l'avatar : true => image
-	 * ecrasee_horizontal.png, false => image ecrasee_vertical.png.
-	 */
 	private boolean crushedHorizontal;
 	private double crushedDisplayWidth_cm;
 	private double crushedDisplayHeight_cm;
 	private Entity crushPusher;
 	private Entity crushObstacle;
 	private int crushDirectionDegree;
+	private PengoRunState runState;
 
 	public Enemies(Model model, String name) {
 		super(model, name);
@@ -43,6 +41,7 @@ public final class Enemies extends Entity {
 		this.crushPusher = null;
 		this.crushObstacle = null;
 		this.crushDirectionDegree = 0;
+		this.runState = null;
 
 		double size = model.isu().cmPerCell() * 0.78;
 		setSize(model.isu().new Dimension(size, size));
@@ -52,6 +51,18 @@ public final class Enemies extends Entity {
 		setSOrder(2);
 
 		updateBounding();
+	}
+
+	public void setRunState(PengoRunState runState) {
+		this.runState = runState;
+	}
+
+	private boolean pausedByRunState() {
+		return this.runState != null && this.runState.paused();
+	}
+
+	private boolean stoppedByRunState() {
+		return this.runState != null && this.runState.stopped();
 	}
 
 	public String galState() {
@@ -147,12 +158,6 @@ public final class Enemies extends Entity {
 			model().place(this, crushCenter);
 		}
 
-		/*
-		 * true signifie : l'ecrasement arrive sur l'axe horizontal
-		 * (pousseur a gauche/droite du recepteur). L'avatar utilise alors
-		 * ecrasee_horizontal.png et le dessine dans l'espace ISU exact
-		 * entre le pousseur et le recepteur.
-		 */
 		this.crushedHorizontal = direction == 0 || direction == 180;
 		this.crushedDisplayWidth_cm = model().isu().cmPerCell() * 1.08;
 		this.crushedDisplayHeight_cm = model().isu().cmPerCell() * 1.08;
@@ -168,11 +173,184 @@ public final class Enemies extends Entity {
 		Runtime.post(new Runnable() {
 			@Override
 			public void run() {
+				if (stoppedByRunState()) {
+					return;
+				}
+
+				if (pausedByRunState()) {
+					Runtime.post(this, 50);
+					return;
+				}
+
 				if (isCrushed() && alive()) {
 					finishCrushDeath();
 				}
 			}
 		}, (int) CRUSH_DISPLAY_MS);
+	}
+
+	public static final class CrushGeometry {
+		private final ISU.Coord center;
+		private final ISU.Dimension size;
+
+		private CrushGeometry(ISU.Coord center, ISU.Dimension size) {
+			this.center = center;
+			this.size = size;
+		}
+
+		public ISU.Coord center() {
+			return this.center.mkCopy();
+		}
+
+		public ISU.Dimension size() {
+			return this.size.copy();
+		}
+
+		public double centerX() {
+			return this.center.x();
+		}
+
+		public double centerY() {
+			return this.center.y();
+		}
+
+		public double width() {
+			return this.size.x();
+		}
+
+		public double height() {
+			return this.size.y();
+		}
+	}
+
+	/**
+	 * Retourne la zone exacte occupée par l'image écrasée, en ISU.
+	 *
+	 * Le calcul est bord-à-bord :
+	 * centre pousseur -> centre obstacle - demi pousseur - demi obstacle.
+	 * Cela évite une boîte debug qui reste à la taille normale du poisson.
+	 */
+	public CrushGeometry currentCrushGeometry() {
+		if (!this.crushed) {
+			return null;
+		}
+
+		Entity pusher = this.crushPusher;
+		Entity obstacle = this.crushObstacle;
+
+		if (pusher == null || obstacle == null || !pusher.alive() || !obstacle.alive()) {
+			return fallbackCrushGeometry();
+		}
+
+		int direction = normalizeCardinal(this.crushDirectionDegree);
+		double cell = model().isu().cmPerCell();
+		double minThickness = cell * 0.025;
+		double crossSize = cell * 1.03;
+
+		ISU.Vector towardObstacle = pusher.center().mkVectorToward(obstacle.center());
+		double centerDistance = forwardProjection(towardObstacle, direction);
+
+		if (centerDistance <= 0.0) {
+			return fallbackCrushGeometry();
+		}
+
+		double pusherHalf = solidHalfSizeOnAxis(pusher, direction, cell);
+		double obstacleHalf = solidHalfSizeOnAxis(obstacle, direction, cell);
+		double realGap = centerDistance - pusherHalf - obstacleHalf;
+		double visibleGap = Math.max(minThickness, realGap);
+
+		double distanceFromPusherCenter = pusherHalf + visibleGap / 2.0;
+		ISU.Coord center = pusher.center().mkTranslated(offset(direction, distanceFromPusherCenter));
+
+		ISU.Dimension size;
+
+		if (direction == 0 || direction == 180) {
+			size = model().isu().new Dimension(visibleGap, crossSize);
+		} else {
+			size = model().isu().new Dimension(crossSize, visibleGap);
+		}
+
+		return new CrushGeometry(center, size);
+	}
+
+	@Override
+	public Bounding bounding() {
+		if (this.crushed) {
+			Bounding crushBounding = currentCrushBounding();
+
+			if (crushBounding != null) {
+				return crushBounding;
+			}
+		}
+
+		return super.bounding();
+	}
+
+	private Bounding currentCrushBounding() {
+		CrushGeometry geometry = currentCrushGeometry();
+
+		if (geometry == null) {
+			return null;
+		}
+
+		Bounding result = new Bounding();
+		result.add(new Rect(geometry.center(), geometry.size(), 0));
+		return result;
+	}
+
+	private CrushGeometry fallbackCrushGeometry() {
+		ISU.Dimension size = model().isu().new Dimension(this.crushedDisplayWidth_cm, this.crushedDisplayHeight_cm);
+		return new CrushGeometry(center(), size);
+	}
+
+	private double solidHalfSizeOnAxis(Entity entity, int direction, double cell) {
+		if (entity instanceof Glacon || entity instanceof Mur || entity instanceof Spawner) {
+			return cell / 2.0;
+		}
+
+		if (direction == 0 || direction == 180) {
+			return entity.size().x() / 2.0;
+		}
+
+		return entity.size().y() / 2.0;
+	}
+
+	private ISU.Vector offset(int direction, double distance_cm) {
+		switch (direction) {
+		case 0:
+			return model().isu().new Vector(distance_cm, 0.0);
+
+		case 90:
+			return model().isu().new Vector(0.0, distance_cm);
+
+		case 180:
+			return model().isu().new Vector(-distance_cm, 0.0);
+
+		case 270:
+			return model().isu().new Vector(0.0, -distance_cm);
+
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
+	}
+
+	private static double forwardProjection(ISU.Vector vector, int direction) {
+		switch (direction) {
+		case 0:
+			return vector.x();
+
+		case 90:
+			return vector.y();
+
+		case 180:
+			return -vector.x();
+
+		case 270:
+			return -vector.y();
+
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
 	}
 
 	public boolean isCrushed() {

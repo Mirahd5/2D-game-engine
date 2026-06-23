@@ -21,7 +21,6 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 
 		System.out.println("\n=== Boss bounding ===");
 		System.out.println("Situation : create a Boss");
@@ -41,7 +40,6 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 
 		System.out.println("\n=== Boss occupied cells after construction ===");
 		System.out.println("Situation : Boss is created at initial position");
@@ -60,7 +58,6 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 		boss.setPosition(game.getGrid().new Position(4, 4));
 
 		System.out.println("\n=== Boss occupied cells after move ===");
@@ -99,7 +96,6 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 		
 		boss.setPosition(game.getGrid().new Position(4, 4));
 
@@ -132,9 +128,7 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		boss.setPosition(game.getGrid().new Position(4, 4));
 		pacman.setPosition(game.getGrid().new Position(4, 4));
@@ -163,9 +157,7 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		boss.setPosition(game.getGrid().new Position(1, 1));
 		pacman.setPosition(game.getGrid().new Position(8, 8));
@@ -194,7 +186,6 @@ public class BossTest {
 		Model model = game.model();
 
 		Boss boss = new Boss(model, "boss");
-		model.add(boss);
 
 		boss.setPosition(game.getGrid().new Position(4, 4));
 

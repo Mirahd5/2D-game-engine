@@ -22,23 +22,13 @@ public class BrainTest {
 	static class TestEntity extends Entity {
 		TestEntity(Model model, String name) {
 			super(model, name);
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			engine.model.ISU.Coord center,
-			engine.model.ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
-			return result;
-		}
-
-		@Override
-		public boolean blocks(Entity other) {
-			return true;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
 		}
 	}
 
@@ -49,9 +39,7 @@ public class BrainTest {
 		Brain brain = new Brain();
 
 		Entity attacker = new TestEntity(model, "attacker");
-		model.add(attacker);
 		Entity target = new TestEntity(model, "target");
-		model.add(target);
 
 		BasicStunt stunt = new BasicStunt(model, attacker);
 		attacker.setStunt(stunt);
@@ -73,13 +61,13 @@ public class BrainTest {
 		Brain brain = new Brain();
 
 		Entity attacker = new TestEntity(model, "attacker");
-		model.add(attacker);
 		Entity target = new TestEntity(model, "target");
-		model.add(target);
 
 		attacker.setPosition(game.getGrid().new Position(0, 0));
 		target.setPosition(game.getGrid().new Position(3, 0));
 
+		model.add(attacker);
+		model.add(target);
 
 		BasicStunt stunt = new BasicStunt(model, attacker);
 		attacker.setStunt(stunt);
@@ -96,7 +84,7 @@ public class BrainTest {
 		assertEquals(0, attacker.position().y());
 		assertEquals(0, attacker.orientation());
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, attacker.position().x());
 		assertEquals(0, attacker.position().y());

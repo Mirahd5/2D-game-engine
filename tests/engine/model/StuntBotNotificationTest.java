@@ -20,23 +20,13 @@ public class StuntBotNotificationTest {
 	static class TestEntity extends Entity {
 		TestEntity(Model model, String name) {
 			super(model, name);
-			updateBounding();
+			setBounding();
 		}
 
 		@Override
-		protected Bounding createBounding(
-			engine.model.ISU.Coord center,
-			engine.model.ISU.Dimension size,
-			int orientationDegree
-		) {
-			Bounding result = new Bounding();
-			result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
-			return result;
-		}
-
-		@Override
-		public boolean blocks(Entity other) {
-			return true;
+		protected void setBounding() {
+			this.bounding = new Bounding();
+			this.bounding.add(new Circle(this.center, Math.min(this.size.x(), this.size.y()) / 2.0));
 		}
 	}
 
@@ -91,7 +81,7 @@ public class StuntBotNotificationTest {
 
 		assertEquals(0, bot.doneCount);
 
-		model.tick(200L);
+		model.tick(1000L);
 
 		assertEquals(1, bot.doneCount);
 		assertEquals(0, bot.collisionCount);
@@ -104,13 +94,13 @@ public class StuntBotNotificationTest {
 		Brain brain = new Brain();
 
 		Entity e1 = new TestEntity(model, "e1");
-		model.add(e1);
 		Entity e2 = new TestEntity(model, "e2");
-		model.add(e2);
 
 		e1.setPosition(game.getGrid().new Position(0, 0));
 		e2.setPosition(game.getGrid().new Position(1, 0));
 
+		model.add(e1);
+		model.add(e2);
 
 		BasicStunt stunt = new BasicStunt(model, e1);
 		e1.setStunt(stunt);
@@ -118,9 +108,9 @@ public class StuntBotNotificationTest {
 		SpyBot bot = new SpyBot(brain, stunt);
 		brain.add(bot);
 
-		// La cellule cible étant bloquée, walk() est refusé immédiatement.
 		brain.think();
-		stunt.collision(e2);
+
+		model.tick(1000L);
 
 		assertEquals(0, bot.doneCount);
 		assertEquals(1, bot.collisionCount);

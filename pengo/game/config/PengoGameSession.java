@@ -14,24 +14,27 @@ public final class PengoGameSession {
 	private final Ticker ticker;
 	private final PainterTask painterTask;
 	private final View view;
+	private final PengoRunState runState;
 
 	private Canvas canvas;
 	private boolean stopped;
 
 	public PengoGameSession(Painter painter, PengoController controller, Ticker ticker, PainterTask painterTask,
-			View view) {
+			View view, PengoRunState runState) {
 
 		assert painter != null;
 		assert controller != null;
 		assert ticker != null;
 		assert painterTask != null;
 		assert view != null;
+		assert runState != null;
 
 		this.painter = painter;
 		this.controller = controller;
 		this.ticker = ticker;
 		this.painterTask = painterTask;
 		this.view = view;
+		this.runState = runState;
 		this.canvas = null;
 		this.stopped = false;
 	}
@@ -42,6 +45,50 @@ public final class PengoGameSession {
 
 	public PengoController controller() {
 		return this.controller;
+	}
+
+	public View view() {
+		return this.view;
+	}
+
+	public boolean paused() {
+		return this.runState.paused();
+	}
+
+	public boolean stopped() {
+		return this.stopped || this.runState.stopped();
+	}
+
+	public void pause() {
+		if (stopped() || paused()) {
+			return;
+		}
+
+		this.runState.pause();
+		this.ticker.pause();
+		this.controller.clearInputs();
+		this.controller.disable();
+		repaint();
+	}
+
+	public void resume() {
+		if (stopped() || !paused()) {
+			return;
+		}
+
+		this.runState.resume();
+		this.controller.clearInputs();
+		this.controller.enable();
+		this.ticker.resume();
+		repaint();
+	}
+
+	public void togglePause() {
+		if (paused()) {
+			resume();
+		} else {
+			pause();
+		}
 	}
 
 	public void attach(Canvas canvas) {
@@ -97,7 +144,9 @@ public final class PengoGameSession {
 		}
 
 		this.stopped = true;
-
+		this.runState.stop();
+		this.controller.clearInputs();
+		this.controller.disable();
 		this.ticker.stop();
 		this.painterTask.stop();
 

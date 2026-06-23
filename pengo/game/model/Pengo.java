@@ -67,7 +67,7 @@ public final class Pengo extends Player {
 	}
 
 	public void activateShield() {
-		this.shieldEnd_ms = System.currentTimeMillis() + SHIELD_DURATION_MS;
+		this.shieldEnd_ms = gameTimeMs() + SHIELD_DURATION_MS;
 		System.out.println("protection activated");
 	}
 
@@ -77,11 +77,11 @@ public final class Pengo extends Player {
 	}
 
 	public boolean hasShield() {
-		return System.currentTimeMillis() < this.shieldEnd_ms;
+		return gameTimeMs() < this.shieldEnd_ms;
 	}
 
 	public void activateSpeed() {
-		this.speedEnd_ms = System.currentTimeMillis() + SPEED_DURATION_MS;
+		this.speedEnd_ms = gameTimeMs() + SPEED_DURATION_MS;
 		setStep(this.boostedStep);
 		refreshCurrentMovementSpeed();
 		System.out.println("Speed boost ON");
@@ -95,7 +95,7 @@ public final class Pengo extends Player {
 	}
 
 	public boolean hasSpeedBoost() {
-		return System.currentTimeMillis() < this.speedEnd_ms;
+		return gameTimeMs() < this.speedEnd_ms;
 	}
 
 	private void refreshCurrentMovementSpeed() {
@@ -128,7 +128,7 @@ public final class Pengo extends Player {
 	}
 
 	public void activateFreezePower() {
-		this.freezeEnd_ms = System.currentTimeMillis() + FREEZE_DURATION_MS;
+		this.freezeEnd_ms = gameTimeMs() + FREEZE_DURATION_MS;
 		freezeEnemies();
 	}
 
@@ -138,7 +138,7 @@ public final class Pengo extends Player {
 	}
 
 	public boolean hasFreezePower() {
-		return System.currentTimeMillis() < this.freezeEnd_ms;
+		return gameTimeMs() < this.freezeEnd_ms;
 	}
 
 	public void freezeEnemies() {
@@ -170,7 +170,7 @@ public final class Pengo extends Player {
 	}
 
 	public void activateStar() {
-		this.starEnd_ms = System.currentTimeMillis() + STAR_DURATION_MS;
+		this.starEnd_ms = gameTimeMs() + STAR_DURATION_MS;
 	}
 
 	public void deactivateStar() {
@@ -178,7 +178,7 @@ public final class Pengo extends Player {
 	}
 
 	public boolean hasStar() {
-		return System.currentTimeMillis() < this.starEnd_ms;
+		return gameTimeMs() < this.starEnd_ms;
 	}
 
 	public void activateFriendActivator() {
@@ -194,7 +194,7 @@ public final class Pengo extends Player {
 	}
 
 	private long remainingMs(long endMs) {
-		long remaining = endMs - System.currentTimeMillis();
+		long remaining = endMs - gameTimeMs();
 
 		if (remaining < 0L) {
 			return 0L;
@@ -332,7 +332,7 @@ public final class Pengo extends Player {
 	}
 
 	public void updateTimedPowers() {
-		long now = System.currentTimeMillis();
+		long now = gameTimeMs();
 
 		if (this.freezeEnd_ms > 0L) {
 			if (now < this.freezeEnd_ms) {

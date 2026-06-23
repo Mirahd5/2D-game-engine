@@ -25,13 +25,13 @@ public class BrainScenarioTest {
 		Brain brain = new Brain();
 
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		Ghost ghost = new Ghost(model, "ghost");
-		model.add(ghost);
 
 		pacman.setPosition(game.getGrid().new Position(5, 5));
 		ghost.setPosition(game.getGrid().new Position(1, 5));
 
+		model.add(pacman);
+		model.add(ghost);
 
 		BasicStunt ghostStunt = new BasicStunt(model, ghost);
 		ghost.setStunt(ghostStunt);

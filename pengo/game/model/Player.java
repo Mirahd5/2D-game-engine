@@ -8,6 +8,7 @@ import engine.model.Entity;
 import engine.model.Grid;
 import engine.model.Model;
 import engine.model.Orientation;
+import game.config.PengoRunState;
 
 //classe parent de pengo et de friend comme ils peuvent etre controles
 public abstract class Player extends Entity {
@@ -24,6 +25,7 @@ public abstract class Player extends Entity {
 	private int lives;
 	private long lastHitTime_ms;
 	private boolean controlled;
+	private PengoRunState runState;
 
 	// constructeur dun player
 	protected Player(Model model, String name, int initialLives) {
@@ -37,6 +39,19 @@ public abstract class Player extends Entity {
 
 		this.lives = initialLives;
 		this.controlled = false;
+		this.runState = null;
+	}
+
+	public final void setRunState(PengoRunState runState) {
+		this.runState = runState;
+	}
+
+	protected final long gameTimeMs() {
+		if (this.runState == null) {
+			return System.currentTimeMillis();
+		}
+
+		return this.runState.nowMs();
 	}
 
 	public final int nLives() {
@@ -222,7 +237,7 @@ public abstract class Player extends Entity {
 			return;
 		}
 
-		long now = System.currentTimeMillis();
+		long now = gameTimeMs();
 
 		if (now - this.lastHitTime_ms < HIT_COOLDOWN_MS) {
 			return;

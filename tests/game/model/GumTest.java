@@ -23,7 +23,6 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		System.out.println("\n=== Gum size ===");
 		System.out.println("Situation : Gum size should be one quarter of one cell");
@@ -43,7 +42,6 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		System.out.println("\n=== Gum bounding ===");
 		System.out.println("Situation : Gum should have a Bounding with one Circle");
@@ -65,7 +63,6 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		double xminBefore = gum.bounding().hitbox().xmin();
 		double xmaxBefore = gum.bounding().hitbox().xmax();
@@ -100,9 +97,7 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		gum.setPosition(game.getGrid().new Position(2, 2));
 		pacman.setPosition(game.getGrid().new Position(2, 2));
@@ -131,9 +126,7 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 
 		gum.setPosition(game.getGrid().new Position(1, 1));
 		pacman.setPosition(game.getGrid().new Position(8, 8));
@@ -162,7 +155,6 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 
 		System.out.println("\n=== Gum occupied cells ===");
 		System.out.println("Situation : Gum is a small entity, so it occupies only its center cell");
@@ -179,7 +171,6 @@ public class GumTest {
 
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 		
 		boolean oldCellBefore = game.getGrid().cellAt(game.getGrid().new Position(0, 0)).contains(gum);
 
@@ -216,9 +207,7 @@ public class GumTest {
 		
 		Model model = game.model();
 		Gum gum = new Gum(model, "gum");
-		model.add(gum);
 		PacMan pacman = new PacMan(model, "pacman");
-		model.add(pacman);
 		
 
 		/*

@@ -6,14 +6,6 @@ import oop.graphics.Font;
 import oop.graphics.Graphics;
 import oop.graphics.VirtualKeyCodes;
 
-/**
- * Menu principal de Pengo.
- *
- * Important : la plateforme du professeur n'autorise qu'un seul PaintListener
- * sur le Canvas. Cette classe reste donc le PaintListener pendant le menu ET
- * pendant la partie. Une fois la partie lancée, elle délègue l'affichage au
- * Painter du jeu.
- */
 public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyListener, Canvas.MouseListener {
 
 	private static final int BASE_WIDTH_PIXEL = 950;
@@ -32,6 +24,12 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	private static final int START_W = 230;
 	private static final int START_H = 52;
+
+	private static final int PAUSE_PANEL_W = 430;
+	private static final int PAUSE_PANEL_H = 310;
+	private static final int PAUSE_BUTTON_W = 260;
+	private static final int PAUSE_BUTTON_H = 46;
+	private static final int PAUSE_BUTTON_GAP = 18;
 
 	private Canvas canvas;
 	private Canvas gameCanvas;
@@ -110,6 +108,11 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 			this.gameSession.resizeTo(canvas);
 			this.gameSession.painter().paint(canvas, g);
+
+			if (this.gameSession.paused()) {
+				drawPauseOverlay(canvas, g);
+			}
+
 			return;
 		}
 
@@ -323,15 +326,17 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 		g.setColor(Graphics.Colors.white);
 		drawCenteredString(canvas, g, "SOURIS : clique sur la fleche pour ouvrir / fermer les maps", firstLineY);
-		drawCenteredString(canvas, g, "CLAVIER : UP / DOWN choisir map  |  ENTER lancer", secondLineY);
+		drawCenteredString(canvas, g, "CLAVIER : UP / DOWN choisir map  |  ENTER lancer  |  ESC/Q quitter", secondLineY);
 
 		g.setFont(oldFont);
 	}
 
 	@Override
 	public void pressed(Canvas canvas, int keyCode, char keyChar) {
+		this.canvas = canvas;
+
 		if (this.started && this.gameSession != null) {
-			this.gameSession.controller().pressed(canvas, keyCode, keyChar);
+			handleGameKey(canvas, keyCode, keyChar);
 			return;
 		}
 
@@ -348,21 +353,60 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 			startGame();
 			break;
 
+		case VirtualKeyCodes.VK_ESCAPE:
+		case VirtualKeyCodes.VK_Q:
+			quitApplication();
+			break;
+
 		default:
 			break;
 		}
 	}
 
+	private void handleGameKey(Canvas canvas, int keyCode, char keyChar) {
+		assert canvas != null;
+
+		if (keyCode == VirtualKeyCodes.VK_ESCAPE) {
+			this.gameSession.togglePause();
+			canvas.repaint();
+			return;
+		}
+
+		if (this.gameSession.paused()) {
+			switch (keyCode) {
+			case VirtualKeyCodes.VK_ENTER:
+				this.gameSession.resume();
+				canvas.repaint();
+				break;
+
+			case VirtualKeyCodes.VK_M:
+				returnToMainMenu();
+				break;
+
+			case VirtualKeyCodes.VK_Q:
+				quitApplication();
+				break;
+
+			default:
+				break;
+			}
+
+			return;
+		}
+
+		this.gameSession.controller().pressed(canvas, keyCode, keyChar);
+	}
+
 	@Override
 	public void released(Canvas canvas, int keyCode, char keyChar) {
-		if (this.started && this.gameSession != null) {
+		if (this.started && this.gameSession != null && !this.gameSession.paused()) {
 			this.gameSession.controller().released(canvas, keyCode, keyChar);
 		}
 	}
 
 	@Override
 	public void typed(Canvas canvas, char keyChar) {
-		if (this.started && this.gameSession != null) {
+		if (this.started && this.gameSession != null && !this.gameSession.paused()) {
 			this.gameSession.controller().typed(canvas, keyChar);
 		}
 	}
@@ -375,7 +419,14 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 	@Override
 	public void pressed(Canvas canvas, int button, int x, int y) {
 		if (this.started && this.gameSession != null) {
-			this.gameSession.controller().pressed(canvas, button, x, y);
+			this.canvas = canvas;
+
+			if (this.gameSession.paused()) {
+				handlePauseMousePressed(canvas, x, y);
+			} else {
+				this.gameSession.controller().pressed(canvas, button, x, y);
+			}
+
 			return;
 		}
 
@@ -406,6 +457,133 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 	@Override
 	public void released(Canvas canvas, int x, int y, int button) {
 		// Rien.
+	}
+
+
+	private void drawPauseOverlay(Canvas canvas, Graphics g) {
+		Font oldFont = g.getFont();
+
+		g.setColor(g.getColor(175, 0, 0, 0));
+		g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+		int panelX = pausePanelX(canvas);
+		int panelY = pausePanelY(canvas);
+		int panelW = pausePanelW(canvas);
+		int panelH = pausePanelH(canvas);
+
+		g.setColor(g.getColor(225, 5, 8, 22));
+		g.fillRect(panelX, panelY, panelW, panelH);
+
+		g.setColor(Graphics.Colors.white);
+		g.drawRect(panelX, panelY, panelW, panelH);
+
+		Font titleFont = g.getFont("Arial", Font.BOLD, scaled(canvas, 34));
+		Font textFont = g.getFont("Arial", Font.BOLD, scaled(canvas, 15));
+		g.setFont(titleFont);
+		g.setColor(Graphics.Colors.yellow);
+		drawCenteredString(canvas, g, "PAUSE", panelY + scaled(canvas, 58));
+
+		drawPauseButton(canvas, g, 0, "REPRENDRE");
+		drawPauseButton(canvas, g, 1, "MENU INITIAL");
+		drawPauseButton(canvas, g, 2, "QUITTER");
+
+		g.setFont(textFont);
+		g.setColor(Graphics.Colors.lightGray);
+		drawCenteredString(canvas, g, "ESC/ENTER reprendre  |  M menu  |  Q quitter", panelY + panelH - scaled(canvas, 28));
+
+		g.setFont(oldFont);
+	}
+
+	private void drawPauseButton(Canvas canvas, Graphics g, int index, String text) {
+		int x = pauseButtonX(canvas);
+		int y = pauseButtonY(canvas, index);
+		int w = pauseButtonW(canvas);
+		int h = pauseButtonH(canvas);
+
+		g.setColor(g.getColor(210, 0, 0, 0));
+		g.fillRect(x, y, w, h);
+
+		g.setColor(Graphics.Colors.cyan);
+		g.drawRect(x, y, w, h);
+
+		Font oldFont = g.getFont();
+		g.setFont(g.getFont("Arial", Font.BOLD, scaled(canvas, 17)));
+		g.setColor(Graphics.Colors.white);
+		drawCenteredString(canvas, g, text, y + scaled(canvas, 30));
+		g.setFont(oldFont);
+	}
+
+	private void handlePauseMousePressed(Canvas canvas, int x, int y) {
+		if (inside(x, y, pauseButtonX(canvas), pauseButtonY(canvas, 0), pauseButtonW(canvas), pauseButtonH(canvas))) {
+			this.gameSession.resume();
+			canvas.repaint();
+			return;
+		}
+
+		if (inside(x, y, pauseButtonX(canvas), pauseButtonY(canvas, 1), pauseButtonW(canvas), pauseButtonH(canvas))) {
+			returnToMainMenu();
+			return;
+		}
+
+		if (inside(x, y, pauseButtonX(canvas), pauseButtonY(canvas, 2), pauseButtonW(canvas), pauseButtonH(canvas))) {
+			quitApplication();
+		}
+	}
+
+	private void returnToMainMenu() {
+		if (this.gameSession != null) {
+			this.gameSession.stop();
+		}
+
+		this.gameSession = null;
+		this.gameCanvas = null;
+		this.started = false;
+		this.mapListOpen = false;
+
+		if (this.canvas != null) {
+			this.canvas.repaint();
+		}
+	}
+
+	private void quitApplication() {
+		if (this.gameSession != null) {
+			this.gameSession.stop();
+		}
+
+		System.exit(0);
+	}
+
+	private int pausePanelW(Canvas canvas) {
+		return scaled(canvas, PAUSE_PANEL_W);
+	}
+
+	private int pausePanelH(Canvas canvas) {
+		return scaled(canvas, PAUSE_PANEL_H);
+	}
+
+	private int pausePanelX(Canvas canvas) {
+		return (canvas.getWidth() - pausePanelW(canvas)) / 2;
+	}
+
+	private int pausePanelY(Canvas canvas) {
+		return (canvas.getHeight() - pausePanelH(canvas)) / 2;
+	}
+
+	private int pauseButtonW(Canvas canvas) {
+		return scaled(canvas, PAUSE_BUTTON_W);
+	}
+
+	private int pauseButtonH(Canvas canvas) {
+		return scaled(canvas, PAUSE_BUTTON_H);
+	}
+
+	private int pauseButtonX(Canvas canvas) {
+		return (canvas.getWidth() - pauseButtonW(canvas)) / 2;
+	}
+
+	private int pauseButtonY(Canvas canvas, int index) {
+		int start = pausePanelY(canvas) + scaled(canvas, 92);
+		return start + index * (pauseButtonH(canvas) + scaled(canvas, PAUSE_BUTTON_GAP));
 	}
 
 	private boolean clickOnMapList(Canvas canvas, int x, int y) {
