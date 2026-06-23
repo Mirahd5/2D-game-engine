@@ -283,4 +283,15 @@ public abstract class Player extends Entity {
 
 		return true;
 	}
+
+	@Override
+	public String debugLabel() {
+		String action = isMoving() ? "WALK" : "REST";
+
+		if (isControlled()) {
+			action = "CONTROL " + action;
+		}
+
+		return name() + " " + action + " dir=" + orientation();
+	}
 }

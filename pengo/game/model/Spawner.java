@@ -438,4 +438,13 @@ public final class Spawner extends Entity implements Pushable {
 		}
 		return 270;
 	}
+
+	@Override
+	public String debugLabel() {
+		if (this.sliding) {
+			return "Spawner SLIDE d=" + this.slideDirection + " v=" + Math.round(this.currentSpeed_cmPerSecond);
+		}
+
+		return "Spawner REST";
+	}
 }

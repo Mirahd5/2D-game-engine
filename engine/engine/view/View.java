@@ -18,6 +18,9 @@ public class View {
 	private int heightPixel;
 	private StartupReveal startupReveal;
 
+	private DebugOptions debugOptions;
+	private PerformanceMonitor performanceMonitor;
+
 	private Overlay overlay;
 
 	public View(Model model, int widthPixel, int heightPixel) {
@@ -267,8 +270,18 @@ public class View {
 			entity.avatar().paint(graphics);
 		}
 
+		/*
+		 * Important : On remet la transformation avant de dessiner le debug. Les
+		 * avatars peuvent avoir fait des translate/scale/rotate.
+		 */
 		graphics.setTransform(savedTransform);
+		graphics.setClip(worldX, worldY, worldW, worldH);
 
+		DebugRenderer.paintWorldDebug(graphics, this, visible);
+
+		/*
+		 * HUD / overlay.
+		 */
 		if (this.overlay != null) {
 			graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
 
@@ -280,6 +293,12 @@ public class View {
 				this.overlay.paint(graphics, this, this.widthPixel, overlayHeightPixel());
 			}
 		}
+
+		/*
+		 * Debug performance par-dessus tout.
+		 */
+		graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
+		DebugRenderer.paintPerformance(graphics, this);
 	}
 
 	public void tick(long elapsed) {
@@ -288,7 +307,7 @@ public class View {
 		if (this.startupReveal != null) {
 			this.startupReveal.tick(elapsed);
 		}
-		
+
 		for (Entity entity : this.model.visibleEntities()) {
 			if (!entity.alive() || !entity.installed() || entity.avatar() == null) {
 				continue;
@@ -301,4 +320,23 @@ public class View {
 			this.overlay.tick(elapsed);
 		}
 	}
+
+	// debug methodes
+	public DebugOptions debugOptions() {
+		return this.debugOptions;
+	}
+
+	public void setDebugOptions(DebugOptions debugOptions) {
+		this.debugOptions = debugOptions;
+	}
+
+	public PerformanceMonitor performanceMonitor() {
+		return this.performanceMonitor;
+	}
+
+	public void setPerformanceMonitor(PerformanceMonitor performanceMonitor) {
+		this.performanceMonitor = performanceMonitor;
+	}
+	
+	
 }

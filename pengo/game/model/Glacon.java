@@ -682,4 +682,17 @@ public final class Glacon extends Entity implements Pushable {
 		return ((value % size) + size) % size;
 	}
 
+	@Override
+	public String debugLabel() {
+		if (this.breaking) {
+			return "Ice BREAK";
+		}
+
+		if (this.sliding) {
+			return "Ice SLIDE d=" + this.slideDirection + " v=" + Math.round(this.currentSpeed_cmPerSecond);
+		}
+
+		return "Ice REST";
+	}
+
 }

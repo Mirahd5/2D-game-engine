@@ -5,40 +5,50 @@ import oop.graphics.Graphics;
 
 public class Painter implements Canvas.PaintListener {
 
-    private View view;
-    private Canvas canvas;
+	private View view;
+	private Canvas canvas;
+	private PerformanceMonitor performanceMonitor;
 
-    public Painter(View view) {
-        assert view != null;
-        this.view = view;
-        this.canvas = null;
-    }
+	public Painter(View view) {
+		this(view, null);
+	}
 
-    public Canvas canvas() {
-        return this.canvas;
-    }
+	public Painter(View view, PerformanceMonitor performanceMonitor) {
+		assert view != null;
+		this.view = view;
+		this.canvas = null;
+		this.performanceMonitor = performanceMonitor;
+	}
 
-    @Override
-    public void visible(Canvas canvas) {
-        assert canvas != null;
+	public Canvas canvas() {
+		return this.canvas;
+	}
 
-        this.canvas = canvas;
-        canvas.repaint();
-    }
+	@Override
+	public void visible(Canvas canvas) {
+		assert canvas != null;
 
-    @Override
-    public void paint(Canvas canvas, Graphics g) {
-        assert canvas != null;
-        assert g != null;
+		this.canvas = canvas;
+		canvas.repaint();
+	}
 
-        g.setColor(Graphics.Colors.black);
-        g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+	@Override
+	public void paint(Canvas canvas, Graphics g) {
+		assert canvas != null;
+		assert g != null;
 
-        this.view.paint(g);
-    }
+		if (this.performanceMonitor != null) {
+			this.performanceMonitor.recordPaintEvent();
+		}
 
-    @Override
-    public void revoked(Canvas canvas) {
-        this.canvas = null;
-    }
+		g.setColor(Graphics.Colors.black);
+		g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+		this.view.paint(g);
+	}
+
+	@Override
+	public void revoked(Canvas canvas) {
+		this.canvas = null;
+	}
 }
