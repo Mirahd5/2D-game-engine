@@ -2,16 +2,6 @@ package engine.view;
 
 import engine.model.Entity;
 
-/*
- * Avatar générique basé sur plusieurs frames.
- *
- * L'animation dépend uniquement :
- * - du temps écoulé transmis par View.tick ;
- * - de l'état de l'entité.
- *
- * Cette classe ne crée aucun Timer, Thread
- * ou Runtime.post indépendant.
- */
 public abstract class AnimatedImageAvatar extends ImageAvatar {
 
 	private final long frameDuration;
@@ -76,4 +66,4 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 			nextFrame();
 		}
 	}
-}
+}	

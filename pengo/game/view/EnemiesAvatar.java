@@ -10,7 +10,6 @@ import game.model.Enemies;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/** Avatar directionnel d'un ennemi, basé dynamiquement sur l'état GAL. */
 public final class EnemiesAvatar extends Avatar {
 
 	private final Enemies enemy;
@@ -41,10 +40,14 @@ public final class EnemiesAvatar extends Avatar {
 		int centerX = this.view.toPixelX(this.enemy.center().x());
 		int centerY = this.view.toPixelY(this.enemy.center().y());
 
-		double spawnScale = this.spawnAnimation.scale();
+		double revealScale = this.view.revealScale(this.enemy);
 
-		int width = this.view.toPixelWidth(this.enemy.size().x() * spawnScale);
-		int height = this.view.toPixelHeight(this.enemy.size().y() * spawnScale);
+		if (revealScale <= 0.0) {
+			return;
+		}
+
+		int width = this.view.toPixelWidth(this.enemy.size().x() * revealScale);
+		int height = this.view.toPixelHeight(this.enemy.size().y() * revealScale);
 
 		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
 	}
@@ -111,12 +114,16 @@ public final class EnemiesAvatar extends Avatar {
 		switch (direction) {
 		case 0:
 			return "right";
+
 		case 90:
 			return "down";
+
 		case 180:
 			return "left";
+
 		case 270:
 			return "up";
+
 		default:
 			return "down";
 		}

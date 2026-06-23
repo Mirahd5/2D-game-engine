@@ -11,12 +11,12 @@ import game.model.PowerType;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/** Avatar d'un bonus, choisi selon son PowerType. */
 public final class PowerAvatar extends Avatar {
 
 	private final Power power;
 	private final Map<PowerType, BufferedImage> images;
 	private final SpawnAnimation spawnAnimation;
+
 	private boolean imagesLoaded;
 
 	public PowerAvatar(View view, Power power) {
@@ -50,10 +50,14 @@ public final class PowerAvatar extends Avatar {
 		int centerX = this.view.toPixelX(this.power.center().x());
 		int centerY = this.view.toPixelY(this.power.center().y());
 
-		double spawnScale = this.spawnAnimation.scale();
+		double revealScale = this.view.revealScale(this.power);
 
-		int width = this.view.toPixelWidth(this.power.size().x() * spawnScale);
-		int height = this.view.toPixelHeight(this.power.size().y() * spawnScale);
+		if (revealScale <= 0.0) {
+			return;
+		}
+
+		int width = this.view.toPixelWidth(this.power.size().x() * revealScale);
+		int height = this.view.toPixelHeight(this.power.size().y() * revealScale);
 
 		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
 	}

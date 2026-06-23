@@ -79,6 +79,23 @@ public class Ticker implements Runnable {
 		long elapsed = now - this.lastTime;
 		this.lastTime = now;
 
+		if (this.view.startupRevealActive()) {
+			this.view.tick(elapsed);
+
+			long skew = elapsed - this.delay;
+			int nextDelay = (int) (this.delay - skew);
+
+			if (nextDelay < 1) {
+				nextDelay = 1;
+			}
+
+			if (!this.stopped) {
+				Runtime.post(this, nextDelay);
+			}
+
+			return;
+		}
+
 		// Mise à jour de la simulation avec le temps réel écoulé.
 		this.brain.think();
 

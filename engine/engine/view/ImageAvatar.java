@@ -5,22 +5,13 @@ import engine.model.ISU;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/*
- * Avatar générique utilisant une ou plusieurs images.
- *
- * Il gère :
- * - les chemins vers les images ;
- * - leur chargement paresseux ;
- * - la frame actuellement affichée ;
- * - le positionnement et le redimensionnement ;
- * - une petite animation d'apparition.
- */
 public abstract class ImageAvatar extends Avatar {
 
 	private final String[] paths;
 	private final BufferedImage[] images;
 
 	private int currentFrame;
+
 	private final SpawnAnimation spawnAnimation;
 
 	public ImageAvatar(View view, Entity entity, String[] paths) {
@@ -113,7 +104,11 @@ public abstract class ImageAvatar extends Avatar {
 		ISU.Dimension size = this.entity.size();
 		ISU.Coord center = this.entity.center();
 
-		double scale = visualScale() * spawnAnimationScale();
+		double scale = visualScale() * this.view.revealScale(this.entity);
+
+		if (scale <= 0.0) {
+			return;
+		}
 
 		int width = this.view.toPixelWidth(size.x() * scale);
 		int height = this.view.toPixelHeight(size.y() * scale);
