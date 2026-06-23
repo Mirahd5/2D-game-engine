@@ -202,7 +202,8 @@ public final class Glacon extends Entity implements Pushable {
 	}
 
 	private boolean isStaticObstacle(Entity other) {
-		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
+		return other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
+				|| other instanceof Spawner || other instanceof Power;
 	}
 
 	@Override
@@ -358,8 +359,8 @@ public final class Glacon extends Entity implements Pushable {
 
 		for (Entity other : cell.entities()) {
 			if (other != this && other.alive()) {
-				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner
-						|| other instanceof Power) {
+				if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
+						|| other instanceof Spawner || other instanceof Power) {
 					return false;
 				}
 			}
@@ -600,7 +601,8 @@ public final class Glacon extends Entity implements Pushable {
 			return !sameGridCell(other);
 		}
 
-		boolean hardType = other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
+		boolean hardType = other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
+				|| other instanceof Spawner || other instanceof Power;
 
 		if (!hardType) {
 			return false;
