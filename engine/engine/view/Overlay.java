@@ -22,6 +22,13 @@ public interface Overlay {
 	int widthPixel();
 
 	/*
+	 * Hauteur supplémentaire occupée au-dessus de la zone de jeu.
+	 */
+	default int heightPixel() {
+		return 0;
+	}
+
+	/*
 	 * Dessine l'overlay à partir de la position (x,y).
 	 */
 	void paint(Graphics graphics, View view, int x, int y);

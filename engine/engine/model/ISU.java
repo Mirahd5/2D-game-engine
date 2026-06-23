@@ -274,10 +274,20 @@ public class ISU {
 		public Grid.Position toGridPosition() {
 			assert grid != null;
 
-			double eps = 0.000001;
+			int x_ncell = (int) Math.floor(this.x_cm / cmPerCell);
+			int y_ncell = (int) Math.floor(this.y_cm / cmPerCell);
 
-			int x_ncell = (int) Math.floor((this.x_cm + eps) / cmPerCell);
-			int y_ncell = (int) Math.floor((this.y_cm + eps) / cmPerCell);
+			if (x_ncell < 0) {
+				x_ncell = 0;
+			} else if (x_ncell >= grid.width()) {
+				x_ncell = grid.width() - 1;
+			}
+
+			if (y_ncell < 0) {
+				y_ncell = 0;
+			} else if (y_ncell >= grid.height()) {
+				y_ncell = grid.height() - 1;
+			}
 
 			return grid.new Position(x_ncell, y_ncell);
 		}

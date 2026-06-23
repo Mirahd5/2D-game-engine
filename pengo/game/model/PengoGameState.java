@@ -29,13 +29,6 @@ public class PengoGameState {
 
 		this.spawnedEnemies = initialEnemies;
 
-		/*
-		 * Si la map contient des spawners, le but est de survivre jusqu'à ce que le
-		 * nombre maximum d'ennemis ait été généré, puis de tous les tuer.
-		 *
-		 * Si la map ne contient pas de spawner, le but est simplement de tuer les
-		 * ennemis présents au départ.
-		 */
 		if (spawnerCount > 0) {
 			this.targetTotalEnemies = Math.max(initialEnemies, maxTotalEnemies);
 		} else {
@@ -46,6 +39,18 @@ public class PengoGameState {
 		this.lost = false;
 
 		update();
+	}
+
+	public Pengo pengo() {
+		return this.pengo;
+	}
+
+	public PowerType activePowerType() {
+		return this.pengo.activePowerTypeForHud();
+	}
+
+	public long activePowerRemainingMs() {
+		return this.pengo.activePowerRemainingMsForHud();
 	}
 
 	public void enemySpawned() {
@@ -70,7 +75,7 @@ public class PengoGameState {
 	public boolean finished() {
 		return this.won || this.lost;
 	}
-	
+
 	public boolean playing() {
 		return !this.won && !this.lost;
 	}
@@ -154,4 +159,11 @@ public class PengoGameState {
 		}
 	}
 
+	public boolean powerActive(PowerType type) {
+		return this.pengo.powerActiveForHud(type);
+	}
+
+	public long powerRemainingMs(PowerType type) {
+		return this.pengo.powerRemainingMsForHud(type);
+	}
 }

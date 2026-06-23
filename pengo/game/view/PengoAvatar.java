@@ -1,11 +1,12 @@
 package game.view;
 
+import engine.model.Orientation;
 import engine.view.Avatar;
+import engine.view.SpawnAnimation;
 import engine.view.View;
 import game.model.Pengo;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
-import engine.model.Orientation;
 
 /** Avatar animé de Pengo, synchronisé par View.tick(...). */
 public final class PengoAvatar extends Avatar {
@@ -13,6 +14,7 @@ public final class PengoAvatar extends Avatar {
 	private static final long FRAME_DURATION_MS = 120L;
 
 	private final Pengo pengo;
+	private final SpawnAnimation spawnAnimation;
 
 	private BufferedImage down1;
 	private BufferedImage down2;
@@ -31,6 +33,7 @@ public final class PengoAvatar extends Avatar {
 		super(view, pengo);
 
 		this.pengo = pengo;
+		this.spawnAnimation = new SpawnAnimation();
 		this.elapsedSinceFrame = 0L;
 		this.frame = 0;
 		this.animatedOrientation = Orientation.normalizeCardinal(pengo.orientation());
@@ -39,6 +42,8 @@ public final class PengoAvatar extends Avatar {
 	@Override
 	public void tick(long elapsed) {
 		assert elapsed >= 0L;
+
+		this.spawnAnimation.tick(elapsed);
 
 		if (!this.pengo.isMoving()) {
 			this.elapsedSinceFrame = 0L;
@@ -72,8 +77,10 @@ public final class PengoAvatar extends Avatar {
 		int centerX = this.view.toPixelX(this.pengo.center().x());
 		int centerY = this.view.toPixelY(this.pengo.center().y());
 
-		int width = this.view.toPixelWidth(this.pengo.size().x());
-		int height = this.view.toPixelHeight(this.pengo.size().y());
+		double spawnScale = this.spawnAnimation.scale();
+
+		int width = this.view.toPixelWidth(this.pengo.size().x() * spawnScale);
+		int height = this.view.toPixelHeight(this.pengo.size().y() * spawnScale);
 
 		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
 	}

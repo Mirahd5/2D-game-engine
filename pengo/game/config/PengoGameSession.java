@@ -48,7 +48,9 @@ public final class PengoGameSession {
 		assert canvas != null;
 
 		this.canvas = canvas;
+
 		resizeTo(canvas);
+
 		this.painter.visible(canvas);
 	}
 
@@ -63,17 +65,24 @@ public final class PengoGameSession {
 		}
 
 		int overlayWidth = this.view.overlayWidthPixel();
-		int worldWidth = width - overlayWidth;
+		int overlayHeight = this.view.overlayHeightPixel();
 
-		if (worldWidth < 200) {
-			worldWidth = width;
+		int worldWidth = width - overlayWidth;
+		int worldHeight = height - overlayHeight;
+
+		if (worldWidth < 240) {
+			worldWidth = Math.max(1, width);
 		}
 
-		if (this.view.widthPixel() == worldWidth && this.view.heightPixel() == height) {
+		if (worldHeight < 240) {
+			worldHeight = Math.max(1, height);
+		}
+
+		if (this.view.widthPixel() == worldWidth && this.view.heightPixel() == worldHeight) {
 			return;
 		}
 
-		this.view.resize(worldWidth, height);
+		this.view.resize(worldWidth, worldHeight);
 	}
 
 	public void repaint() {
@@ -98,7 +107,6 @@ public final class PengoGameSession {
 		}
 	}
 
-	// utile quand le canvas est supprime ou recreee
 	public void detach(Canvas canvas) {
 		if (canvas == null) {
 			return;

@@ -1,15 +1,9 @@
 package game.config;
 
 import java.io.IOException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+
 import oop.tasks.Runnable;
-import game.model.Power;
-import game.model.PowerType;
+
 import engine.brain.Bot;
 import engine.brain.Brain;
 import engine.model.BasicStunt;
@@ -39,30 +33,20 @@ import game.model.Pengo;
 import game.model.PengoGameState;
 import game.model.Spawner;
 import game.view.EnemiesAvatar;
-import game.view.PengoOverlay;
-import game.view.PowerAvatar;
+import game.view.PengoClassicOverlay;
 import oop.graphics.Canvas;
 import oop.tasks.Runtime;
 
 public final class PengoGameRunner {
 
-	private static final double PLAYER_SPEED = 5.0;
 	private static final double FRIEND_SPEED = 4.0;
 	private static final double ENEMY_SPEED = 3.0;
-	private static final double ICE_STUNT_SPEED = 5.0;
 
 	private static final String ENEMY_GAL_PATH = "pengo/game/gal/EnemyChase.gal";
 	private static final String FRIEND_GAL_PATH = "pengo/game/gal/FriendRandom.gal";
 
 	private static int spawnedEnemyCounter = 0;
 	private static int totalSpawnedEnemies = 0;
-	private static final int POWER_MAX_SPAWN_PER_TYPE = 2;
-	private static final int POWER_MIN_DELAY_MS = 4000;
-	private static final int POWER_MAX_DELAY_MS = 9000;
-
-	private static final Random RANDOM = new Random();
-	private static final Map<PowerType, Integer> spawnedPowers =
-			new EnumMap<PowerType, Integer>(PowerType.class);
 
 	private PengoGameRunner() {
 	}
@@ -84,15 +68,23 @@ public final class PengoGameRunner {
 		};
 
 		Model model = game.model();
-		ISU isu = model.isu();
 
-		ViewPort viewPort = new ViewPort(model, isu.new Coord(0.0, 0.0), isu.new Dimension(
-				config.viewportWidthCells() * isu.cmPerCell(), config.viewportHeightCells() * isu.cmPerCell()));
+		/*
+		 * Pengo normal : - pas de viewport qui suit le joueur - toute la map est
+		 * visible
+		 *
+		 * Démo tore : - viewport plus petit - viewport centré sur Pengo
+		 */
+		boolean viewportDemo = useViewportDemo(config);
+
+		ViewPort viewPort = createViewPort(model, config, viewportDemo);
 
 		model.setViewPort(viewPort);
 
 		Brain brain = new Brain();
+
 		View view = new View(model, config.windowWidthPixel(), config.windowHeightPixel());
+
 		Painter painter = new Painter(view);
 
 		BuildMap builder;
@@ -101,27 +93,34 @@ public final class PengoGameRunner {
 			builder = new BuildMap(game, view, config.mapPath());
 			builder.build();
 
+			spawnedEnemyCounter = 0;
 			totalSpawnedEnemies = builder.enemies().size();
 		} catch (IOException exception) {
 			throw new IllegalStateException("Unable to load Pengo map: " + config.mapPath(), exception);
 		}
 
 		Pengo pengo = builder.pengo();
+
 		assert pengo != null;
 
 		PengoGameState gameState = new PengoGameState(model, pengo, builder.enemies().size(), builder.spawners().size(),
 				config.maxTotalSpawnedEnemies());
 
-		view.setOverlay(new PengoOverlay(gameState));
+		/*
+		 * Nouveau HUD arcade compact.
+		 */
+		view.setOverlay(new PengoClassicOverlay(gameState));
 
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);
 
 		CurrentPlayer currentPlayer = new CurrentPlayer(pengo);
 
-		viewPort.centerOn(pengo);
+		if (viewportDemo) {
+			viewPort.centerOn(pengo);
+		}
 
-		Ticker ticker = new Ticker(model, brain, view, config.tickDelayMs(), pengo);
+		Ticker ticker = new Ticker(model, brain, view, config.tickDelayMs(), viewportDemo ? pengo : null);
 
 		Switch controlSwitcher = new Switch(brain, model, ticker, pengo, builder.friends(), friendAutomaton,
 				currentPlayer);
@@ -146,9 +145,6 @@ public final class PengoGameRunner {
 
 		installPengoPowerTimer(pengo, config.tickDelayMs());
 
-		resetPowerSpawnCounters();
-		installRandomPowerSpawner(model, view, gameState);
-
 		painter.visible(canvas);
 
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());
@@ -156,7 +152,42 @@ public final class PengoGameRunner {
 		Runtime.post(ticker);
 		Runtime.post(painterTask);
 
-		return new PengoGameSession(painter, controller, ticker, painterTask, view);
+		PengoGameSession session = new PengoGameSession(painter, controller, ticker, painterTask, view);
+
+		session.attach(canvas);
+
+		return session;
+	}
+
+	private static boolean useViewportDemo(PengoConfig config) {
+		assert config != null;
+
+		return config.torusX() || config.torusY();
+	}
+
+	private static ViewPort createViewPort(Model model, PengoConfig config, boolean viewportDemo) {
+		assert model != null;
+		assert config != null;
+
+		ISU isu = model.isu();
+
+		if (!viewportDemo) {
+			return new ViewPort(model, isu.new Coord(0.0, 0.0), isu.new Dimension(isu.width(), isu.height()));
+		}
+
+		double width = Math.min(config.viewportWidthCells() * isu.cmPerCell(), isu.width() - isu.cmPerCell());
+
+		double height = Math.min(config.viewportHeightCells() * isu.cmPerCell(), isu.height() - isu.cmPerCell());
+
+		if (width <= 0.0) {
+			width = isu.width();
+		}
+
+		if (height <= 0.0) {
+			height = isu.height();
+		}
+
+		return new ViewPort(model, isu.new Coord(0.0, 0.0), isu.new Dimension(width, height));
 	}
 
 	private static void installContinuousWalkTask(final PengoController controller, final int delayMs) {
@@ -210,6 +241,12 @@ public final class PengoGameRunner {
 
 	private static void installEnemyGalBots(Brain brain, Model model, BuildMap builder, Automaton enemyAutomaton,
 			CurrentPlayer currentPlayer) {
+		assert brain != null;
+		assert model != null;
+		assert builder != null;
+		assert enemyAutomaton != null;
+		assert currentPlayer != null;
+
 		for (Enemies enemy : builder.enemies()) {
 			BasicStunt enemyStunt = new BasicStunt(model, enemy, ENEMY_SPEED);
 			enemy.setStunt(enemyStunt);
@@ -222,7 +259,16 @@ public final class PengoGameRunner {
 
 	private static void installSpawnerBots(Brain brain, Model model, View view, BuildMap builder,
 			Automaton enemyAutomaton, CurrentPlayer currentPlayer, PengoConfig config, PengoGameState gameState) {
-		for (Spawner spawner : builder.spawners()) {
+		assert brain != null;
+		assert model != null;
+		assert view != null;
+		assert builder != null;
+		assert enemyAutomaton != null;
+		assert currentPlayer != null;
+		assert config != null;
+		assert gameState != null;
+
+		for (final Spawner spawner : builder.spawners()) {
 			BasicStunt spawnerStunt = new BasicStunt(model, spawner);
 			spawner.setStunt(spawnerStunt);
 
@@ -274,6 +320,11 @@ public final class PengoGameRunner {
 	}
 
 	private static void installIceBots(Brain brain, Model model, BuildMap builder, PengoGameState gameState) {
+		assert brain != null;
+		assert model != null;
+		assert builder != null;
+		assert gameState != null;
+
 		for (final Glacon ice : builder.iceBlocks()) {
 			BasicStunt stunt = new BasicStunt(model, ice);
 
@@ -296,6 +347,8 @@ public final class PengoGameRunner {
 	}
 
 	private static int livingEnemies(Model model) {
+		assert model != null;
+
 		int count = 0;
 
 		for (Entity entity : model.entities()) {
@@ -308,6 +361,8 @@ public final class PengoGameRunner {
 	}
 
 	private static boolean spawnCellIsFree(Spawner spawner) {
+		assert spawner != null;
+
 		Grid.Cell cell = spawner.model().grid().cellAt(spawner.position());
 
 		for (Entity entity : cell.entities()) {
@@ -324,6 +379,14 @@ public final class PengoGameRunner {
 
 	private static void createSpawnedEnemy(Model model, View view, Brain brain, Automaton enemyAutomaton,
 			CurrentPlayer currentPlayer, Grid.Position position, PengoGameState gameState) {
+		assert model != null;
+		assert view != null;
+		assert brain != null;
+		assert enemyAutomaton != null;
+		assert currentPlayer != null;
+		assert position != null;
+		assert gameState != null;
+
 		Enemies enemy = new Enemies(model, "spawned-enemy-" + spawnedEnemyCounter++);
 		enemy.setAvatar(new EnemiesAvatar(view, enemy));
 
@@ -342,6 +405,9 @@ public final class PengoGameRunner {
 	}
 
 	private static Automaton loadGalAutomaton(String path) {
+		assert path != null;
+		assert !path.isEmpty();
+
 		try {
 			AST ast = Parser.from_file(path);
 
@@ -387,134 +453,5 @@ public final class PengoGameRunner {
 		};
 
 		brain.add(stateBot);
-	}
-	private static void resetPowerSpawnCounters() {
-		spawnedPowers.clear();
-
-		for (PowerType type : PowerType.values()) {
-			spawnedPowers.put(type, Integer.valueOf(0));
-		}
-	}
-
-	private static void installRandomPowerSpawner(final Model model, final View view, final PengoGameState gameState) {
-		assert model != null;
-		assert view != null;
-		assert gameState != null;
-
-		Runtime.post(new Runnable() {
-			@Override
-			public void run() {
-				gameState.update();
-
-				if (gameState.finished()) {
-					return;
-				}
-
-				spawnOneRandomPowerIfPossible(model, view);
-
-				Runtime.post(this, randomPowerDelay());
-			}
-		}, randomPowerDelay());
-	}
-
-	private static int randomPowerDelay() {
-		return POWER_MIN_DELAY_MS + RANDOM.nextInt(POWER_MAX_DELAY_MS - POWER_MIN_DELAY_MS + 1);
-	}
-
-	private static void spawnOneRandomPowerIfPossible(Model model, View view) {
-		List<PowerType> possibleTypes = possiblePowerTypes(model);
-
-		if (possibleTypes.isEmpty()) {
-			return;
-		}
-
-		PowerType type = possibleTypes.get(RANDOM.nextInt(possibleTypes.size()));
-		Grid.Position position = randomFreePowerPosition(model);
-
-		if (position == null) {
-			return;
-		}
-
-		Power power = new Power(model, "random-power-" + type + "-" + System.currentTimeMillis(), type);
-		power.setAvatar(new PowerAvatar(view, power));
-
-		model.add(power, position);
-
-		int currentCount = spawnedPowers.get(type).intValue();
-		spawnedPowers.put(type, Integer.valueOf(currentCount + 1));
-
-		System.out.println("Random power spawned: " + type + " at (" + position.x() + ", " + position.y() + ")");
-	}
-
-	private static List<PowerType> possiblePowerTypes(Model model) {
-		List<PowerType> result = new ArrayList<PowerType>();
-
-		for (PowerType type : PowerType.values()) {
-			int count = spawnedPowers.get(type).intValue();
-
-			if (count >= POWER_MAX_SPAWN_PER_TYPE) {
-				continue;
-			}
-
-			if (hasActivePower(model, type)) {
-				continue;
-			}
-
-			result.add(type);
-		}
-
-		return result;
-	}
-
-	private static boolean hasActivePower(Model model, PowerType type) {
-		for (Entity entity : model.entities()) {
-			if (entity instanceof Power && entity.alive()) {
-				Power power = (Power) entity;
-
-				if (power.getType() == type) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	private static Grid.Position randomFreePowerPosition(Model model) {
-		List<Grid.Position> freePositions = new ArrayList<Grid.Position>();
-		Grid grid = model.grid();
-
-		for (int y = 0; y < grid.height(); y++) {
-			for (int x = 0; x < grid.width(); x++) {
-				Grid.Position position = grid.new Position(x, y);
-
-				if (isFreeForPower(model, position)) {
-					freePositions.add(position);
-				}
-			}
-		}
-
-		if (freePositions.isEmpty()) {
-			return null;
-		}
-
-		return freePositions.get(RANDOM.nextInt(freePositions.size()));
-	}
-
-	private static boolean isFreeForPower(Model model, Grid.Position position) {
-		Grid.Cell cell = model.grid().cellAt(position);
-
-		for (Entity entity : cell.entities()) {
-			if (!entity.alive()) {
-				continue;
-			}
-
-			if (entity instanceof Mur || entity instanceof Glacon || entity instanceof Spawner || entity instanceof Pengo
-					|| entity instanceof Friend || entity instanceof Enemies || entity instanceof Power) {
-				return false;
-			}
-		}
-
-		return true;
 	}
 }

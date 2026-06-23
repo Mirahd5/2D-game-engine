@@ -76,9 +76,22 @@ public class Grid {
 		Grid.Position normalized = p.copy();
 		normalized.normalize();
 
-		assert contains(normalized) : "position outside non-toric grid";
+		int x = normalized.x();
+		int y = normalized.y();
 
-		return this.grid[normalized.x()][normalized.y()];
+		if (x < 0) {
+			x = 0;
+		} else if (x >= this.width_ncell) {
+			x = this.width_ncell - 1;
+		}
+
+		if (y < 0) {
+			y = 0;
+		} else if (y >= this.height_ncell) {
+			y = this.height_ncell - 1;
+		}
+
+		return this.grid[x][y];
 	}
 
 	public boolean contains(Grid.Position p) {

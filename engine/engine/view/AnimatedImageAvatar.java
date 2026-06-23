@@ -33,19 +33,10 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 		return this.frameDuration;
 	}
 
-	/*
-	 * Par défaut, une entité est animée dès qu'elle possède une vitesse linéaire ou
-	 * angulaire.
-	 *
-	 * Une spécialisation peut redéfinir cette règle.
-	 */
 	protected boolean shouldAnimate() {
 		return this.entity.isMoving();
 	}
 
-	/*
-	 * Une orientation différente peut correspondre à une autre séquence graphique.
-	 */
 	protected boolean resetOnOrientationChange() {
 		return true;
 	}
@@ -59,8 +50,9 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 	public void tick(long elapsed) {
 		assert elapsed >= 0L;
 
-		if (!this.entity.alive() || !this.entity.installed()) {
+		tickSpawnAnimation(elapsed);
 
+		if (!this.entity.alive() || !this.entity.installed()) {
 			resetAnimation();
 			return;
 		}
@@ -68,9 +60,7 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 		int orientation = this.entity.orientation();
 
 		if (resetOnOrientationChange() && orientation != this.animatedOrientation) {
-
 			this.animatedOrientation = orientation;
-
 			resetAnimation();
 		}
 
@@ -81,14 +71,8 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 
 		this.elapsedSinceFrame += elapsed;
 
-		/*
-		 * Un while permet de rattraper plusieurs frames après un tick
-		 * exceptionnellement long.
-		 */
 		while (this.elapsedSinceFrame >= this.frameDuration) {
-
 			this.elapsedSinceFrame -= this.frameDuration;
-
 			nextFrame();
 		}
 	}

@@ -10,26 +10,10 @@ import engine.model.Model;
 import engine.model.ViewPort;
 import oop.graphics.Graphics;
 
-/*
- * Vue générique du moteur.
- *
- * Elle :
- * - transforme les coordonnées ISU en pixels ;
- * - récupère les entités visibles ;
- * - les trie selon zOrder et sOrder ;
- * - délègue leur dessin aux Avatar ;
- * - délègue éventuellement le HUD à un Overlay.
- *
- * Elle ne contient aucune règle propre à un jeu.
- */
 public class View {
 
 	private final Model model;
 
-	/*
-	 * Dimensions en pixels de la zone représentant le monde. Elles n'incluent pas
-	 * l'éventuel Overlay.
-	 */
 	private int widthPixel;
 	private int heightPixel;
 
@@ -74,11 +58,20 @@ public class View {
 		return this.overlay.widthPixel();
 	}
 
-	/*
-	 * Largeur totale nécessaire au Canvas.
-	 */
+	public int overlayHeightPixel() {
+		if (this.overlay == null) {
+			return 0;
+		}
+
+		return this.overlay.heightPixel();
+	}
+
 	public int totalWidthPixel() {
 		return this.widthPixel + overlayWidthPixel();
+	}
+
+	public int totalHeightPixel() {
+		return this.heightPixel + overlayHeightPixel();
 	}
 
 	public Overlay overlay() {
@@ -101,48 +94,73 @@ public class View {
 		this.heightPixel = heightPixel;
 	}
 
+	/*
+	 * On utilise une seule échelle pour X et Y. Comme ça, la map garde ses
+	 * proportions.
+	 */
+	public double worldScale() {
+		double scaleX = this.widthPixel / this.viewPort().width();
+		double scaleY = this.heightPixel / this.viewPort().height();
+
+		return Math.min(scaleX, scaleY);
+	}
+
 	public double scaleX() {
-		return this.widthPixel / this.viewPort().width();
+		return worldScale();
 	}
 
 	public double scaleY() {
-		return this.heightPixel / this.viewPort().height();
+		return worldScale();
+	}
+
+	public int renderedWorldWidthPixel() {
+		return (int) Math.round(this.viewPort().width() * worldScale());
+	}
+
+	public int renderedWorldHeightPixel() {
+		return (int) Math.round(this.viewPort().height() * worldScale());
+	}
+
+	/*
+	 * Centre la map horizontalement dans l'espace disponible.
+	 */
+	public int worldOffsetXPixel() {
+		return Math.max(0, (this.widthPixel - renderedWorldWidthPixel()) / 2);
+	}
+
+	/*
+	 * Centre la map verticalement sous le HUD.
+	 */
+	public int worldOffsetYPixel() {
+		return overlayHeightPixel() + Math.max(0, (this.heightPixel - renderedWorldHeightPixel()) / 2);
 	}
 
 	public int toPixelX(double xIsu) {
 		double translated = translatedX(xIsu);
 
-		return (int) Math.round(translated * scaleX());
+		return worldOffsetXPixel() + (int) Math.round(translated * worldScale());
 	}
 
 	public int toPixelY(double yIsu) {
 		double translated = translatedY(yIsu);
 
-		return (int) Math.round(translated * scaleY());
+		return worldOffsetYPixel() + (int) Math.round(translated * worldScale());
 	}
 
-	/*
-	 * Distance orientée depuis le bord gauche du ViewPort.
-	 */
 	private double translatedX(double xIsu) {
 		double translated = xIsu - this.viewPort().x();
 
 		if (this.model.isu().xAxis().onTorus()) {
-
 			translated = this.model.isu().xAxis().modp(translated, this.model.isu().width());
 		}
 
 		return translated;
 	}
 
-	/*
-	 * Distance orientée depuis le bord supérieur du ViewPort.
-	 */
 	private double translatedY(double yIsu) {
 		double translated = yIsu - this.viewPort().y();
 
 		if (this.model.isu().yAxis().onTorus()) {
-
 			translated = this.model.isu().yAxis().modp(translated, this.model.isu().height());
 		}
 
@@ -150,33 +168,38 @@ public class View {
 	}
 
 	public int toPixelWidth(double widthIsu) {
-		return (int) Math.round(widthIsu * scaleX());
+		return (int) Math.round(widthIsu * worldScale());
 	}
 
 	public int toPixelHeight(double heightIsu) {
-		return (int) Math.round(heightIsu * scaleY());
+		return (int) Math.round(heightIsu * worldScale());
 	}
 
-	/*
-	 * Transformation inverse :
-	 *
-	 * pixel → suppression de l'échelle → ajout de l'origine du ViewPort.
-	 */
 	public ISU.Coord toISUCoord(int xPixel, int yPixel) {
-		assert xPixel >= 0;
-		assert xPixel < this.widthPixel;
+		int left = worldOffsetXPixel();
+		int top = worldOffsetYPixel();
+		int right = left + renderedWorldWidthPixel() - 1;
+		int bottom = top + renderedWorldHeightPixel() - 1;
 
-		assert yPixel >= 0;
-		assert yPixel < this.heightPixel;
+		int safeX = clampInt(xPixel, left, right);
+		int safeY = clampInt(yPixel, top, bottom);
 
-		double xIsu = this.viewPort().x() + xPixel / scaleX();
+		double xIsu = this.viewPort().x() + (safeX - left) / worldScale();
+		double yIsu = this.viewPort().y() + (safeY - top) / worldScale();
 
-		double yIsu = this.viewPort().y() + yPixel / scaleY();
-
-		/*
-		 * Le constructeur de Coord normalise automatiquement les axes toriques.
-		 */
 		return this.model.isu().new Coord(xIsu, yIsu);
+	}
+
+	private static int clampInt(int value, int min, int max) {
+		if (value < min) {
+			return min;
+		}
+
+		if (value > max) {
+			return max;
+		}
+
+		return value;
 	}
 
 	public void paint(Graphics graphics) {
@@ -184,11 +207,21 @@ public class View {
 
 		Object savedTransform = graphics.getTransform();
 
+		int worldX = worldOffsetXPixel();
+		int worldY = worldOffsetYPixel();
+		int worldW = renderedWorldWidthPixel();
+		int worldH = renderedWorldHeightPixel();
+
 		/*
-		 * Le monde est limité à sa propre zone. Les avatars ne peuvent pas dessiner
-		 * dans le HUD.
+		 * Fond noir global sous le HUD.
 		 */
-		graphics.setClip(0, 0, this.widthPixel, this.heightPixel);
+		graphics.setColor(Graphics.Colors.black);
+		graphics.fillRect(0, overlayHeightPixel(), this.widthPixel, this.heightPixel);
+
+		/*
+		 * On clippe seulement la zone réelle où la map est affichée.
+		 */
+		graphics.setClip(worldX, worldY, worldW, worldH);
 
 		List<Entity> visible = new ArrayList<Entity>(this.model.visibleEntities());
 
@@ -211,18 +244,18 @@ public class View {
 			entity.avatar().paint(graphics);
 		}
 
-		/*
-		 * Les avatars ont pu appliquer des rotations ou des translations graphiques.
-		 */
 		graphics.setTransform(savedTransform);
 
-		/*
-		 * L'overlay est dessiné après le monde.
-		 */
 		if (this.overlay != null) {
-			graphics.setClip(0, 0, totalWidthPixel(), this.heightPixel);
+			graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
 
-			this.overlay.paint(graphics, this, this.widthPixel, 0);
+			if (this.overlay.heightPixel() > 0) {
+				this.overlay.paint(graphics, this, 0, 0);
+			}
+
+			if (this.overlay.widthPixel() > 0) {
+				this.overlay.paint(graphics, this, this.widthPixel, overlayHeightPixel());
+			}
 		}
 	}
 
@@ -230,7 +263,6 @@ public class View {
 		assert elapsed >= 0;
 
 		for (Entity entity : this.model.visibleEntities()) {
-
 			if (!entity.alive() || !entity.installed() || entity.avatar() == null) {
 				continue;
 			}

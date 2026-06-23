@@ -19,15 +19,14 @@ public final class Pengo extends Player {
 	private static final long FREEZE_DURATION_MS = 5000L;
 	private static final long STAR_DURATION_MS = 5000L;
 
-
 	private long shieldEnd_ms;
 	private long speedEnd_ms;
 	private long freezeEnd_ms;
 	private long starEnd_ms;
-	
+
 	private ISU.Dimension normalStep;
 	private ISU.Dimension boostedStep;
-	
+
 	private boolean friendActivator;
 
 	public Pengo(Model model) {
@@ -41,11 +40,13 @@ public final class Pengo extends Player {
 		this.speedEnd_ms = 0L;
 		this.freezeEnd_ms = 0L;
 		this.starEnd_ms = 0L;
-		
+
 		this.friendActivator = false;
 
 		double diameter = model.isu().cmPerCell() * 0.80;
+
 		setSize(model.isu().new Dimension(diameter, diameter));
+
 		this.normalStep = model.isu().new Dimension(model.isu().cmPerCell(), model.isu().cmPerCell());
 		this.boostedStep = model.isu().new Dimension(model.isu().cmPerCell() * 2.0, model.isu().cmPerCell() * 2.0);
 
@@ -59,11 +60,12 @@ public final class Pengo extends Player {
 	@Override
 	protected Bounding createBounding(ISU.Coord center, ISU.Dimension size, int orientationDegree) {
 		Bounding result = new Bounding();
+
 		result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
+
 		return result;
 	}
- 
-	//shield
+
 	public void activateShield() {
 		this.shieldEnd_ms = System.currentTimeMillis() + SHIELD_DURATION_MS;
 		System.out.println("protection activated");
@@ -78,7 +80,6 @@ public final class Pengo extends Player {
 		return System.currentTimeMillis() < this.shieldEnd_ms;
 	}
 
-	//speed
 	public void activateSpeed() {
 		this.speedEnd_ms = System.currentTimeMillis() + SPEED_DURATION_MS;
 		setStep(this.boostedStep);
@@ -96,7 +97,7 @@ public final class Pengo extends Player {
 	public boolean hasSpeedBoost() {
 		return System.currentTimeMillis() < this.speedEnd_ms;
 	}
-	
+
 	private void refreshCurrentMovementSpeed() {
 		if (!isMoving()) {
 			return;
@@ -162,10 +163,12 @@ public final class Pengo extends Player {
 		for (Entity entity : model().entities()) {
 			if (entity instanceof Enemies && entity.alive()) {
 				Enemies enemy = (Enemies) entity;
+
 				enemy.unfreeze();
 			}
 		}
 	}
+
 	public void activateStar() {
 		this.starEnd_ms = System.currentTimeMillis() + STAR_DURATION_MS;
 	}
@@ -190,17 +193,143 @@ public final class Pengo extends Player {
 		return this.friendActivator;
 	}
 
+	private long remainingMs(long endMs) {
+		long remaining = endMs - System.currentTimeMillis();
+
+		if (remaining < 0L) {
+			return 0L;
+		}
+
+		return remaining;
+	}
+
+	public long shieldRemainingMs() {
+		return remainingMs(this.shieldEnd_ms);
+	}
+
+	public long speedRemainingMs() {
+		return remainingMs(this.speedEnd_ms);
+	}
+
+	public long freezeRemainingMs() {
+		return remainingMs(this.freezeEnd_ms);
+	}
+
+	public long starRemainingMs() {
+		return remainingMs(this.starEnd_ms);
+	}
+
+	public long activePowerRemainingMs(PowerType type) {
+		assert type != null;
+
+		switch (type) {
+		case SHIELD:
+			return shieldRemainingMs();
+
+		case SPEED:
+			return speedRemainingMs();
+
+		case FREEZE:
+			return freezeRemainingMs();
+
+		case STAR:
+			return starRemainingMs();
+
+		default:
+			return 0L;
+		}
+	}
+
+	public PowerType activePowerTypeForHud() {
+		PowerType bestType = null;
+		long bestRemaining = 0L;
+
+		PowerType[] timedTypes = new PowerType[] { PowerType.STAR, PowerType.SHIELD, PowerType.FREEZE,
+				PowerType.SPEED };
+
+		for (PowerType type : timedTypes) {
+			long remaining = activePowerRemainingMs(type);
+
+			if (remaining > bestRemaining) {
+				bestRemaining = remaining;
+				bestType = type;
+			}
+		}
+
+		if (bestType != null) {
+			return bestType;
+		}
+
+		if (this.friendActivator) {
+			return PowerType.FRIEND_ACTIVATOR;
+		}
+
+		return null;
+	}
+
+	public long activePowerRemainingMsForHud() {
+		PowerType type = activePowerTypeForHud();
+
+		if (type == null) {
+			return 0L;
+		}
+
+		return activePowerRemainingMs(type);
+	}
+
+	public boolean powerActiveForHud(PowerType type) {
+		assert type != null;
+
+		switch (type) {
+		case SHIELD:
+			return hasShield();
+
+		case SPEED:
+			return hasSpeedBoost();
+
+		case FREEZE:
+			return hasFreezePower();
+
+		case STAR:
+			return hasStar();
+
+		case FRIEND_ACTIVATOR:
+			return hasFriendActivator();
+
+		default:
+			return false;
+		}
+	}
+
+	public long powerRemainingMsForHud(PowerType type) {
+		assert type != null;
+
+		switch (type) {
+		case SHIELD:
+			return shieldRemainingMs();
+
+		case SPEED:
+			return speedRemainingMs();
+
+		case FREEZE:
+			return freezeRemainingMs();
+
+		case STAR:
+			return starRemainingMs();
+
+		default:
+			return 0L;
+		}
+	}
+
 	@Override
 	protected boolean hasEnemyProtection() {
 		return hasShield();
 	}
-	
 
 	public void explode() {
 		forceLoseLife();
 	}
-
-	// UPDATE TIMERS
 
 	public void updateTimedPowers() {
 		long now = System.currentTimeMillis();
@@ -230,8 +359,10 @@ public final class Pengo extends Player {
 	public void collision(Entity other) {
 		if (other instanceof Power) {
 			Power power = (Power) other;
+
 			power.apply(this);
 			power.death();
+
 			return;
 		}
 
@@ -245,6 +376,7 @@ public final class Pengo extends Player {
 		for (Entity entity : entities) {
 			if (entity instanceof Power) {
 				Power power = (Power) entity;
+
 				power.apply(this);
 				power.death();
 			} else {
@@ -256,5 +388,4 @@ public final class Pengo extends Player {
 			super.collision(remainingContacts);
 		}
 	}
-
 }

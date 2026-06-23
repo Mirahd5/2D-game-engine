@@ -12,9 +12,8 @@ import oop.graphics.Graphics;
  * - les chemins vers les images ;
  * - leur chargement paresseux ;
  * - la frame actuellement affichée ;
- * - le positionnement et le redimensionnement.
- *
- * Il ne décide pas quand une animation doit avancer.
+ * - le positionnement et le redimensionnement ;
+ * - une petite animation d'apparition.
  */
 public abstract class ImageAvatar extends Avatar {
 
@@ -22,6 +21,7 @@ public abstract class ImageAvatar extends Avatar {
 	private final BufferedImage[] images;
 
 	private int currentFrame;
+	private final SpawnAnimation spawnAnimation;
 
 	public ImageAvatar(View view, Entity entity, String[] paths) {
 		super(view, entity);
@@ -38,6 +38,7 @@ public abstract class ImageAvatar extends Avatar {
 		}
 
 		this.currentFrame = 0;
+		this.spawnAnimation = new SpawnAnimation();
 	}
 
 	protected final int frameCount() {
@@ -74,28 +75,33 @@ public abstract class ImageAvatar extends Avatar {
 		assert graphics != null;
 
 		if (this.images[this.currentFrame] == null) {
-
 			this.images[this.currentFrame] = graphics.load(this.paths[this.currentFrame]);
 		}
 
 		return this.images[this.currentFrame];
 	}
 
-	/*
-	 * Permet à un avatar spécifique d'afficher une image plus grande ou plus petite
-	 * que la taille physique de l'entité.
-	 */
 	protected double visualScale() {
 		return 1.0;
 	}
 
-	/*
-	 * true : l'image est tournée graphiquement selon l'orientation de l'entité.
-	 *
-	 * false : l'avatar possède déjà des images distinctes pour chaque direction.
-	 */
 	protected boolean rotateWithEntity() {
 		return true;
+	}
+
+	protected final void tickSpawnAnimation(long elapsed) {
+		this.spawnAnimation.tick(elapsed);
+	}
+
+	protected final double spawnAnimationScale() {
+		return this.spawnAnimation.scale();
+	}
+
+	@Override
+	public void tick(long elapsed) {
+		assert elapsed >= 0L;
+
+		tickSpawnAnimation(elapsed);
 	}
 
 	@Override
@@ -105,30 +111,24 @@ public abstract class ImageAvatar extends Avatar {
 		BufferedImage image = image(graphics);
 
 		ISU.Dimension size = this.entity.size();
-
 		ISU.Coord center = this.entity.center();
 
-		double scale = visualScale();
+		double scale = visualScale() * spawnAnimationScale();
 
 		int width = this.view.toPixelWidth(size.x() * scale);
-
 		int height = this.view.toPixelHeight(size.y() * scale);
 
 		int centerX = this.view.toPixelX(center.x());
-
 		int centerY = this.view.toPixelY(center.y());
 
 		int x = centerX - width / 2;
-
 		int y = centerY - height / 2;
 
 		Object savedTransform = graphics.getTransform();
 
 		if (rotateWithEntity()) {
 			graphics.translate(centerX, centerY);
-
 			graphics.rotate(Math.toRadians(this.entity.orientation()));
-
 			graphics.translate(-centerX, -centerY);
 		}
 

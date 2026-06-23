@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import engine.view.Avatar;
+import engine.view.SpawnAnimation;
 import engine.view.View;
 import game.model.Enemies;
 import oop.graphics.BufferedImage;
@@ -12,118 +13,130 @@ import oop.graphics.Graphics;
 /** Avatar directionnel d'un ennemi, basé dynamiquement sur l'état GAL. */
 public final class EnemiesAvatar extends Avatar {
 
-    private final Enemies enemy;
-    private final Map<String, BufferedImage> images;
+	private final Enemies enemy;
+	private final Map<String, BufferedImage> images;
+	private final SpawnAnimation spawnAnimation;
 
-    public EnemiesAvatar(View view, Enemies enemy) {
-        super(view, enemy);
+	public EnemiesAvatar(View view, Enemies enemy) {
+		super(view, enemy);
 
-        this.enemy = enemy;
-        this.images = new HashMap<String, BufferedImage>();
-    }
+		this.enemy = enemy;
+		this.images = new HashMap<String, BufferedImage>();
+		this.spawnAnimation = new SpawnAnimation();
+	}
 
-    @Override
-    public void paint(Graphics graphics) {
-        assert graphics != null;
+	@Override
+	public void tick(long elapsed) {
+		assert elapsed >= 0L;
 
-        BufferedImage image = imageForStateAndOrientation(graphics);
+		this.spawnAnimation.tick(elapsed);
+	}
 
-        int centerX = this.view.toPixelX(this.enemy.center().x());
-        int centerY = this.view.toPixelY(this.enemy.center().y());
-        int width = this.view.toPixelWidth(this.enemy.size().x());
-        int height = this.view.toPixelHeight(this.enemy.size().y());
+	@Override
+	public void paint(Graphics graphics) {
+		assert graphics != null;
 
-        graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
-    }
+		BufferedImage image = imageForStateAndOrientation(graphics);
 
-    private BufferedImage imageForStateAndOrientation(Graphics graphics) {
-        String direction = directionName(this.enemy.orientation());
+		int centerX = this.view.toPixelX(this.enemy.center().x());
+		int centerY = this.view.toPixelY(this.enemy.center().y());
 
-        if (this.enemy.isFrozen()) {
-            BufferedImage frozen = imageOrNull(graphics, "peur", direction);
+		double spawnScale = this.spawnAnimation.scale();
 
-            if (frozen != null) {
-                return frozen;
-            }
-        }
+		int width = this.view.toPixelWidth(this.enemy.size().x() * spawnScale);
+		int height = this.view.toPixelHeight(this.enemy.size().y() * spawnScale);
 
-        String state = normalizeStateName(this.enemy.galState());
+		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
+	}
 
-        BufferedImage stateImage = imageOrNull(graphics, state, direction);
+	private BufferedImage imageForStateAndOrientation(Graphics graphics) {
+		String direction = directionName(this.enemy.orientation());
 
-        if (stateImage != null) {
-            return stateImage;
-        }
+		if (this.enemy.isFrozen()) {
+			BufferedImage frozen = imageOrNull(graphics, "peur", direction);
 
-        BufferedImage fallback = imageOrNull(graphics, "normal", direction);
+			if (frozen != null) {
+				return frozen;
+			}
+		}
 
-        if (fallback != null) {
-            return fallback;
-        }
+		String state = normalizeStateName(this.enemy.galState());
 
-        throw new IllegalStateException("Missing enemy fallback image normal_" + direction + ".png");
-    }
+		BufferedImage stateImage = imageOrNull(graphics, state, direction);
 
-    private BufferedImage imageOrNull(Graphics graphics, String state, String direction) {
-        String path = "pengo_rsrc/" + state + "_" + direction + ".png";
+		if (stateImage != null) {
+			return stateImage;
+		}
 
-        if (this.images.containsKey(path)) {
-            return this.images.get(path);
-        }
+		BufferedImage fallback = imageOrNull(graphics, "normal", direction);
 
-        try {
-            BufferedImage image = graphics.load(path);
-            this.images.put(path, image);
-            return image;
-        } catch (RuntimeException exception) {
-            this.images.put(path, null);
-            return null;
-        } catch (AssertionError error) {
-            this.images.put(path, null);
-            return null;
-        }
-    }
+		if (fallback != null) {
+			return fallback;
+		}
 
-    private static String normalizeStateName(String state) {
-        if (state == null || state.trim().length() == 0) {
-            return "normal";
-        }
+		throw new IllegalStateException("Missing enemy fallback image normal_" + direction + ".png");
+	}
 
-        return state.trim().toLowerCase();
-    }
+	private BufferedImage imageOrNull(Graphics graphics, String state, String direction) {
+		String path = "pengo_rsrc/" + state + "_" + direction + ".png";
 
-    private static String directionName(int orientation) {
-        int direction = normalizeCardinal(orientation);
+		if (this.images.containsKey(path)) {
+			return this.images.get(path);
+		}
 
-        switch (direction) {
-        case 0:
-            return "right";
-        case 90:
-            return "down";
-        case 180:
-            return "left";
-        case 270:
-            return "up";
-        default:
-            return "down";
-        }
-    }
+		try {
+			BufferedImage image = graphics.load(path);
+			this.images.put(path, image);
+			return image;
+		} catch (RuntimeException exception) {
+			this.images.put(path, null);
+			return null;
+		} catch (AssertionError error) {
+			this.images.put(path, null);
+			return null;
+		}
+	}
 
-    private static int normalizeCardinal(int degree) {
-        int d = ((degree % 360) + 360) % 360;
+	private static String normalizeStateName(String state) {
+		if (state == null || state.trim().length() == 0) {
+			return "normal";
+		}
 
-        if (d < 45 || d >= 315) {
-            return 0;
-        }
+		return state.trim().toLowerCase();
+	}
 
-        if (d < 135) {
-            return 90;
-        }
+	private static String directionName(int orientation) {
+		int direction = normalizeCardinal(orientation);
 
-        if (d < 225) {
-            return 180;
-        }
+		switch (direction) {
+		case 0:
+			return "right";
+		case 90:
+			return "down";
+		case 180:
+			return "left";
+		case 270:
+			return "up";
+		default:
+			return "down";
+		}
+	}
 
-        return 270;
-    }
+	private static int normalizeCardinal(int degree) {
+		int d = ((degree % 360) + 360) % 360;
+
+		if (d < 45 || d >= 315) {
+			return 0;
+		}
+
+		if (d < 135) {
+			return 90;
+		}
+
+		if (d < 225) {
+			return 180;
+		}
+
+		return 270;
+	}
 }

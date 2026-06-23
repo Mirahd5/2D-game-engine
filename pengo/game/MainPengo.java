@@ -10,8 +10,8 @@ import oop.tasks.Task;
 
 public final class MainPengo {
 
-	private static final int WINDOW_WIDTH_PIXEL = 950;
-	private static final int WINDOW_HEIGHT_PIXEL = 600;
+	private static final int WINDOW_WIDTH_PIXEL = 1280;
+	private static final int WINDOW_HEIGHT_PIXEL = 720;
 
 	/*
 	 * Important pour le resize. La plateforme donnée recrée/agrandit le
