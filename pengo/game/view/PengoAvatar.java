@@ -8,7 +8,6 @@ import game.model.Pengo;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/** Avatar animé de Pengo, synchronisé par View.tick(...). */
 public final class PengoAvatar extends Avatar {
 
 	private static final long FRAME_DURATION_MS = 120L;
@@ -34,6 +33,7 @@ public final class PengoAvatar extends Avatar {
 
 		this.pengo = pengo;
 		this.spawnAnimation = new SpawnAnimation();
+
 		this.elapsedSinceFrame = 0L;
 		this.frame = 0;
 		this.animatedOrientation = Orientation.normalizeCardinal(pengo.orientation());
@@ -77,10 +77,14 @@ public final class PengoAvatar extends Avatar {
 		int centerX = this.view.toPixelX(this.pengo.center().x());
 		int centerY = this.view.toPixelY(this.pengo.center().y());
 
-		double spawnScale = this.spawnAnimation.scale();
+		double revealScale = this.view.revealScale(this.pengo);
 
-		int width = this.view.toPixelWidth(this.pengo.size().x() * spawnScale);
-		int height = this.view.toPixelHeight(this.pengo.size().y() * spawnScale);
+		if (revealScale <= 0.0) {
+			return;
+		}
+
+		int width = this.view.toPixelWidth(this.pengo.size().x() * revealScale);
+		int height = this.view.toPixelHeight(this.pengo.size().y() * revealScale);
 
 		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
 	}
@@ -106,12 +110,16 @@ public final class PengoAvatar extends Avatar {
 		switch (orientation) {
 		case 0:
 			return activeFrame == 0 ? this.right1 : this.right2;
+
 		case 90:
 			return activeFrame == 0 ? this.down1 : this.down2;
+
 		case 180:
 			return activeFrame == 0 ? this.left1 : this.left2;
+
 		case 270:
 			return activeFrame == 0 ? this.up1 : this.up2;
+
 		default:
 			return this.down1;
 		}

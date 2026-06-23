@@ -16,6 +16,7 @@ public class View {
 
 	private int widthPixel;
 	private int heightPixel;
+	private StartupReveal startupReveal;
 
 	private Overlay overlay;
 
@@ -84,6 +85,24 @@ public class View {
 
 	public void removeOverlay() {
 		this.overlay = null;
+	}
+
+	public void startStartupReveal() {
+		this.startupReveal = new StartupReveal(this.model.entities());
+	}
+
+	public boolean startupRevealActive() {
+		return this.startupReveal != null && this.startupReveal.active();
+	}
+
+	public double revealScale(Entity entity) {
+		assert entity != null;
+
+		if (this.startupReveal == null) {
+			return 1.0;
+		}
+
+		return this.startupReveal.scale(entity);
 	}
 
 	public void resize(int widthPixel, int heightPixel) {
@@ -241,6 +260,10 @@ public class View {
 				continue;
 			}
 
+			if (this.startupReveal != null && !this.startupReveal.visible(entity)) {
+				continue;
+			}
+
 			entity.avatar().paint(graphics);
 		}
 
@@ -262,6 +285,10 @@ public class View {
 	public void tick(long elapsed) {
 		assert elapsed >= 0;
 
+		if (this.startupReveal != null) {
+			this.startupReveal.tick(elapsed);
+		}
+		
 		for (Entity entity : this.model.visibleEntities()) {
 			if (!entity.alive() || !entity.installed() || entity.avatar() == null) {
 				continue;

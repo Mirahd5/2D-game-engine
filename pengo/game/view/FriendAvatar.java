@@ -7,7 +7,6 @@ import game.model.Friend;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/** Avatar directionnel de l'allié. */
 public final class FriendAvatar extends Avatar {
 
 	private final Friend friend;
@@ -43,10 +42,14 @@ public final class FriendAvatar extends Avatar {
 		int centerX = this.view.toPixelX(this.friend.center().x());
 		int centerY = this.view.toPixelY(this.friend.center().y());
 
-		double spawnScale = this.spawnAnimation.scale();
+		double revealScale = this.view.revealScale(this.friend);
 
-		int width = this.view.toPixelWidth(this.friend.size().x() * spawnScale);
-		int height = this.view.toPixelHeight(this.friend.size().y() * spawnScale);
+		if (revealScale <= 0.0) {
+			return;
+		}
+
+		int width = this.view.toPixelWidth(this.friend.size().x() * revealScale);
+		int height = this.view.toPixelHeight(this.friend.size().y() * revealScale);
 
 		graphics.drawImage(image, centerX - width / 2, centerY - height / 2, width, height);
 	}
@@ -66,12 +69,16 @@ public final class FriendAvatar extends Avatar {
 		switch (orientation) {
 		case 0:
 			return this.right;
+
 		case 90:
 			return this.down;
+
 		case 180:
 			return this.left;
+
 		case 270:
 			return this.up;
+
 		default:
 			return this.down;
 		}

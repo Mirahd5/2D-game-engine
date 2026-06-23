@@ -116,6 +116,7 @@ public final class PengoGameRunner {
 				config.maxTotalSpawnedEnemies());
 
 		view.setOverlay(new PengoClassicOverlay(gameState));
+		view.startStartupReveal();
 
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);

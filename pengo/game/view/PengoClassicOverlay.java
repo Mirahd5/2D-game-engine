@@ -8,6 +8,7 @@ import engine.view.View;
 import game.model.PengoGameState;
 import game.model.PowerType;
 import oop.graphics.BufferedImage;
+import oop.graphics.Color;
 import oop.graphics.Font;
 import oop.graphics.Graphics;
 
@@ -109,7 +110,13 @@ public final class PengoClassicOverlay implements Overlay {
 		int iconY = y + 21;
 
 		for (int i = 0; i < this.state.lives(); i++) {
-			graphics.drawImage(this.lifeImage, iconX + i * (ICON_PIXEL + 3), iconY, ICON_PIXEL, ICON_PIXEL);
+			graphics.drawImage(
+				this.lifeImage,
+				iconX + i * (ICON_PIXEL + 3),
+				iconY,
+				ICON_PIXEL,
+				ICON_PIXEL
+			);
 		}
 	}
 
@@ -119,10 +126,20 @@ public final class PengoClassicOverlay implements Overlay {
 		graphics.setColor(Graphics.Colors.green);
 		graphics.drawString("ENEMIES", startX, y + 16);
 
-		graphics.drawImage(this.enemyImage, startX + 75, y + 21, ICON_PIXEL, ICON_PIXEL);
+		graphics.drawImage(
+			this.enemyImage,
+			startX + 75,
+			y + 21,
+			ICON_PIXEL,
+			ICON_PIXEL
+		);
 
 		graphics.setColor(Graphics.Colors.white);
-		graphics.drawString(this.state.livingEnemies() + "/" + this.state.targetTotalEnemies(), startX + 100, y + 36);
+		graphics.drawString(
+			this.state.livingEnemies() + "/" + this.state.targetTotalEnemies(),
+			startX + 100,
+			y + 36
+		);
 	}
 
 	private void paintPowers(Graphics graphics, View view, int x, int y) {
@@ -175,34 +192,153 @@ public final class PengoClassicOverlay implements Overlay {
 			return;
 		}
 
-		boolean visible = (this.finishedElapsedMs / 280L) % 2L == 0L;
+		boolean visible = (this.finishedElapsedMs / 420L) % 2L == 0L;
 
 		if (!visible) {
 			return;
 		}
 
-		String message = this.state.won() ? "YOU WIN" : "GAME OVER";
+		boolean win = this.state.won();
 
-		int boxWidth = 240;
-		int boxHeight = 58;
+		String bigMessage = win ? "YOU WIN" : "GAME OVER";
+		String smallMessage = win ? "STAGE CLEAR" : "TRY AGAIN";
 
-		int x = view.worldOffsetXPixel() + view.renderedWorldWidthPixel() / 2 - boxWidth / 2;
-		int y = view.worldOffsetYPixel() + view.renderedWorldHeightPixel() / 2 - boxHeight / 2;
+		int worldX = view.worldOffsetXPixel();
+		int worldY = view.worldOffsetYPixel();
+		int worldW = view.renderedWorldWidthPixel();
+		int worldH = view.renderedWorldHeightPixel();
 
-		graphics.setColor(graphics.getColor(235, 0, 0, 0));
-		graphics.fillRect(x, y, boxWidth, boxHeight);
+		int panelWidth = Math.min(520, worldW - 40);
+		int panelHeight = 210;
 
-		graphics.setColor(this.state.won() ? Graphics.Colors.green : Graphics.Colors.red);
-		graphics.drawRect(x, y, boxWidth, boxHeight);
-		graphics.drawRect(x + 3, y + 3, boxWidth - 6, boxHeight - 6);
+		if (panelWidth < 300) {
+			panelWidth = 300;
+		}
+
+		if (panelHeight > worldH - 30) {
+			panelHeight = worldH - 30;
+		}
+
+		int panelX = worldX + worldW / 2 - panelWidth / 2;
+		int panelY = worldY + worldH / 2 - panelHeight / 2;
+
+		graphics.setColor(graphics.getColor(220, 0, 0, 0));
+		graphics.fillRect(panelX, panelY, panelWidth, panelHeight);
+
+		graphics.setColor(win ? Graphics.Colors.yellow : Graphics.Colors.red);
+		graphics.drawRect(panelX, panelY, panelWidth, panelHeight);
+		graphics.drawRect(panelX + 4, panelY + 4, panelWidth - 8, panelHeight - 8);
+
+		graphics.setColor(Graphics.Colors.white);
+		graphics.drawRect(panelX + 8, panelY + 8, panelWidth - 16, panelHeight - 16);
+
+		if (win) {
+			drawPixelTrophy(graphics, panelX + panelWidth / 2 - 39, panelY + 18);
+		}
 
 		Font oldFont = graphics.getFont();
-		Font messageFont = graphics.getFont("Monospaced", Font.BOLD, 22);
 
-		graphics.setFont(messageFont);
-		graphics.setColor(Graphics.Colors.white);
-		graphics.drawString(message, x + 55, y + 37);
+		Font bigFont = graphics.getFont("Monospaced", Font.BOLD, 46);
+		Font smallFont = graphics.getFont("Monospaced", Font.BOLD, 17);
+
+		graphics.setFont(bigFont);
+
+		int titleY = win ? panelY + 132 : panelY + 108;
+
+		drawArcadeText(
+			graphics,
+			bigMessage,
+			panelX,
+			titleY,
+			panelWidth,
+			win ? Graphics.Colors.yellow : Graphics.Colors.red
+		);
+
+		graphics.setFont(smallFont);
+
+		drawArcadeText(
+			graphics,
+			smallMessage,
+			panelX,
+			titleY + 42,
+			panelWidth,
+			Graphics.Colors.white
+		);
+
 		graphics.setFont(oldFont);
+	}
+
+	private void drawArcadeText(
+		Graphics graphics,
+		String text,
+		int panelX,
+		int y,
+		int panelWidth,
+		Color mainColor
+	) {
+		assert graphics != null;
+		assert text != null;
+		assert mainColor != null;
+
+		int estimatedWidth;
+
+		if (text.length() <= 10) {
+			estimatedWidth = text.length() * 28;
+		} else {
+			estimatedWidth = text.length() * 11;
+		}
+
+		int x = panelX + panelWidth / 2 - estimatedWidth / 2;
+
+		graphics.setColor(Graphics.Colors.black);
+		graphics.drawString(text, x + 4, y + 4);
+		graphics.drawString(text, x + 3, y + 4);
+		graphics.drawString(text, x + 4, y + 3);
+
+		graphics.setColor(Graphics.Colors.white);
+		graphics.drawString(text, x - 1, y);
+		graphics.drawString(text, x + 1, y);
+		graphics.drawString(text, x, y - 1);
+		graphics.drawString(text, x, y + 1);
+
+		graphics.setColor(mainColor);
+		graphics.drawString(text, x, y);
+	}
+
+	private void drawPixelTrophy(Graphics graphics, int x, int y) {
+		assert graphics != null;
+
+		int s = 6;
+
+		graphics.setColor(Graphics.Colors.black);
+		drawTrophyBlocks(graphics, x + 4, y + 4, s);
+
+		graphics.setColor(Graphics.Colors.yellow);
+		drawTrophyBlocks(graphics, x, y, s);
+
+		graphics.setColor(Graphics.Colors.white);
+		graphics.fillRect(x + 4 * s, y + 2 * s, s, 3 * s);
+	}
+
+	private void drawTrophyBlocks(Graphics graphics, int x, int y, int s) {
+		graphics.fillRect(x + 3 * s, y + 0 * s, 7 * s, 1 * s);
+		graphics.fillRect(x + 2 * s, y + 1 * s, 9 * s, 1 * s);
+		graphics.fillRect(x + 2 * s, y + 2 * s, 9 * s, 1 * s);
+		graphics.fillRect(x + 3 * s, y + 3 * s, 7 * s, 1 * s);
+		graphics.fillRect(x + 4 * s, y + 4 * s, 5 * s, 1 * s);
+		graphics.fillRect(x + 5 * s, y + 5 * s, 3 * s, 1 * s);
+
+		graphics.fillRect(x + 6 * s, y + 6 * s, 1 * s, 3 * s);
+		graphics.fillRect(x + 4 * s, y + 9 * s, 5 * s, 1 * s);
+		graphics.fillRect(x + 3 * s, y + 10 * s, 7 * s, 1 * s);
+
+		graphics.fillRect(x + 0 * s, y + 1 * s, 2 * s, 1 * s);
+		graphics.fillRect(x + 0 * s, y + 2 * s, 1 * s, 2 * s);
+		graphics.fillRect(x + 1 * s, y + 4 * s, 2 * s, 1 * s);
+
+		graphics.fillRect(x + 11 * s, y + 1 * s, 2 * s, 1 * s);
+		graphics.fillRect(x + 12 * s, y + 2 * s, 1 * s, 2 * s);
+		graphics.fillRect(x + 10 * s, y + 4 * s, 2 * s, 1 * s);
 	}
 
 	private void loadImages(Graphics graphics) {
