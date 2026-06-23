@@ -80,17 +80,7 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	@Override
 	public void revoked(Canvas canvas) {
-		if (this.gameSession != null) {
-			this.gameSession.detach(canvas);
-		}
-
-		if (this.canvas == canvas) {
-			this.canvas = null;
-		}
-
-		if (this.gameCanvas == canvas) {
-			this.gameCanvas = null;
-		}
+		quitApplication();
 	}
 
 	@Override
@@ -548,8 +538,10 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 	private void quitApplication() {
 		if (this.gameSession != null) {
 			this.gameSession.stop();
+			this.gameSession = null;
 		}
 
+		oop.tasks.Runtime.shutdown();
 		System.exit(0);
 	}
 
