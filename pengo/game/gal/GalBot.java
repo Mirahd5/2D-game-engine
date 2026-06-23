@@ -12,6 +12,8 @@ import game.model.Friend;
 
 public final class GalBot extends Bot {
 
+	private static final double NORMAL_ENEMY_SPEED = 5.0;
+	private static final double ANGRY_ENEMY_SPEED = 6.2;
 	private final Entity entity;
 	private final GalRuntime runtime;
 
@@ -42,6 +44,7 @@ public final class GalBot extends Bot {
 			return;
 		}
 
+		updateEnemySpeed();
 		this.runtime.step();
 		syncGalStateToEntity();
 	}
@@ -49,6 +52,24 @@ public final class GalBot extends Bot {
 	private void syncGalStateToEntity() {
 		if (this.entity instanceof Enemies e) {
 			e.setGalState(this.runtime.currentState());
+		}
+	}
+	
+	private void updateEnemySpeed() {
+		if (!(this.entity instanceof Enemies)) {
+			return;
+		}
+
+		if (!(stunt() instanceof BasicStunt)) {
+			return;
+		}
+
+		BasicStunt basicStunt = (BasicStunt) stunt();
+
+		if ("Angry".equalsIgnoreCase(this.runtime.currentState())) {
+			basicStunt.setWalkSpeed(ANGRY_ENEMY_SPEED);
+		} else {
+			basicStunt.setWalkSpeed(NORMAL_ENEMY_SPEED);
 		}
 	}
 

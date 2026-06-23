@@ -168,9 +168,8 @@ public final class GalGameContext {
 		}
 		// Got(D) Pengo has only one life left
 		if (isDanger(category)) {
-			/*Pengo pengo = findPengo();
-			return pengo != null && pengo.nLives() <= 1;*/
-			return false;
+			Pengo pengo = findPengo();
+			return pengo != null && pengo.nLives() <= 1;
 		}
 		return false;
 

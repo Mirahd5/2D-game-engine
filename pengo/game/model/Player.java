@@ -3,6 +3,7 @@ package game.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import engine.model.BasicStunt;
 import engine.model.Entity;
 import engine.model.Grid;
 import engine.model.Model;
@@ -55,7 +56,7 @@ public abstract class Player extends Entity {
 	public final boolean isGameOver() {
 		return this.lives == 0;
 	}
-	
+
 	public final boolean isControlled() {
 		return this.controlled;
 	}
@@ -188,10 +189,18 @@ public abstract class Player extends Entity {
 	private void respawnAtStart() {
 		Grid.Position respawn = centerRespawnPosition();
 
+		cancelCurrentMovement();
 		stopPlayer();
 
 		model().place(this, respawn);
 		setOrientation(0);
+	}
+
+	private void cancelCurrentMovement() {
+		if (stunt() instanceof BasicStunt) {
+			BasicStunt basicStunt = (BasicStunt) stunt();
+			basicStunt.cancelCurrentAction();
+		}
 	}
 
 	private void stopPlayer() {

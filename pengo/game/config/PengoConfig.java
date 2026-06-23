@@ -22,7 +22,7 @@ public final class PengoConfig {
 	private final int maxTotalSpawnedEnemies;
 
 	public PengoConfig(PengoMapChoice mapChoice, boolean continuousWalk) {
-		this(mapChoice, continuousWalk, 4.0, 12, 720, 600, 10, 8, 33, 33, 3500L, 3, 5);
+		this(mapChoice, continuousWalk, 4.0, 12, 720, 600, mapChoice.width(), mapChoice.height(), 33, 33, 3500L, 3, 5);
 	}
 
 	public PengoConfig(PengoMapChoice mapChoice, boolean continuousWalk, double cmPerCell, int pixelPerCm,
