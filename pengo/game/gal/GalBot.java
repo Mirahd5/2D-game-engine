@@ -13,7 +13,7 @@ import game.model.Friend;
 public final class GalBot extends Bot {
 
 	private static final double NORMAL_ENEMY_SPEED = 5.0;
-	private static final double ANGRY_ENEMY_SPEED = 6.2;
+	private static final double ANGRY_ENEMY_SPEED = 7;
 	private final Entity entity;
 	private final GalRuntime runtime;
 
