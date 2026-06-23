@@ -12,7 +12,7 @@ import engine.model.Model;
 public final class Friend extends Player {
 
 	private static final int nlife = 1;
-	private boolean controlled;
+
 
 	public Friend(Model model) {
 		this(model, "Friend");
@@ -21,7 +21,6 @@ public final class Friend extends Player {
 	public Friend(Model model, String name) {
 
 		super(model, name, nlife);
-		this.controlled = false;
 
 		double diameter = model.isu().cmPerCell() * 0.75;
 		setSize(model.isu().new Dimension(diameter, diameter));
@@ -38,14 +37,6 @@ public final class Friend extends Player {
 		Bounding result = new Bounding();
 		result.add(new Circle(center, Math.min(size.x(), size.y()) / 2.0));
 		return result;
-	}
-
-	public boolean isControlled() {
-		return this.controlled;
-	}
-
-	public void setControlled(boolean controlled) {
-		this.controlled = controlled;
 	}
 
 }

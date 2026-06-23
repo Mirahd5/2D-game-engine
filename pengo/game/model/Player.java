@@ -3,6 +3,7 @@ package game.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import engine.model.BasicStunt;
 import engine.model.Entity;
 import engine.model.Grid;
 import engine.model.Model;
@@ -22,6 +23,7 @@ public abstract class Player extends Entity {
 	// champs
 	private int lives;
 	private long lastHitTime_ms;
+	private boolean controlled;
 
 	// constructeur dun player
 	protected Player(Model model, String name, int initialLives) {
@@ -34,6 +36,7 @@ public abstract class Player extends Entity {
 		this.gridWidth = grid.width();
 
 		this.lives = initialLives;
+		this.controlled = false;
 	}
 
 	public final int nLives() {
@@ -52,6 +55,14 @@ public abstract class Player extends Entity {
 
 	public final boolean isGameOver() {
 		return this.lives == 0;
+	}
+
+	public final boolean isControlled() {
+		return this.controlled;
+	}
+
+	public final void setControlled(boolean controlled) {
+		this.controlled = controlled;
 	}
 
 	protected boolean hasEnemyProtection() {
@@ -175,15 +186,21 @@ public abstract class Player extends Entity {
 		respawnAtStart();
 	}
 
-
-
 	private void respawnAtStart() {
 		Grid.Position respawn = centerRespawnPosition();
 
+		cancelCurrentMovement();
 		stopPlayer();
 
 		model().place(this, respawn);
 		setOrientation(0);
+	}
+
+	private void cancelCurrentMovement() {
+		if (stunt() instanceof BasicStunt) {
+			BasicStunt basicStunt = (BasicStunt) stunt();
+			basicStunt.cancelCurrentAction();
+		}
 	}
 
 	private void stopPlayer() {
@@ -203,13 +220,7 @@ public abstract class Player extends Entity {
 			return;
 		}
 
-		boolean mustLoseLife = true;
-
-		if (this instanceof Friend) {
-			Friend friend = (Friend) this;
-			mustLoseLife = friend.isControlled();
-		}
-		if (!mustLoseLife || hasEnemyProtection()) {
+		if (!isControlled() || hasEnemyProtection()) {
 			return;
 		}
 
@@ -256,6 +267,7 @@ public abstract class Player extends Entity {
 
 		return center;
 	}
+
 	private boolean canRespawnOn(Grid.Position position) {
 		Grid.Cell cell = this.grid.cellAt(position);
 
@@ -264,9 +276,7 @@ public abstract class Player extends Entity {
 				continue;
 			}
 
-			if (entity instanceof Mur
-					|| entity instanceof Glacon
-					|| entity instanceof Spawner) {
+			if (entity instanceof Mur || entity instanceof Glacon || entity instanceof Spawner) {
 				return false;
 			}
 		}

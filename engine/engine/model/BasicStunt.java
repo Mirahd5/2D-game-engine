@@ -9,7 +9,7 @@ public class BasicStunt extends Stunt {
 
 	private static final double DEFAULT_WALK_SPEED = 5.0;
 
-	private final double walkSpeed;
+	private double walkSpeed;
 
 	private boolean walking;
 
@@ -56,6 +56,13 @@ public class BasicStunt extends Stunt {
 
 	public double walkSpeed() {
 		return this.walkSpeed;
+	}
+	public void setWalkSpeed(double walkSpeed) {
+		if (walkSpeed <= 0.0) {
+			return;
+		}
+
+		this.walkSpeed = walkSpeed;
 	}
 
 	@Override

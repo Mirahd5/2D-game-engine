@@ -8,7 +8,10 @@ import engine.model.Entity;
 import engine.model.Grid;
 import engine.model.ISU;
 import engine.model.Model;
+import engine.model.Orientation;
 import engine.model.Rect;
+import oop.tasks.Runnable;
+import oop.tasks.Runtime;
 
 public final class Glacon extends Entity implements Pushable {
 
@@ -19,6 +22,7 @@ public final class Glacon extends Entity implements Pushable {
 
 	private boolean sliding;
 	private int slideDirection;
+	private boolean breaking;
 
 	private double currentSpeed_cmPerSecond;
 	private double deceleration_cmPerSecond2;
@@ -70,7 +74,7 @@ public final class Glacon extends Entity implements Pushable {
 			return false;
 		}
 
-		int direction = normalizeCardinal(directionDegree);
+		int direction = Orientation.normalizeCardinal(directionDegree);
 		Grid.Position target = neighbor(position(), direction);
 
 		if (target == null) {
@@ -173,8 +177,33 @@ public final class Glacon extends Entity implements Pushable {
 
 	/** Détruit le glaçon lorsque Pengo appuie sur Espace contre un obstacle. */
 	public void breakIce() {
+		if (!alive() || this.breaking) {
+			return;
+		}
+
 		stopSliding();
-		death();
+
+		this.breaking = true;
+
+		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+		setAngularSpeed(0.0);
+
+		oop.tasks.Runtime.post(new Runnable() {
+			@Override
+			public void run() {
+				if (alive()) {
+					death();
+				}
+			}
+		}, (int) 250L);
+	}
+
+	public boolean isBreaking() {
+		return this.breaking;
+	}
+
+	private boolean isStaticObstacle(Entity other) {
+		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
 	}
 
 	@Override
@@ -183,15 +212,25 @@ public final class Glacon extends Entity implements Pushable {
 
 		handleSlidingContact(other);
 
+		if (this.sliding && isStaticObstacle(other)) {
+			if (isCrushingObstacle(other)) {
+				crushCarriedEnemies();
+			}
+
+			stopSliding();
+			return;
+		}
+
 		if (isHardBlockForThisIce(other)) {
 			if (isCrushingObstacle(other)) {
 				crushCarriedEnemies();
 			}
 
 			stopSliding();
-		} else {
-			carryEnemiesWithIce();
+			return;
 		}
+
+		carryEnemiesWithIce();
 
 		super.collision(other);
 	}
@@ -204,15 +243,27 @@ public final class Glacon extends Entity implements Pushable {
 		boolean crushingObstacleMet = false;
 
 		for (Entity other : entities) {
-			if (other != this && other.alive()) {
-				handleSlidingContact(other);
+			if (other == this || !other.alive()) {
+				continue;
+			}
 
-				if (isHardBlockForThisIce(other)) {
-					mustStop = true;
+			handleSlidingContact(other);
 
-					if (isCrushingObstacle(other)) {
-						crushingObstacleMet = true;
-					}
+			if (this.sliding && isStaticObstacle(other)) {
+				mustStop = true;
+
+				if (isCrushingObstacle(other)) {
+					crushingObstacleMet = true;
+				}
+
+				continue;
+			}
+
+			if (isHardBlockForThisIce(other)) {
+				mustStop = true;
+
+				if (isCrushingObstacle(other)) {
+					crushingObstacleMet = true;
 				}
 			}
 		}
@@ -223,9 +274,10 @@ public final class Glacon extends Entity implements Pushable {
 
 		if (mustStop) {
 			stopSliding();
-		} else {
-			carryEnemiesWithIce();
+			return;
 		}
+
+		carryEnemiesWithIce();
 
 		super.collision(entities);
 	}
@@ -279,14 +331,14 @@ public final class Glacon extends Entity implements Pushable {
 	}
 
 	private Grid.Position safeSnapPosition() {
-		if (this.lastStablePosition != null && cellCanReceiveStoppedIce(this.lastStablePosition)) {
-			return this.lastStablePosition.copy();
-		}
-
 		Grid.Position current = position();
 
 		if (cellCanReceiveStoppedIce(current)) {
 			return current.copy();
+		}
+
+		if (this.lastStablePosition != null && cellCanReceiveStoppedIce(this.lastStablePosition)) {
+			return this.lastStablePosition.copy();
 		}
 
 		Grid.Position behind = neighbor(current, (this.slideDirection + 180) % 360);
@@ -307,7 +359,8 @@ public final class Glacon extends Entity implements Pushable {
 
 		for (Entity other : cell.entities()) {
 			if (other != this && other.alive()) {
-				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
+				if (other instanceof Mur || other instanceof Glacon || other instanceof Spawner
+						|| other instanceof Power) {
 					return false;
 				}
 			}
@@ -352,10 +405,6 @@ public final class Glacon extends Entity implements Pushable {
 		carryEnemyWithIce(enemy);
 	}
 
-	/**
-	 * L'ennemi est embarqué seulement s'il est vraiment sur la trajectoire du
-	 * glaçon.
-	 */
 	private boolean isOnSlidingPath(Entity other) {
 		if (other == null || !this.sliding) {
 			return false;
@@ -387,11 +436,73 @@ public final class Glacon extends Entity implements Pushable {
 		if (!alive() || !installed() || !enemy.alive() || !enemy.installed()) {
 			return;
 		}
+		Grid.Position enemyPosition = neighbor(position(), this.slideDirection);
+
+		if (enemyPosition == null || containsCrushingObstacle(enemyPosition)) {
+			killCarriedEnemy(enemy);
+			return;
+		}
+
+		Grid.Position afterEnemy = neighbor(enemyPosition, this.slideDirection);
+
+		if (afterEnemy == null || containsCrushingObstacle(afterEnemy)) {
+			killCarriedEnemy(enemy);
+			return;
+		}
 
 		enemy.freeze();
 		enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
 		enemy.setAngularSpeed(0.0);
-		model().place(enemy, center());
+		model().place(enemy, carriedEnemyCenter());
+	}
+
+	private ISU.Coord carriedEnemyCenter() {
+		return center().mkTranslated(forwardOffset(this.slideDirection, model().isu().cmPerCell()));
+	}
+
+	private ISU.Vector forwardOffset(int direction, double distance_cm) {
+		switch (direction) {
+		case 0:
+			return model().isu().new Vector(distance_cm, 0.0);
+
+		case 90:
+			return model().isu().new Vector(0.0, distance_cm);
+
+		case 180:
+			return model().isu().new Vector(-distance_cm, 0.0);
+
+		case 270:
+			return model().isu().new Vector(0.0, -distance_cm);
+
+		default:
+			throw new AssertionError("Not a cardinal direction: " + direction);
+		}
+	}
+
+	private void killCarriedEnemy(Enemies enemy) {
+		assert enemy != null;
+
+		this.carriedEnemies.remove(enemy);
+
+		if (enemy.alive()) {
+			enemy.kill();
+		}
+	}
+
+	private boolean containsCrushingObstacle(Grid.Position position) {
+		if (position == null) {
+			return true;
+		}
+
+		Grid.Cell cell = model().grid().cellAt(position);
+
+		for (Entity other : cell.entities()) {
+			if (other != this && other.alive() && isCrushingObstacle(other)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	private void crushCarriedEnemies() {
@@ -423,18 +534,17 @@ public final class Glacon extends Entity implements Pushable {
 			return false;
 		}
 
-		boolean hardType = other instanceof Mur || other instanceof Glacon || other instanceof Spawner
-				|| other instanceof Pengo || other instanceof Friend;
+		if (other instanceof Pengo || other instanceof Friend) {
+			return !sameGridCell(other);
+		}
+
+		boolean hardType = other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
 
 		if (!hardType) {
 			return false;
 		}
 
 		if (!this.sliding) {
-			if ((other instanceof Pengo || other instanceof Friend) && sameGridCell(other)) {
-				return false;
-			}
-
 			return true;
 		}
 
@@ -492,10 +602,6 @@ public final class Glacon extends Entity implements Pushable {
 
 	private boolean isCrushingObstacle(Entity other) {
 		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
-	}
-
-	private boolean isPhysicalBlock(Entity other) {
-		return this.blocks(other) || other.blocks(this);
 	}
 
 	private double axisLength(int direction) {
@@ -576,21 +682,4 @@ public final class Glacon extends Entity implements Pushable {
 		return ((value % size) + size) % size;
 	}
 
-	private int normalizeCardinal(int degree) {
-		int d = ((degree % 360) + 360) % 360;
-
-		if (d < 45 || d >= 315) {
-			return 0;
-		}
-
-		if (d < 135) {
-			return 90;
-		}
-
-		if (d < 225) {
-			return 180;
-		}
-
-		return 270;
-	}
 }
