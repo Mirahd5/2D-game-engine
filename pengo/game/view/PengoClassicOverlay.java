@@ -14,10 +14,10 @@ import oop.graphics.Graphics;
 
 public final class PengoClassicOverlay implements Overlay {
 
-	private static final int HEIGHT_PIXEL = 46;
+	private static final int BASE_HEIGHT_PIXEL = 46;
 	private static final int ICON_PIXEL = 20;
 	private static final int POWER_PIXEL = 20;
-
+	private static final int BASE_WIDTH_PIXEL = 950;
 	private final PengoGameState state;
 	private final Map<PowerType, BufferedImage> powerImages;
 
@@ -26,6 +26,8 @@ public final class PengoClassicOverlay implements Overlay {
 
 	private boolean imagesLoaded;
 	private long finishedElapsedMs;
+
+	private int heightPixel = BASE_HEIGHT_PIXEL;
 
 	public PengoClassicOverlay(PengoGameState state) {
 		assert state != null;
@@ -44,7 +46,7 @@ public final class PengoClassicOverlay implements Overlay {
 
 	@Override
 	public int heightPixel() {
-		return HEIGHT_PIXEL;
+		return this.heightPixel;
 	}
 
 	@Override
@@ -62,21 +64,21 @@ public final class PengoClassicOverlay implements Overlay {
 
 	@Override
 	public void paint(Graphics graphics, View view, int x, int y) {
-		assert graphics != null;
-		assert view != null;
-
 		this.state.update();
 
 		loadImages(graphics);
 
+		double scale = uiScale(view);
+		this.heightPixel = scaled(view, BASE_HEIGHT_PIXEL);
+
 		Font oldFont = graphics.getFont();
-		Font hudFont = graphics.getFont("Monospaced", Font.BOLD, 13);
+		Font hudFont = graphics.getFont("Monospaced", Font.BOLD, scaled(view, 13));
 
 		graphics.setFont(hudFont);
 
 		paintBackground(graphics, view, x, y);
 		paintScore(graphics, view, x, y);
-		paintLives(graphics, x, y);
+		paintLives(graphics, view, x, y);
 		paintEnemies(graphics, view, x, y);
 		paintPowers(graphics, view, x, y);
 		paintFinishAnimation(graphics, view);
@@ -86,70 +88,77 @@ public final class PengoClassicOverlay implements Overlay {
 
 	private void paintBackground(Graphics graphics, View view, int x, int y) {
 		graphics.setColor(graphics.getColor(245, 0, 0, 0));
-		graphics.fillRect(x, y, view.widthPixel(), HEIGHT_PIXEL);
+		graphics.fillRect(x, y, view.widthPixel(), heightPixel);
 
 		graphics.setColor(Graphics.Colors.blue);
-		graphics.drawLine(x, y + HEIGHT_PIXEL - 1, x + view.widthPixel(), y + HEIGHT_PIXEL - 1);
+		graphics.drawLine(x, y + heightPixel - 1, x + view.widthPixel(), y + heightPixel - 1);
 	}
 
 	private void paintScore(Graphics graphics, View view, int x, int y) {
+		int colX = x + scaled(view, 14);
+
 		graphics.setColor(Graphics.Colors.yellow);
-		graphics.drawString("SCORE", x + 14, y + 16);
+		graphics.drawString("SCORE", colX, y + scaled(view, 16));
 
 		graphics.setColor(Graphics.Colors.white);
-		graphics.drawString(String.valueOf(this.state.score()), x + 14, y + 36);
+		graphics.drawString(String.valueOf(this.state.score()), colX, y + scaled(view, 36));
 	}
 
-	private void paintLives(Graphics graphics, int x, int y) {
-		int startX = x + 115;
+	private void paintLives(Graphics graphics, View view, int x, int y) {
+		int colX = view.widthPixel() / 4;
 
 		graphics.setColor(Graphics.Colors.cyan);
-		graphics.drawString("LIVES", startX, y + 16);
+		graphics.drawString("LIVES", colX, y + scaled(view, 16));
 
-		int iconX = startX + 54;
-		int iconY = y + 21;
+		int icon = scaled(view, ICON_PIXEL);
+		int iconX = colX;
+		int iconY = y + scaled(view, 22);
 
 		for (int i = 0; i < this.state.lives(); i++) {
 			graphics.drawImage(
-				this.lifeImage,
-				iconX + i * (ICON_PIXEL + 3),
-				iconY,
-				ICON_PIXEL,
-				ICON_PIXEL
+					this.lifeImage,
+					iconX + i * (icon + scaled(view, 5)),
+					iconY,
+					icon,
+					icon
 			);
 		}
 	}
 
 	private void paintEnemies(Graphics graphics, View view, int x, int y) {
-		int startX = Math.max(260, view.widthPixel() / 2 - 75);
+		int colCenter = view.widthPixel() / 2;
+
+		String title = "ENEMIES";
+		String countText = this.state.livingEnemies() + "/" + this.state.targetTotalEnemies();
 
 		graphics.setColor(Graphics.Colors.green);
-		graphics.drawString("ENEMIES", startX, y + 16);
-
-		graphics.drawImage(
-			this.enemyImage,
-			startX + 75,
-			y + 21,
-			ICON_PIXEL,
-			ICON_PIXEL
+		graphics.drawString(
+				title,
+				colCenter - graphics.getFont().getWidth(title) / 2,
+				y + scaled(view, 16)
 		);
+
+		int icon = scaled(view, ICON_PIXEL);
+		int rowY = y + scaled(view, 22);
+
+		int totalW = icon + scaled(view, 6) + graphics.getFont().getWidth(countText);
+		int startX = colCenter - totalW / 2;
+
+		graphics.drawImage(this.enemyImage, startX, rowY, icon, icon);
 
 		graphics.setColor(Graphics.Colors.white);
-		graphics.drawString(
-			this.state.livingEnemies() + "/" + this.state.targetTotalEnemies(),
-			startX + 100,
-			y + 36
-		);
+		graphics.drawString(countText, startX + icon + scaled(view, 6), y + scaled(view, 36));
 	}
 
 	private void paintPowers(Graphics graphics, View view, int x, int y) {
-		int startX = Math.max(430, view.widthPixel() - 330);
+		int startX = view.widthPixel() * 65 / 100;
 
 		graphics.setColor(Graphics.Colors.magenta);
-		graphics.drawString("POWERS", startX, y + 16);
+		graphics.drawString("POWERS", startX, y + scaled(view, 16));
 
-		int px = startX + 70;
-		int py = y + 21;
+		int icon = scaled(view, POWER_PIXEL);
+		int px = startX + scaled(view, 70);
+		int py = y + scaled(view, 21);
 
 		boolean hasPower = false;
 
@@ -165,7 +174,7 @@ public final class PengoClassicOverlay implements Overlay {
 			BufferedImage image = this.powerImages.get(type);
 
 			if (image != null) {
-				graphics.drawImage(image, px, py, POWER_PIXEL, POWER_PIXEL);
+				graphics.drawImage(image, px, py, icon, icon);
 			}
 
 			long remaining = this.state.powerRemainingMs(type);
@@ -173,12 +182,12 @@ public final class PengoClassicOverlay implements Overlay {
 			graphics.setColor(Graphics.Colors.white);
 
 			if (remaining > 0L) {
-				graphics.drawString(formatSeconds(remaining), px + POWER_PIXEL + 3, y + 36);
+				graphics.drawString(formatSeconds(remaining), px + icon + 3, y + 36);
 			} else {
-				graphics.drawString(shortLabel(type), px + POWER_PIXEL + 3, y + 36);
+				graphics.drawString(shortLabel(type), px + icon + 3, y + 36);
 			}
 
-			px += 58;
+			px += scaled(view, 58);
 		}
 
 		if (!hasPower) {
@@ -245,37 +254,17 @@ public final class PengoClassicOverlay implements Overlay {
 
 		int titleY = win ? panelY + 132 : panelY + 108;
 
-		drawArcadeText(
-			graphics,
-			bigMessage,
-			panelX,
-			titleY,
-			panelWidth,
-			win ? Graphics.Colors.yellow : Graphics.Colors.red
-		);
+		drawArcadeText(graphics, bigMessage, panelX, titleY, panelWidth,
+				win ? Graphics.Colors.yellow : Graphics.Colors.red);
 
 		graphics.setFont(smallFont);
 
-		drawArcadeText(
-			graphics,
-			smallMessage,
-			panelX,
-			titleY + 42,
-			panelWidth,
-			Graphics.Colors.white
-		);
+		drawArcadeText(graphics, smallMessage, panelX, titleY + 42, panelWidth, Graphics.Colors.white);
 
 		graphics.setFont(oldFont);
 	}
 
-	private void drawArcadeText(
-		Graphics graphics,
-		String text,
-		int panelX,
-		int y,
-		int panelWidth,
-		Color mainColor
-	) {
+	private void drawArcadeText(Graphics graphics, String text, int panelX, int y, int panelWidth, Color mainColor) {
 		assert graphics != null;
 		assert text != null;
 		assert mainColor != null;
@@ -339,6 +328,24 @@ public final class PengoClassicOverlay implements Overlay {
 		graphics.fillRect(x + 11 * s, y + 1 * s, 2 * s, 1 * s);
 		graphics.fillRect(x + 12 * s, y + 2 * s, 1 * s, 2 * s);
 		graphics.fillRect(x + 10 * s, y + 4 * s, 2 * s, 1 * s);
+	}
+
+	private double uiScale(View view) {
+		double scale = view.widthPixel() / (double) BASE_WIDTH_PIXEL;
+
+		if (scale < 1.0) {
+			return 1.0;
+		}
+
+		if (scale > 2.0) {
+			return 2.0;
+		}
+
+		return scale;
+	}
+
+	private int scaled(View view, int value) {
+		return (int) Math.round(value * uiScale(view));
 	}
 
 	private void loadImages(Graphics graphics) {
