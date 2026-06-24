@@ -181,8 +181,7 @@ public abstract class Entity {
 
 		this.stunt = stunt;
 		if (logger.isLoggable(Level.FINE)) {
-			logger.log(Level.FINE,
-					"Entity stunt changed: entity={0}, stunt={1}",
+			logger.log(Level.FINE, "Entity stunt changed: entity={0}, stunt={1}",
 					new Object[] { this.name, stunt.getClass().getSimpleName() });
 		}
 	}
@@ -221,9 +220,7 @@ public abstract class Entity {
 		this.lSpeed = this.isu.new Vector(0.0, 0.0);
 
 		this.aSpeed = 0.0;
-		logger.log(Level.FINE,
-				"Entity stunt removed: {0}",
-				this.name);
+		logger.log(Level.FINE, "Entity stunt removed: {0}", this.name);
 	}
 
 	public void removeAvatar() {
@@ -479,9 +476,7 @@ public abstract class Entity {
 		}
 
 		this.alive = false;
-		logger.log(Level.FINE,
-				"Entity died: {0}",
-				this.name);
+		logger.log(Level.FINE, "Entity died: {0}", this.name);
 
 		/*
 		 * Une entité morte ne doit plus continuer son mouvement.
@@ -681,9 +676,8 @@ public abstract class Entity {
 		deploy();
 
 		checkGeometry();
-		logger.log(Level.FINE,
-				"Entity installed: {0}",
-				this.name);
+
+		logger.log(Level.FINE, "Entity installed: {0}", this.name);
 	}
 
 	/*
@@ -699,9 +693,8 @@ public abstract class Entity {
 		this.installed = false;
 
 		checkGeometry();
-		logger.log(Level.FINE,
-				"Entity uninstalled: {0}",
-				this.name);
+
+		logger.log(Level.FINE, "Entity uninstalled: {0}", this.name);
 	}
 
 	public final boolean installed() {

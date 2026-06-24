@@ -1,6 +1,7 @@
 package game;
 
 import java.io.BufferedReader;
+import java.util.logging.Logger;
 import java.io.FileReader;
 import java.util.logging.Logger;
 import java.io.IOException;
@@ -39,6 +40,7 @@ import game.view.SpawnerAvatar;
  */
 public final class BuildMap {
 
+
 	private final Model model;
 	private final Grid grid;
 	private final View view;
@@ -57,7 +59,7 @@ public final class BuildMap {
 	private boolean built;
 	
 	private static final Logger logger = Logger.getLogger(BuildMap.class.getName());
-
+	
 	public BuildMap(Game game, View view, String mapPath) throws IOException {
 		assert !mapPath.isEmpty();
 		assert game.model() == view.model();
