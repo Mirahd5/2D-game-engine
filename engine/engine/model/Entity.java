@@ -4,7 +4,8 @@ package engine.model;
 import java.io.PrintStream;
 import java.util.HashSet;
 import java.util.Set;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import engine.view.Avatar;
 
 /*
@@ -15,6 +16,7 @@ import engine.view.Avatar;
  * pour gérer ses actions.
  */
 public abstract class Entity {
+	private static final Logger logger = Logger.getLogger(Entity.class.getName());
 
 	// Références vers les objets principaux du modèle.
 	protected final Model model;
@@ -178,6 +180,11 @@ public abstract class Entity {
 		this.aSpeed = 0.0;
 
 		this.stunt = stunt;
+		if (logger.isLoggable(Level.FINE)) {
+			logger.log(Level.FINE,
+					"Entity stunt changed: entity={0}, stunt={1}",
+					new Object[] { this.name, stunt.getClass().getSimpleName() });
+		}
 	}
 
 	public void setAvatar(Avatar avatar) {
@@ -214,6 +221,9 @@ public abstract class Entity {
 		this.lSpeed = this.isu.new Vector(0.0, 0.0);
 
 		this.aSpeed = 0.0;
+		logger.log(Level.FINE,
+				"Entity stunt removed: {0}",
+				this.name);
 	}
 
 	public void removeAvatar() {
@@ -469,6 +479,9 @@ public abstract class Entity {
 		}
 
 		this.alive = false;
+		logger.log(Level.FINE,
+				"Entity died: {0}",
+				this.name);
 
 		/*
 		 * Une entité morte ne doit plus continuer son mouvement.
@@ -668,6 +681,9 @@ public abstract class Entity {
 		deploy();
 
 		checkGeometry();
+		logger.log(Level.FINE,
+				"Entity installed: {0}",
+				this.name);
 	}
 
 	/*
@@ -683,6 +699,9 @@ public abstract class Entity {
 		this.installed = false;
 
 		checkGeometry();
+		logger.log(Level.FINE,
+				"Entity uninstalled: {0}",
+				this.name);
 	}
 
 	public final boolean installed() {

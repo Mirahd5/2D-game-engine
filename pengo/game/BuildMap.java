@@ -2,6 +2,7 @@ package game;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.util.logging.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,27 +31,14 @@ import game.view.SpawnerAvatar;
 /**
  * Lit la carte textuelle de Pengo et installe les entités dans le Model.
  *
- * Symboles actuellement reconnus :
- * # mur
- * . case libre
- * I bloc de glace
- * P joueur
- * S spawner
- * E ennemi
- * F ami
+ * Symboles actuellement reconnus : # mur . case libre I bloc de glace P joueur
+ * S spawner E ennemi F ami
  *
- * Pouvoirs :
- * 1 bouclier
- * 2 vitesse
- * 3 freeze
- * 4 étoile
- * 5 vie supplémentaire
- * 6 malus BoomFish -1 vie
- * A activateur Friend
+ * Pouvoirs : 1 bouclier 2 vitesse 3 freeze 4 étoile 5 vie supplémentaire 6
+ * malus BoomFish -1 vie A activateur Friend
  */
 public final class BuildMap {
 
-	private final Game game;
 	private final Model model;
 	private final Grid grid;
 	private final View view;
@@ -67,15 +55,13 @@ public final class BuildMap {
 	private final List<Power> powers;
 
 	private boolean built;
+	
+	private static final Logger logger = Logger.getLogger(BuildMap.class.getName());
 
 	public BuildMap(Game game, View view, String mapPath) throws IOException {
-		assert game != null;
-		assert view != null;
-		assert mapPath != null;
 		assert !mapPath.isEmpty();
 		assert game.model() == view.model();
 
-		this.game = game;
 		this.model = game.model();
 		this.grid = game.getGrid();
 		this.view = view;
@@ -88,7 +74,6 @@ public final class BuildMap {
 		this.friends = new ArrayList<Friend>();
 		this.powers = new ArrayList<Power>();
 
-		this.pengo = null;
 		this.built = false;
 
 		loadMap();
@@ -96,27 +81,24 @@ public final class BuildMap {
 
 	private void loadMap() throws IOException {
 		List<String> lines = new ArrayList<String>();
-
-		try (BufferedReader reader = new BufferedReader(new FileReader(this.mapPath))) {
+		try (BufferedReader reader = new BufferedReader(new FileReader(mapPath))) {
 			String line;
 			while ((line = reader.readLine()) != null) {
 				lines.add(line);
 			}
 		}
-
 		if (lines.isEmpty()) {
-			throw new IllegalStateException("The Pengo map is empty: " + this.mapPath);
+			throw new IllegalStateException("the map is empty: " + mapPath);
 		}
 
-		int expectedWidth = this.grid.width();
-		int expectedHeight = this.grid.height();
+		int expectedWidth = grid.width();
+		int expectedHeight = grid.height();
 
 		if (lines.size() != expectedHeight) {
 			throw new IllegalStateException("Map height is " + lines.size() + " but Grid height is " + expectedHeight);
 		}
 
 		this.map = new char[expectedHeight][expectedWidth];
-
 		for (int y = 0; y < expectedHeight; y++) {
 			String line = lines.get(y);
 
@@ -132,10 +114,9 @@ public final class BuildMap {
 	}
 
 	public void build() {
-		if (this.built) {
+		if (built) {
 			throw new IllegalStateException("This Pengo map has already been built");
 		}
-
 		for (int y = 0; y < this.map.length; y++) {
 			for (int x = 0; x < this.map[y].length; x++) {
 				buildCell(this.map[y][x], x, y);
@@ -216,7 +197,8 @@ public final class BuildMap {
 	}
 
 	private <E extends Entity> E install(E entity, int x, int y) {
-		this.model.add(entity, this.grid.new Position(x, y));
+		Grid.Position position = this.grid.new Position(x, y);
+		this.model.add(entity, position);
 		return entity;
 	}
 
@@ -236,7 +218,6 @@ public final class BuildMap {
 		if (this.pengo != null) {
 			throw new IllegalStateException("The map contains more than one Pengo");
 		}
-
 		Pengo player = new Pengo(this.model);
 		player.setAvatar(new PengoAvatar(this.view, player));
 		this.pengo = install(player, x, y);
@@ -268,13 +249,12 @@ public final class BuildMap {
 
 	public void printMap() {
 		for (char[] line : this.map) {
-			System.out.println(new String(line));
+			logger.info(new String(line));
 		}
 	}
 
 	public char[][] getMap() {
 		char[][] copy = new char[this.map.length][];
-
 		for (int y = 0; y < this.map.length; y++) {
 			copy[y] = this.map[y].clone();
 		}

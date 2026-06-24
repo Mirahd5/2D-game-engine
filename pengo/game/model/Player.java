@@ -207,6 +207,7 @@ public abstract class Player extends Entity {
 		}
 
 		respawnAtStart();
+		afterRespawn();
 	}
 
 	private void respawnAtStart() {
@@ -217,6 +218,9 @@ public abstract class Player extends Entity {
 
 		model().place(this, respawn);
 		setOrientation(0);
+	}
+	
+	protected void afterRespawn() {
 	}
 
 	private void cancelCurrentMovement() {
@@ -258,6 +262,7 @@ public abstract class Player extends Entity {
 		}
 
 		respawnAtStart();
+		afterRespawn();
 	}
 
 	private Grid.Position centerRespawnPosition() {

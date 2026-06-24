@@ -67,8 +67,6 @@ public final class PengoClassicOverlay implements Overlay {
 		this.state.update();
 
 		loadImages(graphics);
-
-		double scale = uiScale(view);
 		this.heightPixel = scaled(view, BASE_HEIGHT_PIXEL);
 
 		Font oldFont = graphics.getFont();
@@ -80,10 +78,27 @@ public final class PengoClassicOverlay implements Overlay {
 		paintScore(graphics, view, x, y);
 		paintLives(graphics, view, x, y);
 		paintEnemies(graphics, view, x, y);
+		paintRespawnInvincibility(graphics, view, x, y);
 		paintPowers(graphics, view, x, y);
 		paintFinishAnimation(graphics, view);
 
 		graphics.setFont(oldFont);
+	}
+	
+	private void paintRespawnInvincibility(Graphics graphics, View view, int x, int y) {
+		if (!this.state.respawnInvincible()) {
+			return;
+		}
+
+		int startX = view.widthPixel() * 65 / 100;
+		int labelY = y + scaled(view, 16);
+		int valueY = y + scaled(view, 36);
+
+		graphics.setColor(Graphics.Colors.cyan);
+		graphics.drawString("INVINCIBLE", startX, labelY);
+
+		graphics.setColor(Graphics.Colors.white);
+		graphics.drawString(formatSeconds(this.state.respawnInvincibleRemainingMs()), startX, valueY);
 	}
 
 	private void paintBackground(Graphics graphics, View view, int x, int y) {
@@ -151,7 +166,13 @@ public final class PengoClassicOverlay implements Overlay {
 	}
 
 	private void paintPowers(Graphics graphics, View view, int x, int y) {
-		int startX = view.widthPixel() * 65 / 100;
+		int startX;
+
+		if (this.state.respawnInvincible()) {
+			startX = view.widthPixel() * 80 / 100;
+		} else {
+			startX = view.widthPixel() * 65 / 100;
+		}
 
 		graphics.setColor(Graphics.Colors.magenta);
 		graphics.drawString("POWERS", startX, y + scaled(view, 16));

@@ -9,9 +9,8 @@ import engine.model.BasicStunt;
 import engine.model.Entity;
 import game.model.Friend;
 
-/**
- * Bot simple de l'allié : il choisit une direction praticable au hasard.
- */
+// Bot simple de l'allié : il choisit une direction praticable au hasard.
+//Inutile quand comportement gal
 public final class FriendBot extends Bot {
 
     private static final int[] DIRECTIONS = { 0, 90, 180, 270 };

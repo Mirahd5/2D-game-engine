@@ -2,8 +2,8 @@ package game.config;
 
 public final class PengoConfig {
 
-	private final PengoMapChoice mapChoice;
-	private final boolean continuousWalk;
+	private final PengoMapChoice mapChoice;// map choisie
+	private final boolean continuousWalk;// pour activer et desactiver la marche continue du joueur
 
 	private final double cmPerCell;
 	private final int pixelPerCm;
@@ -54,6 +54,8 @@ public final class PengoConfig {
 		this.maxLivingEnemies = maxLivingEnemies;
 		this.maxTotalSpawnedEnemies = maxTotalSpawnedEnemies;
 	}
+
+	// GETTER
 
 	public PengoMapChoice mapChoice() {
 		return this.mapChoice;

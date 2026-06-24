@@ -68,11 +68,13 @@ public final class PengoAvatar extends Avatar {
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
-
 		loadImages(graphics);
 
 		BufferedImage image = imageForOrientation(Orientation.normalizeCardinal(this.pengo.orientation()));
+
+		if (!this.pengo.visibleDuringInvincibilityBlink()) {
+			return;
+		}
 
 		int centerX = this.view.toPixelX(this.pengo.center().x());
 		int centerY = this.view.toPixelY(this.pengo.center().y());
