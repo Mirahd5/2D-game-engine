@@ -30,6 +30,12 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 	private static final int PAUSE_BUTTON_W = 260;
 	private static final int PAUSE_BUTTON_H = 46;
 	private static final int PAUSE_BUTTON_GAP = 18;
+	
+	private static final int END_PANEL_W = 470;
+	private static final int END_PANEL_H = 285;
+	private static final int END_BUTTON_W = 250;
+	private static final int END_BUTTON_H = 48;
+	private static final int END_BUTTON_GAP = 18;
 
 	private Canvas canvas;
 	private Canvas gameCanvas;
@@ -99,7 +105,9 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 			this.gameSession.resizeTo(canvas);
 			this.gameSession.painter().paint(canvas, g);
 
-			if (this.gameSession.paused()) {
+			if (this.gameSession.finished()) {
+				drawEndOverlay(canvas, g);
+			} else if (this.gameSession.paused()) {
 				drawPauseOverlay(canvas, g);
 			}
 
@@ -354,8 +362,12 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 	}
 
 	private void handleGameKey(Canvas canvas, int keyCode, char keyChar) {
-		assert canvas != null;
-
+		
+		if (this.gameSession.finished()) {
+			handleEndKey(canvas, keyCode, keyChar);
+			return;
+		}
+		
 		if (keyCode == VirtualKeyCodes.VK_ESCAPE) {
 			this.gameSession.togglePause();
 			canvas.repaint();
@@ -389,14 +401,14 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 
 	@Override
 	public void released(Canvas canvas, int keyCode, char keyChar) {
-		if (this.started && this.gameSession != null && !this.gameSession.paused()) {
+		if (this.started && this.gameSession != null && !this.gameSession.paused() && !this.gameSession.finished()) {
 			this.gameSession.controller().released(canvas, keyCode, keyChar);
 		}
 	}
 
 	@Override
 	public void typed(Canvas canvas, char keyChar) {
-		if (this.started && this.gameSession != null && !this.gameSession.paused()) {
+		if (this.started && this.gameSession != null && !this.gameSession.paused() && !this.gameSession.finished()) {
 			this.gameSession.controller().typed(canvas, keyChar);
 		}
 	}
@@ -411,7 +423,9 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 		if (this.started && this.gameSession != null) {
 			this.canvas = canvas;
 
-			if (this.gameSession.paused()) {
+			if (this.gameSession.finished()) {
+				handleEndMousePressed(canvas, x, y);
+			} else if (this.gameSession.paused()) {
 				handlePauseMousePressed(canvas, x, y);
 			} else {
 				this.gameSession.controller().pressed(canvas, button, x, y);
@@ -449,7 +463,150 @@ public final class PengoConfigMenu implements Canvas.PaintListener, Canvas.KeyLi
 		// Rien.
 	}
 
+	private void drawEndOverlay(Canvas canvas, Graphics g) {
+		Font oldFont = g.getFont();
 
+		boolean win = this.gameSession.won();
+
+		g.setColor(g.getColor(185, 0, 0, 0));
+		g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+
+		int panelX = endPanelX(canvas);
+		int panelY = endPanelY(canvas);
+		int panelW = endPanelW(canvas);
+		int panelH = endPanelH(canvas);
+
+		g.setColor(g.getColor(230, 5, 8, 22));
+		g.fillRect(panelX, panelY, panelW, panelH);
+
+		g.setColor(win ? Graphics.Colors.yellow : Graphics.Colors.red);
+		g.drawRect(panelX, panelY, panelW, panelH);
+		g.drawRect(panelX + scaled(canvas, 4), panelY + scaled(canvas, 4),
+				panelW - scaled(canvas, 8), panelH - scaled(canvas, 8));
+
+		Font titleFont = g.getFont("Arial", Font.BOLD, scaled(canvas, 38));
+		Font helpFont = g.getFont("Arial", Font.BOLD, scaled(canvas, 14));
+
+		g.setFont(titleFont);
+		g.setColor(win ? Graphics.Colors.yellow : Graphics.Colors.red);
+		drawCenteredString(canvas, g, win ? "YOU WIN" : "YOU LOSE", panelY + scaled(canvas, 62));
+
+		if (win) {
+			drawEndButton(canvas, g, 0, "MAIN MENU");
+		} else {
+			drawEndButton(canvas, g, 0, "TRY AGAIN");
+			drawEndButton(canvas, g, 1, "MAIN MENU");
+		}
+
+		g.setFont(helpFont);
+		g.setColor(Graphics.Colors.lightGray);
+
+		if (win) {
+			drawCenteredString(canvas, g, "ENTER / M : menu principal", panelY + panelH - scaled(canvas, 28));
+		} else {
+			drawCenteredString(canvas, g, "ENTER / R : rejouer  |  M : menu principal", panelY + panelH - scaled(canvas, 28));
+		}
+
+		g.setFont(oldFont);
+	}
+
+	private void drawEndButton(Canvas canvas, Graphics g, int index, String text) {
+		int x = endButtonX(canvas);
+		int y = endButtonY(canvas, index);
+		int w = endButtonW(canvas);
+		int h = endButtonH(canvas);
+
+		g.setColor(g.getColor(220, 0, 0, 0));
+		g.fillRect(x, y, w, h);
+
+		g.setColor(Graphics.Colors.cyan);
+		g.drawRect(x, y, w, h);
+
+		Font oldFont = g.getFont();
+		g.setFont(g.getFont("Arial", Font.BOLD, scaled(canvas, 17)));
+		g.setColor(Graphics.Colors.white);
+		drawCenteredString(canvas, g, text, y + scaled(canvas, 31));
+		g.setFont(oldFont);
+	}
+
+	private void handleEndKey(Canvas canvas, int keyCode, char keyChar) {
+		char lower = Character.toLowerCase(keyChar);
+
+		if (this.gameSession.lost() && (keyCode == VirtualKeyCodes.VK_ENTER || lower == 'r')) {
+			retryGame();
+			return;
+		}
+
+		if (this.gameSession.won() && keyCode == VirtualKeyCodes.VK_ENTER) {
+			returnToMainMenu();
+			return;
+		}
+
+		if (lower == 'm' || keyCode == VirtualKeyCodes.VK_ESCAPE) {
+			returnToMainMenu();
+		}
+	}
+
+	private void handleEndMousePressed(Canvas canvas, int x, int y) {
+		if (this.gameSession.lost()
+				&& inside(x, y, endButtonX(canvas), endButtonY(canvas, 0), endButtonW(canvas), endButtonH(canvas))) {
+			retryGame();
+			return;
+		}
+
+		int mainMenuIndex = this.gameSession.won() ? 0 : 1;
+
+		if (inside(x, y, endButtonX(canvas), endButtonY(canvas, mainMenuIndex), endButtonW(canvas), endButtonH(canvas))) {
+			returnToMainMenu();
+		}
+	}
+
+	private void retryGame() {
+		if (this.gameSession != null) {
+			this.gameSession.stop();
+		}
+
+		this.gameSession = null;
+		this.gameCanvas = null;
+		this.started = false;
+		this.mapListOpen = false;
+
+		startGame();
+	}
+
+	private int endPanelW(Canvas canvas) {
+		return scaled(canvas, END_PANEL_W);
+	}
+
+	private int endPanelH(Canvas canvas) {
+		return scaled(canvas, END_PANEL_H);
+	}
+
+	private int endPanelX(Canvas canvas) {
+		return (canvas.getWidth() - endPanelW(canvas)) / 2;
+	}
+
+	private int endPanelY(Canvas canvas) {
+		return (canvas.getHeight() - endPanelH(canvas)) / 2;
+	}
+
+	private int endButtonW(Canvas canvas) {
+		return scaled(canvas, END_BUTTON_W);
+	}
+
+	private int endButtonH(Canvas canvas) {
+		return scaled(canvas, END_BUTTON_H);
+	}
+
+	private int endButtonX(Canvas canvas) {
+		return (canvas.getWidth() - endButtonW(canvas)) / 2;
+	}
+
+	private int endButtonY(Canvas canvas, int index) {
+		int start = endPanelY(canvas) + scaled(canvas, 105);
+		return start + index * (endButtonH(canvas) + scaled(canvas, END_BUTTON_GAP));
+	}
+	
 	private void drawPauseOverlay(Canvas canvas, Graphics g) {
 		Font oldFont = g.getFont();
 

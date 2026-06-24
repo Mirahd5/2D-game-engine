@@ -54,6 +54,18 @@ public final class PengoGameSession {
 	public boolean paused() {
 		return this.runState.paused();
 	}
+	
+	public boolean finished() {
+		return this.controller.gameFinished();
+	}
+
+	public boolean won() {
+		return this.controller.gameWon();
+	}
+
+	public boolean lost() {
+		return this.controller.gameLost();
+	}
 
 	public boolean stopped() {
 		return this.stopped || this.runState.stopped();

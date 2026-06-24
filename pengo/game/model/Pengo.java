@@ -18,11 +18,13 @@ public final class Pengo extends Player {
 	private static final long SPEED_DURATION_MS = 8000L;
 	private static final long FREEZE_DURATION_MS = 5000L;
 	private static final long STAR_DURATION_MS = 5000L;
+	private static final long RESPAWN_INVINCIBILITY_DURATION_MS = 3000L;
 
 	private long shieldEnd_ms;
 	private long speedEnd_ms;
 	private long freezeEnd_ms;
 	private long starEnd_ms;
+	private long respawnInvincibilityEnd_ms;
 
 	private ISU.Dimension normalStep;
 	private ISU.Dimension boostedStep;
@@ -40,6 +42,7 @@ public final class Pengo extends Player {
 		this.speedEnd_ms = 0L;
 		this.freezeEnd_ms = 0L;
 		this.starEnd_ms = 0L;
+		this.respawnInvincibilityEnd_ms = 0L;
 
 		this.friendActivator = false;
 
@@ -78,6 +81,33 @@ public final class Pengo extends Player {
 
 	public boolean hasShield() {
 		return gameTimeMs() < this.shieldEnd_ms;
+	}
+
+	@Override
+	protected void afterRespawn() {
+		activateRespawnInvincibility();
+	}
+
+	public void activateRespawnInvincibility() {
+		this.respawnInvincibilityEnd_ms = gameTimeMs() + RESPAWN_INVINCIBILITY_DURATION_MS;
+	}
+
+	public boolean hasRespawnInvincibility() {
+		return gameTimeMs() < this.respawnInvincibilityEnd_ms;
+	}
+
+	public long respawnInvincibilityRemainingMs() {
+		return remainingMs(this.respawnInvincibilityEnd_ms);
+	}
+
+	public boolean visibleDuringInvincibilityBlink() {
+		if (!hasRespawnInvincibility()) {
+			return true;
+		}
+
+		long elapsed = RESPAWN_INVINCIBILITY_DURATION_MS - respawnInvincibilityRemainingMs();
+
+		return (elapsed / 120L) % 2L == 0L;
 	}
 
 	public void activateSpeed() {
@@ -324,7 +354,7 @@ public final class Pengo extends Player {
 
 	@Override
 	protected boolean hasEnemyProtection() {
-		return hasShield();
+		return hasShield() || hasRespawnInvincibility();
 	}
 
 	public void explode() {
@@ -340,6 +370,10 @@ public final class Pengo extends Player {
 			} else {
 				deactivateFreezePower();
 			}
+		}
+		
+		if (this.respawnInvincibilityEnd_ms > 0L && now >= this.respawnInvincibilityEnd_ms) {
+			this.respawnInvincibilityEnd_ms = 0L;
 		}
 
 		if (this.shieldEnd_ms > 0L && now >= this.shieldEnd_ms) {

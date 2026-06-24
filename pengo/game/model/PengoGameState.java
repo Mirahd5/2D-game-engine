@@ -166,4 +166,12 @@ public class PengoGameState {
 	public long powerRemainingMs(PowerType type) {
 		return this.pengo.powerRemainingMsForHud(type);
 	}
+	
+	public boolean respawnInvincible() {
+		return this.pengo.hasRespawnInvincibility();
+	}
+
+	public long respawnInvincibleRemainingMs() {
+		return this.pengo.respawnInvincibilityRemainingMs();
+	}
 }

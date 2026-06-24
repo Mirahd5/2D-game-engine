@@ -72,6 +72,18 @@ public final class PengoController extends Controller {
 	public boolean continuousWalk() {
 		return this.continuousWalk;
 	}
+	
+	public boolean gameFinished() {
+		return this.gameState != null && this.gameState.finished();
+	}
+
+	public boolean gameWon() {
+		return this.gameState != null && this.gameState.won();
+	}
+
+	public boolean gameLost() {
+		return this.gameState != null && this.gameState.lost();
+	}
 
 	// =========================
 	// Keyboard
@@ -366,35 +378,6 @@ public final class PengoController extends Controller {
 	@Override
 	public void released(Canvas canvas, int x, int y, int button) {
 		// Rien : un clic fait une rotation immédiate.
-	}
-
-	private void turnControlledLeft() {
-		turnControlled(-90);
-	}
-
-	private void turnControlledRight() {
-		turnControlled(90);
-	}
-
-	private void turnControlled(int angleDelta) {
-		this.controlSwitcher.updateControlledEntity();
-
-		Entity controlled = this.controlSwitcher.controlledEntity();
-
-		if (!(controlled instanceof Player)) {
-			return;
-		}
-
-		int newOrientation = controlled.orientation() + angleDelta;
-		newOrientation = Orientation.normalizeCardinal(newOrientation);
-
-		controlled.setOrientation(newOrientation);
-
-		PlayerBot bot = this.controlSwitcher.playerBot();
-
-		if (bot != null) {
-			bot.stopWishing();
-		}
 	}
 
 	private boolean handleDebugKey(int keyCode) {
