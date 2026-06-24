@@ -1,6 +1,7 @@
 package game;
 
 import java.io.BufferedReader;
+import java.util.logging.Logger;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ import game.view.SpawnerAvatar;
  * A activateur Friend
  */
 public final class BuildMap {
+	
+	private static final Logger logger = Logger.getLogger(BuildMap.class.getName());
 
 	private final Game game;
 	private final Model model;
@@ -268,7 +271,7 @@ public final class BuildMap {
 
 	public void printMap() {
 		for (char[] line : this.map) {
-			System.out.println(new String(line));
+			logger.info(new String(line));
 		}
 	}
 

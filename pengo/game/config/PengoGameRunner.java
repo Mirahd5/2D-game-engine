@@ -6,7 +6,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import oop.tasks.Runnable;
 
 import engine.brain.Bot;
@@ -48,6 +49,8 @@ import engine.view.DebugOptions;
 import engine.view.PerformanceMonitor;
 
 public final class PengoGameRunner {
+	
+	private static final Logger logger = Logger.getLogger(PengoGameRunner.class.getName());
 
 	private static final double FRIEND_SPEED = 4.0;
 	private static final double ENEMY_SPEED = 3.0;
@@ -594,7 +597,7 @@ public final class PengoGameRunner {
 		Grid.Position position = randomFreePowerPosition(model, builder);
 
 		if (position == null) {
-			System.out.println("No free position for random power.");
+			logger.fine("No free position for random power.");
 			return;
 		}
 
@@ -609,7 +612,9 @@ public final class PengoGameRunner {
 		int currentCount = spawnedPowers.get(type).intValue();
 		spawnedPowers.put(type, Integer.valueOf(currentCount + 1));
 
-		System.out.println("Random power spawned: " + type + " at (" + position.x() + ", " + position.y() + ")");
+		logger.log(Level.INFO,
+				"Random power spawned: {0} at ({1}, {2})",
+				new Object[] { type, Integer.valueOf(position.x()), Integer.valueOf(position.y()) });
 	}
 
 	private static List<PowerType> possiblePowerTypes(Model model) {

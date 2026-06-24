@@ -1,6 +1,8 @@
 package game.model;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.List;
 
 import engine.model.BasicStunt;
@@ -12,6 +14,7 @@ import engine.model.Model;
 
 public final class Pengo extends Player {
 
+	private static final Logger logger = Logger.getLogger(Pengo.class.getName());
 	private static final int nlife = 3;
 
 	private static final long SHIELD_DURATION_MS = 10000L;
@@ -68,12 +71,12 @@ public final class Pengo extends Player {
 
 	public void activateShield() {
 		this.shieldEnd_ms = gameTimeMs() + SHIELD_DURATION_MS;
-		System.out.println("protection activated");
+		logger.info("Shield activated");
 	}
 
 	public void deactivateShield() {
 		this.shieldEnd_ms = 0L;
-		System.out.println("protection desactivated");
+		logger.info("Shield deactivated");
 	}
 
 	public boolean hasShield() {
@@ -84,14 +87,14 @@ public final class Pengo extends Player {
 		this.speedEnd_ms = gameTimeMs() + SPEED_DURATION_MS;
 		setStep(this.boostedStep);
 		refreshCurrentMovementSpeed();
-		System.out.println("Speed boost ON");
+		logger.info("Speed boost ON");
 	}
 
 	public void deactivateSpeed() {
 		this.speedEnd_ms = 0L;
 		setStep(this.normalStep);
 		refreshCurrentMovementSpeed();
-		System.out.println("Speed boost OFF");
+		logger.info("Speed boost OFF");
 	}
 
 	public boolean hasSpeedBoost() {
@@ -130,11 +133,13 @@ public final class Pengo extends Player {
 	public void activateFreezePower() {
 		this.freezeEnd_ms = gameTimeMs() + FREEZE_DURATION_MS;
 		freezeEnemies();
+		logger.info("Freeze power activated");
 	}
 
 	public void deactivateFreezePower() {
 		this.freezeEnd_ms = 0L;
 		unfreezeEnemies();
+		logger.info("Freeze power deactivated");
 	}
 
 	public boolean hasFreezePower() {
@@ -171,10 +176,12 @@ public final class Pengo extends Player {
 
 	public void activateStar() {
 		this.starEnd_ms = gameTimeMs() + STAR_DURATION_MS;
+		logger.info("star activated");
 	}
 
 	public void deactivateStar() {
 		this.starEnd_ms = 0L;
+		logger.info("star desactivated");
 	}
 
 	public boolean hasStar() {
@@ -183,10 +190,12 @@ public final class Pengo extends Player {
 
 	public void activateFriendActivator() {
 		this.friendActivator = true;
+		logger.info("Friend switch activated");
 	}
 
 	public void deactivateFriendActivator() {
 		this.friendActivator = false;
+		logger.info("Friend switch deactivated");
 	}
 
 	public boolean hasFriendActivator() {

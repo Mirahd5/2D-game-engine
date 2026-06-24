@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
  * Model représente l'état du monde à un instant donné.
@@ -13,7 +15,7 @@ import java.util.Set;
  * visibles dans le viewport.
  */
 public class Model {
-
+	private static final Logger logger = Logger.getLogger(Model.class.getName());
 	private Game game;
 	private Grid grid;
 	private ISU isu;
@@ -37,6 +39,8 @@ public class Model {
 
 		this.viewPort = new ViewPort(this, this.isu.new Coord(0.0, 0.0),
 				this.isu.new Dimension(defaultViewWidth, defaultViewHeight));
+		
+		logger.info("Model created");
 	}
 
 	/*
@@ -109,6 +113,9 @@ public class Model {
 
 		this.entities.add(entity);
 		entity.install();
+		logger.log(Level.INFO,
+				"Entity added to model: {0}",
+				entity.name());
 	}
 
 	public void remove(Entity entity) {
@@ -128,6 +135,9 @@ public class Model {
 
 		entity.uninstall();
 		this.entities.remove(entity);
+		logger.log(Level.INFO,
+				"Entity removed from model: {0}",
+				entity.name());
 	}
 
 	// BASIC COLLISIONS
@@ -357,6 +367,16 @@ public class Model {
 			entity.setLinearSpeed(this.isu.new Vector(0.0, 0.0));
 
 			entity.setAngularSpeed(0.0);
+			
+
+			if (logger.isLoggable(Level.FINER)) {
+				logger.log(Level.FINER,
+						"Motion blocked: entity={0}, blockers={1}",
+						new Object[] {
+								entity.name(),
+								Integer.valueOf(result.blockers.size())
+						});
+		}
 		}
 
 		notifyContacts(entity, result.contacts);
@@ -706,6 +726,11 @@ public class Model {
 			if (!entity.alive()) {
 				deadEntities.add(entity);
 			}
+		}
+		if (!deadEntities.isEmpty()) {
+			logger.log(Level.FINE,
+					"Cleaning dead entities: count={0}",
+					Integer.valueOf(deadEntities.size()));
 		}
 
 		for (Entity entity : deadEntities) {

@@ -1,5 +1,6 @@
 package engine.model;
-
+import java.util.logging.Level;
+import java.util.logging.Logger;
 /*
  * Représente un axe du monde.
  *
@@ -8,7 +9,7 @@ package engine.model;
  * le périmètre, comme dans PacMan quand on sort d'un côté de la carte.
  */
 public class Axis {
-
+	private static final Logger logger = Logger.getLogger(Axis.class.getName());
 	private final boolean onTorus;
 	private final double perimeter;
 
@@ -17,6 +18,10 @@ public class Axis {
 
 		this.onTorus = onTorus;
 		this.perimeter = perimeter;
+
+		logger.log(Level.FINE,
+				"Axis created: torus={0}, perimeter={1}",
+				new Object[] { Boolean.valueOf(onTorus), Double.valueOf(perimeter) });
 	}
 
 	public boolean onTorus() {
@@ -140,15 +145,29 @@ public class Axis {
 
 	public double distance(double position1, double position2) {
 		double delta = Math.abs(position2 - position1);
+		double result;
 
 		if (!this.onTorus) {
-			return delta;
+			result = delta;
+		} else {
+			delta = modp(delta, this.perimeter);
+
+			// Sur un tore, on garde le plus court chemin entre les deux sens.
+			result = Math.min(delta, this.perimeter - delta);
 		}
 
-		delta = modp(delta, this.perimeter);
+		if (logger.isLoggable(Level.FINER)) {
+			logger.log(Level.FINER,
+					"Axis distance: p1={0}, p2={1}, result={2}, torus={3}",
+					new Object[] {
+							Double.valueOf(position1),
+							Double.valueOf(position2),
+							Double.valueOf(result),
+							Boolean.valueOf(this.onTorus)
+					});
+		}
 
-		// Sur un tore, on garde le plus court chemin entre les deux sens.
-		return Math.min(delta, this.perimeter - delta);
+		return result;
 	}
 
 	public double euclidean(double xmin, double xmax) {
