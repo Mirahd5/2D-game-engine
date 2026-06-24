@@ -2,75 +2,58 @@ package game.config;
 
 public final class PengoMapChoice {
 
-    private final String label;
-    private final String path;
+	private final String label;
+	private final String path;
 
-    private final int width;
-    private final int height;
+	private final int width;
+	private final int height;
 
-    private final boolean torusX;
-    private final boolean torusY;
+	private final boolean torusX;
+	private final boolean torusY;
 
-    public PengoMapChoice(
-            String label,
-            String path,
-            int width,
-            int height,
-            boolean torusX,
-            boolean torusY) {
+	public PengoMapChoice(String label, String path, int width, int height, boolean torusX, boolean torusY) {
+		this.label = label;
+		this.path = path;
+		this.width = width;
+		this.height = height;
+		this.torusX = torusX;
+		this.torusY = torusY;
+	}
 
-        assert label != null;
-        assert !label.isEmpty();
-        assert path != null;
-        assert !path.isEmpty();
-        assert width > 0;
-        assert height > 0;
+	public String label() {
+		return this.label;
+	}
 
-        this.label = label;
-        this.path = path;
-        this.width = width;
-        this.height = height;
-        this.torusX = torusX;
-        this.torusY = torusY;
-    }
+	public String path() {
+		return this.path;
+	}
 
-    public String label() {
-        return this.label;
-    }
+	public int width() {
+		return this.width;
+	}
 
-    public String path() {
-        return this.path;
-    }
+	public int height() {
+		return this.height;
+	}
 
-    public int width() {
-        return this.width;
-    }
+	public boolean torusX() {
+		return this.torusX;
+	}
 
-    public int height() {
-        return this.height;
-    }
+	public boolean torusY() {
+		return this.torusY;
+	}
 
-    public boolean torusX() {
-        return this.torusX;
-    }
-
-    public boolean torusY() {
-        return this.torusY;
-    }
-
-    public String geometryLabel() {
-        if (this.torusX && this.torusY) {
-            return "tore X/Y";
-        }
-
-        if (this.torusX) {
-            return "tore horizontal";
-        }
-
-        if (this.torusY) {
-            return "tore vertical";
-        }
-
-        return "non torique";
-    }
+	public String geometryLabel() {
+		if (this.torusX && this.torusY) {
+			return "tore X/Y";
+		}
+		if (this.torusX) {
+			return "tore horizontal";
+		}
+		if (this.torusY) {
+			return "tore vertical";
+		}
+		return "non torique";
+	}
 }

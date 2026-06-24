@@ -9,6 +9,7 @@ import oop.graphics.Canvas;
 
 public final class PengoGameSession {
 
+	// Fields
 	private final Painter painter;
 	private final PengoController controller;
 	private final Ticker ticker;
@@ -19,15 +20,9 @@ public final class PengoGameSession {
 	private Canvas canvas;
 	private boolean stopped;
 
+	// constructeur
 	public PengoGameSession(Painter painter, PengoController controller, Ticker ticker, PainterTask painterTask,
 			View view, PengoRunState runState) {
-
-		assert painter != null;
-		assert controller != null;
-		assert ticker != null;
-		assert painterTask != null;
-		assert view != null;
-		assert runState != null;
 
 		this.painter = painter;
 		this.controller = controller;
@@ -39,6 +34,7 @@ public final class PengoGameSession {
 		this.stopped = false;
 	}
 
+	// Getter
 	public Painter painter() {
 		return this.painter;
 	}
@@ -54,7 +50,7 @@ public final class PengoGameSession {
 	public boolean paused() {
 		return this.runState.paused();
 	}
-	
+
 	public boolean finished() {
 		return this.controller.gameFinished();
 	}
@@ -71,11 +67,11 @@ public final class PengoGameSession {
 		return this.stopped || this.runState.stopped();
 	}
 
+	//PAUSE/RESUME
 	public void pause() {
 		if (stopped() || paused()) {
 			return;
 		}
-
 		this.runState.pause();
 		this.ticker.pause();
 		this.controller.clearInputs();
@@ -87,7 +83,6 @@ public final class PengoGameSession {
 		if (stopped() || !paused()) {
 			return;
 		}
-
 		this.runState.resume();
 		this.controller.clearInputs();
 		this.controller.enable();
@@ -104,21 +99,15 @@ public final class PengoGameSession {
 	}
 
 	public void attach(Canvas canvas) {
-		assert canvas != null;
-
 		this.canvas = canvas;
-
 		resizeTo(canvas);
-
 		this.painter.visible(canvas);
 	}
 
 	public void resizeTo(Canvas canvas) {
-		assert canvas != null;
-
 		int width = canvas.getWidth();
 		int height = canvas.getHeight();
-
+		
 		if (width <= 0 || height <= 0) {
 			return;
 		}
@@ -154,7 +143,6 @@ public final class PengoGameSession {
 		if (this.stopped) {
 			return;
 		}
-
 		this.stopped = true;
 		this.runState.stop();
 		this.controller.clearInputs();
@@ -172,11 +160,9 @@ public final class PengoGameSession {
 		if (canvas == null) {
 			return;
 		}
-
 		if (this.canvas == canvas) {
 			this.canvas = null;
 		}
-
 		this.painter.revoked(canvas);
 	}
 }

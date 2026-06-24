@@ -7,100 +7,88 @@ import java.util.Comparator;
 
 public final class PengoMaps {
 
-    private static final String MAP_FOLDER = "pengo/game/maps";
+	private static final String MAP_FOLDER = "pengo/game/maps";
 
-    private static PengoMapChoice[] maps;
+	private static PengoMapChoice[] maps;
 
-    private PengoMaps() {
-    }
+	private PengoMaps() {
+	}
 
-    public static int count() {
-        loadIfNeeded();
-        return maps.length;
-    }
+	public static int count() {
+		loadIfNeeded();
+		return maps.length;
+	}
 
-    public static PengoMapChoice get(int index) {
-        loadIfNeeded();
+	public static PengoMapChoice get(int index) {
+		loadIfNeeded();
+		assert index >= 0;
+		assert index < maps.length;
+		return maps[index];
+	}
 
-        assert index >= 0;
-        assert index < maps.length;
+	public static PengoMapChoice[] all() {
+		loadIfNeeded();
+		PengoMapChoice[] copy = new PengoMapChoice[maps.length];
+		for (int i = 0; i < maps.length; i++) {
+			copy[i] = maps[i];
+		}
+		return copy;
+	}
 
-        return maps[index];
-    }
+	public static String folder() {
+		return MAP_FOLDER;
+	}
 
-    public static PengoMapChoice[] all() {
-        loadIfNeeded();
+	private static void loadIfNeeded() {
+		if (maps != null) {
+			return;
+		}
+		File folder = new File(MAP_FOLDER);
 
-        PengoMapChoice[] copy = new PengoMapChoice[maps.length];
+		if (!folder.exists()) {
+			throw new IllegalStateException("Map folder does not exist: " + MAP_FOLDER);
+		}
+		if (!folder.isDirectory()) {
+			throw new IllegalStateException("Not a map folder: " + MAP_FOLDER);
+		}
 
-        for (int i = 0; i < maps.length; i++) {
-            copy[i] = maps[i];
-        }
+		// recupere seulement les fichiers .txt du folder map
+		File[] files = folder.listFiles(file -> file.isFile() && file.getName().toLowerCase().endsWith(".txt"));
 
-        return copy;
-    }
+		if (files == null) {
+			maps = new PengoMapChoice[0];
+			return;
+		}
 
-    public static String folder() {
-        return MAP_FOLDER;
-    }
+		// trie les maps par nom de fichier pour avoir un ordre stable dans le menu
+		Arrays.sort(files, Comparator.comparing(File::getName));
+		maps = new PengoMapChoice[files.length];
 
-    private static void loadIfNeeded() {
-        if (maps != null) {
-            return;
-        }
+		// transforme chaque .txt en choix de map
+		for (int i = 0; i < files.length; i++) {
+			maps[i] = buildChoice(files[i]);
+		}
+	}
 
-        File folder = new File(MAP_FOLDER);
+	// cree un PengoMapChoice a partir dune map
+	private static PengoMapChoice buildChoice(File file) {
+		try {
+			MapInfo info = MapInfo.read(file.getPath());
+			return new PengoMapChoice(labelFromFile(file), file.getPath(), info.width(), info.height(), info.torusX(),
+					info.torusY());
+		} catch (IOException exception) {
+			throw new IllegalStateException("Unable to read map: " + file.getPath(), exception);
+		}
+	}
 
-        if (!folder.exists()) {
-            throw new IllegalStateException("Map folder does not exist: " + MAP_FOLDER);
-        }
-
-        if (!folder.isDirectory()) {
-            throw new IllegalStateException("Not a map folder: " + MAP_FOLDER);
-        }
-
-        File[] files = folder.listFiles(file -> file.isFile() && file.getName().toLowerCase().endsWith(".txt"));
-
-        if (files == null) {
-            maps = new PengoMapChoice[0];
-            return;
-        }
-
-        Arrays.sort(files, Comparator.comparing(File::getName));
-
-        maps = new PengoMapChoice[files.length];
-
-        for (int i = 0; i < files.length; i++) {
-            maps[i] = buildChoice(files[i]);
-        }
-    }
-
-    private static PengoMapChoice buildChoice(File file) {
-        assert file != null;
-
-        try {
-            MapInfo info = MapInfo.read(file.getPath());
-
-            return new PengoMapChoice(
-                    labelFromFile(file),
-                    file.getPath(),
-                    info.width(),
-                    info.height(),
-                    info.torusX(),
-                    info.torusY());
-
-        } catch (IOException exception) {
-            throw new IllegalStateException("Unable to read map: " + file.getPath(), exception);
-        }
-    }
-
-    private static String labelFromFile(File file) {
-        String name = file.getName();
-
-        if (name.endsWith(".txt")) {
-            name = name.substring(0, name.length() - 4);
-        }
-
-        return name.replace('_', ' ');
-    }
+	// Pour afficher le nom dans le menu
+	private static String labelFromFile(File file) {
+		String name = file.getName();
+		// remove .txt
+		if (name.endsWith(".txt")) {
+			name = name.substring(0, name.length() - 4);
+		}
+		// _ devient espace
+		return name.replace('_', ' ');
+	}
 }
