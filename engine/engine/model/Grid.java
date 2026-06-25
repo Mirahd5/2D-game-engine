@@ -129,7 +129,7 @@ public class Grid {
 		}
 
 		public boolean equiv(Dimension dimension) {
-			return dimension.grid() == Grid.this && this.x_ncell == dimension.x_ncell
+			return dimension != null && dimension.grid() == Grid.this && this.x_ncell == dimension.x_ncell
 					&& this.y_ncell == dimension.y_ncell;
 		}
 
@@ -199,6 +199,24 @@ public class Grid {
 
 		public Vector copy() {
 			return new Vector(this.x_ncell, this.y_ncell);
+		}
+
+		public boolean equiv(Vector vector) {
+			return vector != null && vector.grid() == Grid.this && this.x_ncell == vector.x_ncell
+					&& this.y_ncell == vector.y_ncell;
+		}
+
+		@Override
+		public boolean equals(Object object) {
+			if (this == object) {
+				return true;
+			}
+
+			if (!(object instanceof Grid.Vector)) {
+				return false;
+			}
+
+			return equiv((Vector) object);
 		}
 
 		public void show(PrintStream ps) {
@@ -337,6 +355,8 @@ public class Grid {
 		}
 
 		public ISU.Coord toISUCoordCentered() {
+			assert Grid.this.isu != null;
+
 			double x_cm = (this.x_ncell + 0.5) * Grid.this.isu.cmPerCell();
 			double y_cm = (this.y_ncell + 0.5) * Grid.this.isu.cmPerCell();
 

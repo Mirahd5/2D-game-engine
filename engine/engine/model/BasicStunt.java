@@ -41,7 +41,9 @@ public class BasicStunt extends Stunt {
 	}
 
 	public void setWalkSpeed(double walkSpeed) {
-		assert walkSpeed > 0.0 : walkSpeed;
+		if (walkSpeed <= 0.0) {
+			return;
+		}
 
 		this.walkSpeed = walkSpeed;
 	}

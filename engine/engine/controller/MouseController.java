@@ -25,6 +25,14 @@ public final class MouseController extends Controller {
 	}
 
 	public State state() {
+		if (this.state == State.LEFT_ROT_RIGHT_PRESSED) {
+			return State.LEFT_ROT;
+		}
+
+		if (this.state == State.RIGHT_ROT_LEFT_PRESSED) {
+			return State.RIGHT_ROT;
+		}
+
 		return this.state;
 	}
 

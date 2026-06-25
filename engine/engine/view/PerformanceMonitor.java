@@ -19,7 +19,9 @@ public final class PerformanceMonitor {
 	}
 
 	public void recordTick(long elapsedMs) {
-		assert elapsedMs >= 0L : elapsedMs;
+		if (elapsedMs < 0L) {
+			return;
+		}
 
 		this.tickStats.record(elapsedMs);
 	}
