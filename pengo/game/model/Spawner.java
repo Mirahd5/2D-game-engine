@@ -6,7 +6,7 @@ import game.config.PengoRunState;
 
 public final class Spawner extends Glissade {
 	
-	public static final long ALIGNMENT_EFFECT_DURATION_MS = 5000L;
+	public static final long ALIGNMENT_EFFECT_DURATION_MS = 15000L;
 	private static final long ALIGNMENT_COLOR_FRAME_MS = 110L;
 
 	private long alignmentEffectEnd_ms;
