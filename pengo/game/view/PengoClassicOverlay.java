@@ -23,6 +23,7 @@ public final class PengoClassicOverlay implements Overlay {
 
 	private BufferedImage lifeImage;
 	private BufferedImage enemyImage;
+	private BufferedImage friendLifeImage;
 
 	private boolean imagesLoaded;
 	private long finishedElapsedMs;
@@ -120,24 +121,31 @@ public final class PengoClassicOverlay implements Overlay {
 	}
 
 	private void paintLives(Graphics graphics, View view, int x, int y) {
-		int colX = view.widthPixel() / 4;
+	    int colX = view.widthPixel() / 4;
 
-		graphics.setColor(Graphics.Colors.cyan);
-		graphics.drawString("LIVES", colX, y + scaled(view, 16));
+	    String title = this.state.controlledPlayerNameForHud() + " LIVES";
 
-		int icon = scaled(view, ICON_PIXEL);
-		int iconX = colX;
-		int iconY = y + scaled(view, 22);
+	    graphics.setColor(Graphics.Colors.cyan);
+	    graphics.drawString(title, colX, y + scaled(view, 16));
 
-		for (int i = 0; i < this.state.lives(); i++) {
-			graphics.drawImage(
-					this.lifeImage,
-					iconX + i * (icon + scaled(view, 5)),
-					iconY,
-					icon,
-					icon
-			);
-		}
+	    int icon = scaled(view, ICON_PIXEL);
+	    int gap = scaled(view, 5);
+	    int iconX = colX;
+	    int iconY = y + scaled(view, 22);
+
+	    int lives = this.state.lives();
+	    int drawnLives = Math.min(lives, 6);
+
+	    BufferedImage image = this.state.friendControlledForHud()
+	            ? this.friendLifeImage
+	            : this.lifeImage;
+
+	    for (int i = 0; i < drawnLives; i++) {
+	        graphics.drawImage(image, iconX + i * (icon + gap), iconY, icon, icon);
+	    }
+
+	    graphics.setColor(Graphics.Colors.white);
+	    graphics.drawString("x " + lives, iconX + drawnLives * (icon + gap) + gap, y + scaled(view, 36));
 	}
 
 	private void paintEnemies(Graphics graphics, View view, int x, int y) {
@@ -384,6 +392,7 @@ public final class PengoClassicOverlay implements Overlay {
 		this.powerImages.put(PowerType.EXTRA_LIFE, graphics.load("pengo_rsrc/crevette.png"));
 		this.powerImages.put(PowerType.BOOMFISH, graphics.load("pengo_rsrc/boom_fish.png"));
 		this.powerImages.put(PowerType.FRIEND_ACTIVATOR, graphics.load("pengo_rsrc/friend_activator.png"));
+		this.friendLifeImage = graphics.load("pengo_rsrc/friend_down.png");
 
 		this.imagesLoaded = true;
 	}
