@@ -407,6 +407,25 @@ public final class Enemies extends Entity {
 
 	@Override
 	public boolean blocks(Entity other) {
+		/*
+		 * Quand un poisson est transporté par un glaçon/spawner, il est frozen.
+		 * Le train doit devenir solide pour les autres poissons, sinon un autre
+		 * poisson peut traverser le poisson porté et donner l'impression de traverser
+		 * le glaçon.
+		 *
+		 * On ne bloque jamais le bloc pousseur lui-même, sinon la glissade s'arrête
+		 * sur son propre poisson transporté.
+		 */
+		if (this.frozen && !this.crushed) {
+			if (other instanceof Glissade || other instanceof Power) {
+				return false;
+			}
+
+			if (other instanceof Enemies) {
+				return true;
+			}
+		}
+
 		return false;
 	}
 
@@ -474,5 +493,16 @@ public final class Enemies extends Entity {
 		}
 
 		return "Enemy " + this.galState;
+	}
+	
+	public void releaseAfterBeingCarried() {
+		unfreeze();
+
+		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+		setAngularSpeed(0.0);
+
+		if (stunt() != null) {
+			stunt().collision(new Mur(model(), "__release_enemy_blocker__"));
+		}
 	}
 }

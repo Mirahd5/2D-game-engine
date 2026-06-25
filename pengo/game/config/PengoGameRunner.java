@@ -150,6 +150,7 @@ public final class PengoGameRunner {
 		installEnemyGalBots(brain, model, builder, enemyAutomaton, currentPlayer);
 
 		installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config, gameState, runState);
+		installSpawnerAlignmentEffect(builder, pengo, runState, config.tickDelayMs());
 
 		installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer, builder, gameState,
 				runState);
@@ -763,5 +764,124 @@ public final class PengoGameRunner {
 				Runtime.post(this, 300);
 			}
 		}, 300);
+	}
+	
+	private static void installSpawnerAlignmentEffect(final BuildMap builder, final Pengo pengo,
+	        final PengoRunState runState, final int delayMs) {
+	    assert builder != null;
+	    assert pengo != null;
+	    assert runState != null;
+	    assert delayMs > 0;
+
+	    Runtime.post(new Runnable() {
+	    	private boolean alreadyAligned = allLivingSpawnersAligned(builder.spawners());
+
+	        @Override
+	        public void run() {
+	            if (runState.stopped()) {
+	                return;
+	            }
+
+	            if (!runState.paused()) {
+	                boolean aligned = allLivingSpawnersAligned(builder.spawners());
+
+	                if (aligned && !this.alreadyAligned) {
+	                    triggerSpawnerAlignmentEffect(builder, pengo);
+	                }
+
+	                this.alreadyAligned = aligned;
+	            }
+
+	            Runtime.post(this, delayMs);
+	        }
+	    }, delayMs);
+	}
+
+	private static boolean allLivingSpawnersAligned(List<Spawner> spawners) {
+	    assert spawners != null;
+
+	    List<Spawner> living = new ArrayList<Spawner>();
+
+	    for (Spawner spawner : spawners) {
+	        if (spawner != null && spawner.alive() && spawner.installed()) {
+	            if (spawner.isSliding()) {
+	                return false;
+	            }
+
+	            living.add(spawner);
+	        }
+	    }
+
+	    if (living.size() < 2) {
+	        return false;
+	    }
+
+	    int firstX = living.get(0).position().x();
+	    int firstY = living.get(0).position().y();
+
+	    boolean sameColumn = true;
+	    boolean sameRow = true;
+
+	    for (Spawner spawner : living) {
+	        Grid.Position position = spawner.position();
+
+	        if (position.x() != firstX) {
+	            sameColumn = false;
+	        }
+
+	        if (position.y() != firstY) {
+	            sameRow = false;
+	        }
+	    }
+
+	    if (!sameRow && !sameColumn) {
+	        return false;
+	    }
+
+	    if (sameRow) {
+	        living.sort((a, b) -> Integer.compare(a.position().x(), b.position().x()));
+
+	        for (int i = 1; i < living.size(); i++) {
+	            int previousX = living.get(i - 1).position().x();
+	            int currentX = living.get(i).position().x();
+
+	            if (currentX != previousX + 1) {
+	                return false;
+	            }
+	        }
+
+	        return true;
+	    }
+
+	    if (sameColumn) {
+	        living.sort((a, b) -> Integer.compare(a.position().y(), b.position().y()));
+
+	        for (int i = 1; i < living.size(); i++) {
+	            int previousY = living.get(i - 1).position().y();
+	            int currentY = living.get(i).position().y();
+
+	            if (currentY != previousY + 1) {
+	                return false;
+	            }
+	        }
+
+	        return true;
+	    }
+
+	    return false;
+	}
+
+	private static void triggerSpawnerAlignmentEffect(BuildMap builder, Pengo pengo) {
+	    assert builder != null;
+	    assert pengo != null;
+
+	    pengo.activateFreezePower();
+	    pengo.activateStar();
+
+	    for (Spawner spawner : builder.spawners()) {
+	        if (spawner.alive() && spawner.installed()) {
+	            spawner.activateAlignmentEffect();
+	        }
+	    }
 	}
 }
