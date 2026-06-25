@@ -980,7 +980,8 @@ public abstract class Glissade extends Entity implements Pushable {
 				return !sameGridCell(other);
 			}
 
-			return !sameGridCell(other) && isInFrontOfSlidingBlock(other);
+			// Pendant la glissade, le joueur ne peut pas traverser le bloc.
+			return sameGridCell(other) || isInFrontOfSlidingBlock(other) || other.bounding().intersects(bounding());
 		}
 
 		boolean hardType = other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
