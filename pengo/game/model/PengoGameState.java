@@ -44,13 +44,39 @@ public class PengoGameState {
 	public Pengo pengo() {
 		return this.pengo;
 	}
+	
+	public Player controlledPlayerForHud() {
+	    for (Entity entity : this.model.entities()) {
+	        if (entity instanceof Player && entity.alive()) {
+	            Player player = (Player) entity;
+
+	            if (player.isControlled()) {
+	                return player;
+	            }
+	        }
+	    }
+
+	    return this.pengo;
+	}
+
+	public boolean friendControlledForHud() {
+	    return controlledPlayerForHud() instanceof Friend;
+	}
+
+	public String controlledPlayerNameForHud() {
+	    if (friendControlledForHud()) {
+	        return "FRIEND";
+	    }
+
+	    return "PENGO";
+	}
 
 	public PowerType activePowerType() {
-		return this.pengo.activePowerTypeForHud();
+		return controlledPlayerForHud().activePowerTypeForHud();
 	}
 
 	public long activePowerRemainingMs() {
-		return this.pengo.activePowerRemainingMsForHud();
+		return controlledPlayerForHud().activePowerRemainingMsForHud();
 	}
 
 	public void enemySpawned() {
@@ -58,18 +84,22 @@ public class PengoGameState {
 	}
 
 	public void update() {
-		if (this.won || this.lost) {
-			return;
-		}
+	    if (this.won || this.lost) {
+	        return;
+	    }
 
-		if (!this.pengo.alive() || this.pengo.isGameOver()) {
-			this.lost = true;
-			return;
-		}
+	    if (!friendCanStillBeUsed()) {
+	        this.pengo.deactivateFriendActivator();
+	    }
 
-		if (this.targetTotalEnemies > 0 && this.spawnedEnemies >= this.targetTotalEnemies && livingEnemies() == 0) {
-			this.won = true;
-		}
+	    if (!this.pengo.alive() || this.pengo.isGameOver()) {
+	        this.lost = true;
+	        return;
+	    }
+
+	    if (this.targetTotalEnemies > 0 && this.spawnedEnemies >= this.targetTotalEnemies && livingEnemies() == 0) {
+	        this.won = true;
+	    }
 	}
 
 	public boolean finished() {
@@ -89,7 +119,7 @@ public class PengoGameState {
 	}
 
 	public int lives() {
-		return this.pengo.nLives();
+		return controlledPlayerForHud().nLives();
 	}
 
 	public int score() {
@@ -160,18 +190,32 @@ public class PengoGameState {
 	}
 
 	public boolean powerActive(PowerType type) {
-		return this.pengo.powerActiveForHud(type);
+		return controlledPlayerForHud().powerActiveForHud(type);
 	}
 
 	public long powerRemainingMs(PowerType type) {
-		return this.pengo.powerRemainingMsForHud(type);
+		return controlledPlayerForHud().powerRemainingMsForHud(type);
 	}
 	
 	public boolean respawnInvincible() {
-		return this.pengo.hasRespawnInvincibility();
+		return controlledPlayerForHud().hasRespawnInvincibility();
 	}
 
 	public long respawnInvincibleRemainingMs() {
-		return this.pengo.respawnInvincibilityRemainingMs();
+		return controlledPlayerForHud().respawnInvincibilityRemainingMs();
+	}
+	
+	private boolean friendCanStillBeUsed() {
+	    for (Entity entity : this.model.entities()) {
+	        if (entity instanceof Friend) {
+	            Friend friend = (Friend) entity;
+
+	            return friend.alive()
+	                    && friend.installed()
+	                    && friend.nLives() > 0;
+	        }
+	    }
+
+	    return false;
 	}
 }

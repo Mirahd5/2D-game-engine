@@ -35,6 +35,8 @@ public final class PengoGameRunner {
 
 	private static final String ENEMY_GAL_PATH = "pengo/game/gal/EnemyChase.gal";
 	private static final String FRIEND_GAL_PATH = "pengo/game/gal/FriendRandom.gal";
+	private static final String SPAWNER_LOAD_GAL_PATH = "pengo/game/gal/SpawnerLoadTest.gal";
+	private static final String LOAD_TEST_MAP_NAME = "gal_load_test";
 
 	private PengoGameRunner() {
 	}
@@ -81,6 +83,7 @@ public final class PengoGameRunner {
 		// charge automate gal
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);
+		Automaton spawnerLoadAutomaton = loadGalAutomaton(SPAWNER_LOAD_GAL_PATH);
 
 		CurrentPlayer currentPlayer = new CurrentPlayer(pengo);
 
@@ -103,8 +106,13 @@ public final class PengoGameRunner {
 		PengoBotInstaller.installFriendGalBot(brain, model, builder.friend(), friendAutomaton, currentPlayer,
 				controlSwitcher);
 		PengoBotInstaller.installEnemyGalBots(brain, model, builder, enemyAutomaton, currentPlayer);
-		PengoBotInstaller.installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config,
-				gameState, runState);
+		if (isGalLoadTestMap(config)) {
+		    PengoBotInstaller.installSpawnerLoadGalBots(brain, model, view, builder, spawnerLoadAutomaton,
+		            enemyAutomaton, currentPlayer, gameState, runState);
+		} else {
+		    PengoBotInstaller.installSpawnerBots(brain, model, view, builder, enemyAutomaton, currentPlayer, config,
+		            gameState, runState);
+		}
 		PengoBotInstaller.installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer,
 				builder, gameState, runState);
 		PengoBotInstaller.installIceBots(brain, model, builder, gameState);
@@ -242,6 +250,10 @@ public final class PengoGameRunner {
 				Runtime.post(this, delayMs);
 			}
 		}, delayMs);
+	}
+	
+	private static boolean isGalLoadTestMap(PengoConfig config) {
+	    return config.mapPath().contains(LOAD_TEST_MAP_NAME);
 	}
 
 	private static Automaton loadGalAutomaton(String path) {

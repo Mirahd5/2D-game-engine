@@ -24,17 +24,24 @@ public final class GalGameContext {
 	private final boolean torusOnYaxis;
 	private final int gridWidth;
 	private final int gridHeight;
+	private final java.lang.Runnable eggAction;
 
 	public GalGameContext(Entity self, BasicStunt stunt, CurrentPlayer currentPlayer) {
-		assert stunt.entity() == self;
-		this.self = self;
-		this.stunt = stunt;
-		this.currentPlayer = currentPlayer;
-		this.grid = self.model().grid();
-		this.torusOnXaxis = self.model().game().isTorusOnXaxis();
-		this.torusOnYaxis = self.model().game().isTorusOnYaxis();
-		this.gridWidth = this.grid.width();
-		this.gridHeight = this.grid.height();
+	    this(self, stunt, currentPlayer, null);
+	}
+
+	public GalGameContext(Entity self, BasicStunt stunt, CurrentPlayer currentPlayer, java.lang.Runnable eggAction) {
+	    assert stunt.entity() == self;
+
+	    this.self = self;
+	    this.stunt = stunt;
+	    this.currentPlayer = currentPlayer;
+	    this.grid = self.model().grid();
+	    this.torusOnXaxis = self.model().game().isTorusOnXaxis();
+	    this.torusOnYaxis = self.model().game().isTorusOnYaxis();
+	    this.gridWidth = this.grid.width();
+	    this.gridHeight = this.grid.height();
+	    this.eggAction = eggAction;
 	}
 
 	public void waitAction() {
@@ -47,6 +54,12 @@ public final class GalGameContext {
 
 	public void turnAction(String direction) {
 		self.setOrientation(resolveDirection(direction));
+	}
+	
+	public void eggAction() {
+	    if (this.eggAction != null) {
+	        this.eggAction.run();
+	    }
 	}
 
 	public boolean cellCondition(String directionName, String categoryName) {

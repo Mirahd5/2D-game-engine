@@ -18,12 +18,17 @@ public final class GalBot extends Bot {
 	private final GalRuntime runtime;
 
 	public GalBot(Brain brain, BasicStunt stunt, Entity entity, Automaton automate, CurrentPlayer currentPlayer) {
-		super(brain, stunt);
+	    this(brain, stunt, entity, automate, currentPlayer, null);
+	}
 
-		this.entity = entity;
-		this.runtime = new GalRuntime(automate, new GalGameContext(entity, stunt, currentPlayer));
+	public GalBot(Brain brain, BasicStunt stunt, Entity entity, Automaton automate, CurrentPlayer currentPlayer,
+	        java.lang.Runnable eggAction) {
+	    super(brain, stunt);
 
-		syncGalStateToEntity();
+	    this.entity = entity;
+	    this.runtime = new GalRuntime(automate, new GalGameContext(entity, stunt, currentPlayer, eggAction));
+
+	    syncGalStateToEntity();
 	}
 
 	public String currentGalStateName() {
