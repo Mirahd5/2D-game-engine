@@ -15,6 +15,8 @@ public final class FleeBot extends Bot {
 
 	private final List<Entity> enemies;
 
+	private Integer lastDirection;
+
 	public FleeBot(Brain brain, Stunt stunt, Entity enemy) {
 		super(brain, stunt);
 
@@ -133,10 +135,22 @@ public final class FleeBot extends Bot {
 					Orientation.backOf(verticalAway) };
 		}
 
+		Integer oppositeCandidate = null;
+
 		for (int direction : directions) {
+			if (this.lastDirection != null && Orientation.opposite(this.lastDirection.intValue(), direction)) {
+				oppositeCandidate = Integer.valueOf(direction);
+				continue;
+			}
+
 			if (this.stunt.walk(direction)) {
+				this.lastDirection = Integer.valueOf(direction);
 				return;
 			}
+		}
+
+		if (oppositeCandidate != null && this.stunt.walk(oppositeCandidate.intValue())) {
+			this.lastDirection = oppositeCandidate;
 		}
 	}
 }

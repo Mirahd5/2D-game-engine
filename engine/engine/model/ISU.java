@@ -226,10 +226,12 @@ public class ISU {
 		}
 
 		public Grid.Position toGridPosition() {
-			int x_ncell = (int) Math.floor(this.x_cm / ISU.this.cmPerCell);
-			int y_ncell = (int) Math.floor(this.y_cm / ISU.this.cmPerCell);
+			assert grid != null;
 
-			return ISU.this.grid.new Position(x_ncell, y_ncell);
+			int x_ncell = (int) Math.floor(this.x_cm / cmPerCell);
+			int y_ncell = (int) Math.floor(this.y_cm / cmPerCell);
+
+			return grid.new Position(x_ncell, y_ncell);
 		}
 
 		public void rotation(int angleDegree) {

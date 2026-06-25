@@ -21,7 +21,9 @@ public final class TimeStats {
 	}
 
 	public void record(double value) {
-		assert value >= 0.0 : value;
+		if (value < 0.0) {
+			return;
+		}
 
 		if (this.count == 0L) {
 			this.min = value;
