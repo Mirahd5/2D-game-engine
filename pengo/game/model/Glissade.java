@@ -1,6 +1,5 @@
 package game.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import engine.model.Bounding;
@@ -14,29 +13,22 @@ import game.config.PengoRunState;
 
 public abstract class Glissade extends Entity implements Pushable {
 
+	// Paramètres principaux de la glissade.
 	protected static final double INITIAL_SPEED_NCELL_PER_SECOND = 4.2;
 	protected static final double COLLISION_SIZE_FACTOR = 0.86;
 	protected static final double MAX_TRAVEL_FACTOR = 1.5;
 	protected static final double EPS = 0.000001;
 
-	private boolean sliding;
-	private int slideDirection;
+	// Composants qui gèrent chacun une partie du comportement.
+	private final SlideMotion motion;
+	private final SlideGeometry geometry;
+	private final GridSnapper gridSnapper;
+	private final EnemyTrain enemyTrain;
+	private final PowerStopController powerStop;
+	private final SlideCollisionHandler collisionHandler;
 
-	private double currentSpeed_cmPerSecond;
-	private double deceleration_cmPerSecond2;
-	private double traveledDistance_cm;
-	private double maximumDistance_cm;
-
-	private ISU.Coord previousCenter;
-	private Grid.Position lastStablePosition;
-	private long lastUpdate_ms;
+	// État global du jeu, utile pour le temps/pause/stop.
 	private PengoRunState runState;
-
-	private final List<Enemies> carriedEnemies;
-
-	private Enemies smoothPowerStopEnemy;
-	private Grid.Position smoothPowerStopBlockPosition;
-	private Grid.Position smoothPowerStopEnemyPosition;
 
 	protected Glissade(Model model, String name, int zOrder, int sOrder) {
 		super(model, name);
@@ -44,10 +36,17 @@ public abstract class Glissade extends Entity implements Pushable {
 		double cell = model.isu().cmPerCell();
 		double collisionSize = cell * COLLISION_SIZE_FACTOR;
 
+		// Le bloc est légèrement plus petit qu'une case pour les collisions.
 		setSize(model.isu().new Dimension(collisionSize, collisionSize));
 		setStep(model.isu().new Dimension(cell, cell));
 
-		this.carriedEnemies = new ArrayList<Enemies>();
+		// Initialisation des gestionnaires internes.
+		this.motion = new SlideMotion();
+		this.geometry = new SlideGeometry(model);
+		this.gridSnapper = new GridSnapper(this);
+		this.enemyTrain = new EnemyTrain(this);
+		this.powerStop = new PowerStopController(this, this.enemyTrain);
+		this.collisionHandler = new SlideCollisionHandler(this, this.enemyTrain, this.powerStop);
 
 		setZOrder(zOrder);
 		setSOrder(sOrder);
@@ -88,95 +87,87 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	@Override
 	public final boolean push(int directionDegree) {
-		if (!alive() || !installed() || this.sliding) {
+		// Impossible de pousser si le bloc est invalide ou déjà en mouvement.
+		if (!alive() || !installed() || this.motion.isSliding()) {
 			return false;
 		}
 
 		int direction = Orientation.normalize(directionDegree);
-		Grid.Position target = neighbor(position(), direction);
+		Grid.Position target = this.geometry.neighbor(position(), direction);
 
+		// Pas de cellule dans cette direction.
 		if (target == null) {
 			return false;
 		}
 
+		// La cellule devant est bloquée.
 		if (isBlockedAt(target)) {
 			return onPushBlocked(direction, target);
 		}
 
-		this.slideDirection = direction;
-		this.traveledDistance_cm = 0.0;
-		this.maximumDistance_cm = axisLength(direction) * MAX_TRAVEL_FACTOR;
-		this.previousCenter = center();
-		this.lastStablePosition = position().copy();
-		this.lastUpdate_ms = gameTimeMs();
-
-		clearSmoothPowerStop();
-		this.carriedEnemies.clear();
-
 		double initialSpeed = model().isu().cmPerCell() * INITIAL_SPEED_NCELL_PER_SECOND;
+		double maximumDistance = this.geometry.axisLength(direction) * MAX_TRAVEL_FACTOR;
 
-		this.currentSpeed_cmPerSecond = initialSpeed;
-		this.deceleration_cmPerSecond2 = (initialSpeed * initialSpeed) / (2.0 * this.maximumDistance_cm);
+		// Démarre la glissade.
+		this.motion.start(this, direction, initialSpeed, maximumDistance, gameTimeMs());
+
+		// Réinitialise les états liés à la glissade précédente.
+		this.powerStop.clear();
+		this.enemyTrain.clear();
+		this.gridSnapper.setLastStablePosition(position().copy());
 
 		setOrientation(direction);
-		setLinearSpeed(speedVector(direction, this.currentSpeed_cmPerSecond));
-
-		this.sliding = true;
+		setLinearSpeed(this.geometry.speedVector(direction, initialSpeed));
 
 		return true;
 	}
 
+	// Hook pour les classes filles si un push est bloqué.
 	protected boolean onPushBlocked(int direction, Grid.Position target) {
 		return false;
 	}
 
 	public final void updateSliding() {
-		if (!this.sliding || !alive() || !installed()) {
+		// Rien à mettre à jour si le bloc ne glisse pas.
+		if (!this.motion.isSliding() || !alive() || !installed()) {
 			return;
 		}
 
+		// Si la vitesse est nulle, on arrête proprement.
 		if (linearSpeed().norm() <= EPS) {
 			stopSlidingAndSnapToCell();
 			return;
 		}
 
-		long now = gameTimeMs();
-		long elapsed = this.lastUpdate_ms == 0L ? 0L : now - this.lastUpdate_ms;
-		this.lastUpdate_ms = now;
+		// Met à jour la distance parcourue.
+		this.motion.updateDistance(this);
+		this.gridSnapper.rememberStableCellIfUseful();
 
-		ISU.Coord currentCenter = center();
-
-		if (this.previousCenter != null) {
-			this.traveledDistance_cm += this.previousCenter.distanceTo(currentCenter);
-		}
-
-		this.previousCenter = currentCenter;
-
-		rememberStableCellIfUseful();
-
-		if (this.traveledDistance_cm + EPS >= this.maximumDistance_cm) {
+		// Stop si la distance max est atteinte.
+		if (this.motion.reachedMaximumDistance(EPS)) {
 			stopSliding();
 			return;
 		}
 
-		double dt = Math.max(0.0, elapsed / 1000.0);
+		// Applique la décélération.
+		this.motion.decelerate(gameTimeMs());
 
-		this.currentSpeed_cmPerSecond = Math.max(0.0,
-				this.currentSpeed_cmPerSecond - this.deceleration_cmPerSecond2 * dt);
-
-		if (this.currentSpeed_cmPerSecond <= EPS) {
+		// Stop si la vitesse devient trop faible.
+		if (this.motion.isTooSlow(EPS)) {
 			stopSliding();
 			return;
 		}
 
-		setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
+		// Réapplique la vitesse dans la bonne direction.
+		restoreSlideSpeed();
 
-		againstCrossingEnemies();
+		// Gère les ennemis qui croisent ou sont poussés.
+		this.enemyTrain.againstCrossingEnemies();
 
-		if (this.smoothPowerStopEnemy != null) {
-			updateSmoothPowerStop();
+		if (this.powerStop.active()) {
+			this.powerStop.update();
 		} else {
-			carryEnemies();
+			this.enemyTrain.carryEnemies();
 		}
 	}
 
@@ -185,338 +176,82 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private void stopSlidingAndSnapToCell() {
-		stopSlidingAt(safeSnapPosition());
+		stopSlidingAt(this.gridSnapper.safeSnapPosition(this.motion.direction()));
 	}
 
-	private void stopSlidingAt(Grid.Position snapPosition) {
-		boolean wasSliding = this.sliding;
+	final void stopSlidingAt(Grid.Position snapPosition) {
+		boolean wasSliding = this.motion.isSliding();
 
-		clearSmoothPowerStop();
-
-		this.sliding = false;
-		this.currentSpeed_cmPerSecond = 0.0;
-		this.deceleration_cmPerSecond2 = 0.0;
-		this.previousCenter = null;
-		this.lastUpdate_ms = 0L;
+		// Nettoie l'état de glissade.
+		this.powerStop.clear();
+		this.motion.stop();
 
 		setLinearSpeed(model().isu().new Vector(0.0, 0.0));
 		setAngularSpeed(0.0);
 
-		releaseCarriedEnemies();
+		// Relâche les ennemis transportés.
+		this.enemyTrain.releaseCarriedEnemies();
 
+		// Replace le bloc sur une cellule propre.
 		if (wasSliding && alive() && installed() && snapPosition != null) {
 			model().place(this, snapPosition);
-			this.lastStablePosition = snapPosition.copy();
+			this.gridSnapper.setLastStablePosition(snapPosition.copy());
 		}
 	}
 
 	@Override
 	public final void collision(Entity other) {
-		if (this.smoothPowerStopEnemy != null) {
-			updateSmoothPowerStop();
+		// Les collisions spéciales de glissade sont déléguées.
+		boolean handled = this.collisionHandler.handleCollision(other);
 
-			if (this.sliding && this.smoothPowerStopEnemy != null) {
-				setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
-				setAngularSpeed(0.0);
-			}
-
-			return;
+		if (!handled) {
+			super.collision(other);
 		}
-
-		boolean capturedEnemy = handleSlidingContact(other);
-
-		if (capturedEnemy) {
-			setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
-			setAngularSpeed(0.0);
-			carryEnemies();
-			return;
-		}
-
-		if (this.sliding && other instanceof Power && !this.carriedEnemies.isEmpty() && isPowerAfterTrain(other)) {
-			Enemies lastEnemy = this.carriedEnemies.get(this.carriedEnemies.size() - 1);
-			startSmoothPowerStop(lastEnemy, blockStopBeforePower(other.position()), other.position().copy());
-			setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
-			setAngularSpeed(0.0);
-			return;
-		}
-
-		if (this.sliding && isStaticObstacle(other) && isInFrontOfSlidingBlock(other)) {
-			if (isCrushingObstacle(other)) {
-				crushCarriedEnemies(other);
-			}
-
-			stopSliding();
-			return;
-		}
-
-		if (isHardBlockForThisBlock(other)) {
-			if (isCrushingObstacle(other)) {
-				crushCarriedEnemies(other);
-			}
-
-			stopSliding();
-			return;
-		}
-
-		carryEnemies();
-
-		super.collision(other);
 	}
 
 	@Override
 	public final void collision(List<Entity> entities) {
-		if (this.smoothPowerStopEnemy != null) {
-			updateSmoothPowerStop();
+		// Même principe, mais pour plusieurs collisions en même temps.
+		boolean handled = this.collisionHandler.handleCollision(entities);
 
-			if (this.sliding && this.smoothPowerStopEnemy != null) {
-				setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
-				setAngularSpeed(0.0);
-			}
-
-			return;
+		if (!handled) {
+			super.collision(entities);
 		}
-
-		boolean capturedEnemy = false;
-		boolean mustStop = false;
-		Entity crushingObstacle = null;
-
-		for (Entity other : entities) {
-			if (other == this || !other.alive()) {
-				continue;
-			}
-
-			if (handleSlidingContact(other)) {
-				capturedEnemy = true;
-				continue;
-			}
-
-			if (this.sliding && other instanceof Power && !this.carriedEnemies.isEmpty() && isPowerAfterTrain(other)) {
-				Enemies lastEnemy = this.carriedEnemies.get(this.carriedEnemies.size() - 1);
-				startSmoothPowerStop(lastEnemy, blockStopBeforePower(other.position()), other.position().copy());
-				capturedEnemy = true;
-				continue;
-			}
-
-			if (this.sliding && isStaticObstacle(other) && isInFrontOfSlidingBlock(other)) {
-				mustStop = true;
-
-				if (isCrushingObstacle(other)) {
-					crushingObstacle = other;
-				}
-
-				continue;
-			}
-
-			if (isHardBlockForThisBlock(other)) {
-				mustStop = true;
-
-				if (isCrushingObstacle(other)) {
-					crushingObstacle = other;
-				}
-			}
-		}
-
-		if (crushingObstacle != null) {
-			crushCarriedEnemies(crushingObstacle);
-		}
-
-		if (mustStop) {
-			stopSliding();
-			return;
-		}
-
-		if (capturedEnemy) {
-			setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
-			setAngularSpeed(0.0);
-			carryEnemies();
-			return;
-		}
-
-		carryEnemies();
-
-		super.collision(entities);
 	}
 
 	@Override
 	public final boolean blocks(Entity other) {
-		if (other instanceof Enemies) {
-			Enemies enemy = (Enemies) other;
-
-			if (!this.sliding) {
-				return !sameGridCell(other);
-			}
-
-			return blocksEnemyWhileSliding(enemy);
-		}
-
-		if (this.sliding && this.smoothPowerStopEnemy != null && isSmoothPowerTarget(other)) {
-			return false;
-		}
-
-		return isHardBlockForThisBlock(other);
-	}
-
-	private boolean blocksEnemyWhileSliding(Enemies enemy) {
-		if (enemy == null || !enemy.alive() || enemy.isCrushed()) {
-			return false;
-		}
-
-		if (this.carriedEnemies.contains(enemy)) {
-			return false;
-		}
-
-		return isEnemyInSolidTrainZone(enemy);
-	}
-
-	private void againstCrossingEnemies() {
-		if (!this.sliding || !alive() || !installed()) {
-			return;
-		}
-
-		List<Entity> snapshot = model().entities();
-
-		for (Entity entity : snapshot) {
-			if (!(entity instanceof Enemies)) {
-				continue;
-			}
-
-			Enemies enemy = (Enemies) entity;
-
-			if (!enemy.alive() || enemy.isCrushed() || this.carriedEnemies.contains(enemy)) {
-				continue;
-			}
-
-			int expectedIndex = this.carriedEnemies.size() + 1;
-
-			if (this.smoothPowerStopEnemy == null && isCarryCandidateAtIndex(enemy, expectedIndex)) {
-				prepareCarriedEnemy(enemy);
-				continue;
-			}
-
-			if (isEnemyCrossingSlidingBody(enemy) || isEnemyInSolidTrainZone(enemy)) {
-				stopSliding();
-				return;
-			}
-		}
-	}
-
-	private boolean isEnemyCrossingSlidingBody(Enemies enemy) {
-		if (enemy == null || !enemy.alive() || enemy.isCrushed()) {
-			return false;
-		}
-
-		if (sameGridCell(enemy) || enemy.bounding().intersects(bounding())) {
-			return true;
-		}
-
-		return isEnemyInBlockBody(enemy);
-	}
-
-	private boolean isEnemyInBlockBody(Enemies enemy) {
-		if (enemy == null || !this.sliding) {
-			return false;
-		}
-
-		ISU.Vector towardEnemy = center().mkVectorToward(enemy.center());
-		double forward = forwardProjection(towardEnemy, this.slideDirection);
-		double lateral = Math.abs(lateralProjection(towardEnemy, this.slideDirection));
-		double cell = model().isu().cmPerCell();
-
-		return forward >= -cell * 0.72 && forward <= cell * 0.86 && lateral <= cell * 0.48;
-	}
-
-	private boolean isEnemyInSolidTrainZone(Enemies enemy) {
-		if (enemy == null || !this.sliding || !enemy.alive() || enemy.isCrushed()) {
-			return false;
-		}
-
-		ISU.Vector towardEnemy = center().mkVectorToward(enemy.center());
-		double forward = forwardProjection(towardEnemy, this.slideDirection);
-		double lateral = Math.abs(lateralProjection(towardEnemy, this.slideDirection));
-		double cell = model().isu().cmPerCell();
-
-		double rearLimit = -cell * 0.72;
-		double frontLimit = cell * (Math.max(0, this.carriedEnemies.size()) + 0.92);
-
-		return forward >= rearLimit && forward <= frontLimit && lateral <= cell * 0.48;
+		return this.collisionHandler.blocks(other);
 	}
 
 	public final boolean isSliding() {
-		return this.sliding;
+		return this.motion.isSliding();
 	}
 
 	public final int slideDirection() {
-		return this.slideDirection;
+		return this.motion.direction();
 	}
 
 	public final double currentSpeedCmPerSecond() {
-		return this.currentSpeed_cmPerSecond;
+		return this.motion.currentSpeedCmPerSecond();
 	}
 
 	public final double traveledDistanceCm() {
-		return this.traveledDistance_cm;
+		return this.motion.traveledDistanceCm();
 	}
 
 	public final double maximumDistanceCm() {
-		return this.maximumDistance_cm;
+		return this.motion.maximumDistanceCm();
 	}
 
 	public static double collisionSizeFactor() {
 		return COLLISION_SIZE_FACTOR;
 	}
 
-	private void rememberStableCellIfUseful() {
-		if (!alive() || !installed()) {
-			return;
-		}
-
-		Grid.Position current = position();
-		ISU.Coord cellCenter = current.toISUCoordCentered();
-
-		if (center().distanceTo(cellCenter) <= model().isu().cmPerCell() * 0.20) {
-			this.lastStablePosition = current.copy();
-		}
-	}
-
-	private Grid.Position safeSnapPosition() {
-		Grid.Position current = position();
-
-		if (cellCanReceiveStoppedBlock(current)) {
-			return current.copy();
-		}
-
-		if (this.lastStablePosition != null && cellCanReceiveStoppedBlock(this.lastStablePosition)) {
-			return this.lastStablePosition.copy();
-		}
-
-		Grid.Position behind = neighbor(current, Orientation.backOf(this.slideDirection));
-
-		if (behind != null && cellCanReceiveStoppedBlock(behind)) {
-			return behind;
-		}
-
-		return current;
-	}
-
-	private boolean cellCanReceiveStoppedBlock(Grid.Position position) {
-		if (position == null) {
-			return false;
-		}
-
-		Grid.Cell cell = model().grid().cellAt(position);
-
-		for (Entity other : cell.entities()) {
-			if (other == this || !other.alive()) {
-				continue;
-			}
-
-			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner
-					|| other instanceof Power) {
-				return false;
-			}
-		}
-
-		return true;
+	// Remet la vitesse de glissade après une collision.
+	final void restoreSlideSpeed() {
+		setLinearSpeed(this.geometry.speedVector(this.motion.direction(), this.motion.currentSpeedCmPerSecond()));
+		setAngularSpeed(0.0);
 	}
 
 	private boolean isBlockedAt(Grid.Position target) {
@@ -535,193 +270,12 @@ public abstract class Glissade extends Entity implements Pushable {
 		return false;
 	}
 
-	private boolean handleSlidingContact(Entity other) {
-		if (!this.sliding || this.smoothPowerStopEnemy != null || !(other instanceof Enemies) || !other.alive()) {
-			return false;
-		}
-
-		Enemies enemy = (Enemies) other;
-
-		if (enemy.isCrushed()) {
-			return false;
-		}
-
-		if (!this.carriedEnemies.contains(enemy)) {
-			int expectedIndex = this.carriedEnemies.size() + 1;
-
-			if (!isCarryCandidateAtIndex(enemy, expectedIndex)) {
-				return false;
-			}
-		}
-
-		prepareCarriedEnemy(enemy);
-
-		return true;
-	}
-
-	private void carryEnemies() {
-		catchEnemiesInFrontOfTrain();
-
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-
-		for (Enemies enemy : copy) {
-			if (!enemy.alive() || !enemy.installed()) {
-				this.carriedEnemies.remove(enemy);
-			}
-		}
-
-		if (this.carriedEnemies.isEmpty()) {
-			stopBeforePowerIfNeeded();
-			return;
-		}
-
-		Grid.Position afterTrain = positionInFront(this.carriedEnemies.size() + 1);
-
-		if (afterTrain == null) {
-			crushCarriedEnemiesWithoutObstacle();
-			return;
-		}
-
-		Entity obstacleAfterTrain = enemyStoppingObstacleAt(afterTrain);
-
-		if (obstacleAfterTrain != null) {
-			if (isCrushingObstacle(obstacleAfterTrain)) {
-				crushCarriedEnemies(obstacleAfterTrain);
-			} else {
-				Enemies lastEnemy = this.carriedEnemies.get(this.carriedEnemies.size() - 1);
-				startSmoothPowerStop(lastEnemy, blockStopBeforePower(afterTrain), afterTrain.copy());
-			}
-
-			return;
-		}
-
-		placeCarriedEnemiesAsTrain();
-	}
-
-	private boolean stopBeforePowerIfNeeded() {
-		Grid.Position next = positionInFront(1);
-
-		if (next == null) {
-			return false;
-		}
-
-		Entity obstacle = powerAt(next);
-
-		if (obstacle == null) {
-			return false;
-		}
-
-		stopSlidingAt(position().copy());
-
-		return true;
-	}
-
-	private Entity powerAt(Grid.Position position) {
-		if (position == null) {
-			return null;
-		}
-
-		Grid.Cell cell = model().grid().cellAt(position);
-
-		for (Entity other : cell.entities()) {
-			if (other instanceof Power && other.alive()) {
-				return other;
-			}
-		}
-
-		return null;
-	}
-
-	private void catchEnemiesInFrontOfTrain() {
-		boolean added;
-
-		do {
-			added = false;
-
-			Grid.Position nextEnemyPosition = positionInFront(this.carriedEnemies.size() + 1);
-			Enemies enemy = firstCarryableEnemyAt(nextEnemyPosition);
-
-			if (enemy != null) {
-				prepareCarriedEnemy(enemy);
-				added = true;
-			}
-		} while (added);
-	}
-
-	private void prepareCarriedEnemy(Enemies enemy) {
-		if (!this.carriedEnemies.contains(enemy)) {
-			this.carriedEnemies.add(enemy);
-		}
-
-		enemy.freeze();
-		enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
-		enemy.setAngularSpeed(0.0);
-	}
-
-	private void placeCarriedEnemiesAsTrain() {
-		for (int i = 0; i < this.carriedEnemies.size(); i++) {
-			Enemies enemy = this.carriedEnemies.get(i);
-
-			if (enemy.alive() && enemy.installed()) {
-				enemy.freeze();
-				enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
-				enemy.setAngularSpeed(0.0);
-				model().place(enemy, carriedEnemyCenter(i + 1));
-			}
-		}
-	}
-
-	private boolean isCarryCandidateAtIndex(Enemies enemy, int expectedIndex) {
-		if (enemy == null || !enemy.alive() || enemy.isCrushed() || expectedIndex <= 0) {
-			return false;
-		}
-
-		Grid.Position expectedPosition = positionInFront(expectedIndex);
-
-		if (expectedPosition == null) {
-			return false;
-		}
-
-		ISU.Coord expectedCenter = expectedPosition.toISUCoordCentered();
-		ISU.Vector towardExpected = center().mkVectorToward(expectedCenter);
-		ISU.Vector towardEnemy = center().mkVectorToward(enemy.center());
-
-		double expectedForward = forwardProjection(towardExpected, this.slideDirection);
-		double enemyForward = forwardProjection(towardEnemy, this.slideDirection);
-		double enemyLateral = Math.abs(lateralProjection(towardEnemy, this.slideDirection));
-
-		double cell = model().isu().cmPerCell();
-
-		return Math.abs(enemyForward - expectedForward) <= cell * 0.78 && enemyLateral <= cell * 0.46;
-	}
-
-	private Enemies firstCarryableEnemyAt(Grid.Position position) {
-		if (position == null) {
-			return null;
-		}
-
-		int expectedIndex = this.carriedEnemies.size() + 1;
-		Grid.Cell cell = model().grid().cellAt(position);
-
-		for (Entity other : cell.entities()) {
-			if (other instanceof Enemies && other.alive()) {
-				Enemies enemy = (Enemies) other;
-
-				if (!enemy.isCrushed() && !this.carriedEnemies.contains(enemy)
-						&& isCarryCandidateAtIndex(enemy, expectedIndex)) {
-					return enemy;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	private Grid.Position positionInFront(int distanceInCells) {
+	// Position située devant le bloc, selon sa direction de glissade.
+	final Grid.Position positionInFront(int distanceInCells) {
 		Grid.Position result = position().copy();
 
 		for (int i = 0; i < distanceInCells; i++) {
-			result = neighbor(result, this.slideDirection);
+			result = this.geometry.neighbor(result, this.motion.direction());
 
 			if (result == null) {
 				return null;
@@ -731,7 +285,8 @@ public abstract class Glissade extends Entity implements Pushable {
 		return result;
 	}
 
-	private Grid.Position positionInFrontFrom(Grid.Position start, int distanceInCells) {
+	// Position située devant une position donnée.
+	final Grid.Position positionInFrontFrom(Grid.Position start, int distanceInCells) {
 		if (start == null) {
 			return null;
 		}
@@ -739,7 +294,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		Grid.Position result = start.copy();
 
 		for (int i = 0; i < distanceInCells; i++) {
-			result = neighbor(result, this.slideDirection);
+			result = this.geometry.neighbor(result, this.motion.direction());
 
 			if (result == null) {
 				return null;
@@ -749,363 +304,88 @@ public abstract class Glissade extends Entity implements Pushable {
 		return result;
 	}
 
-	private Grid.Position blockStopBeforePower(Grid.Position powerPosition) {
-		if (powerPosition == null) {
-			return positionInFront(1);
-		}
-
-		Grid.Position result = powerPosition.copy();
-		int backward = Orientation.backOf(this.slideDirection);
-		int distance = Math.max(1, this.carriedEnemies.size());
-
-		for (int i = 0; i < distance; i++) {
-			result = neighbor(result, backward);
-
-			if (result == null) {
-				return positionInFront(1);
-			}
-		}
-
-		return result;
-	}
-
-	private void startSmoothPowerStop(Enemies enemy, Grid.Position blockStopPosition, Grid.Position enemyStopPosition) {
-		assert blockStopPosition != null;
-		assert enemyStopPosition != null;
-
-		this.smoothPowerStopEnemy = enemy;
-		this.smoothPowerStopBlockPosition = blockStopPosition.copy();
-		this.smoothPowerStopEnemyPosition = enemyStopPosition.copy();
-
-		if (!this.carriedEnemies.contains(enemy)) {
-			this.carriedEnemies.add(enemy);
-		}
-
-		for (Enemies carriedEnemy : this.carriedEnemies) {
-			if (carriedEnemy.alive() && carriedEnemy.installed()) {
-				carriedEnemy.freeze();
-				carriedEnemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
-				carriedEnemy.setAngularSpeed(0.0);
-			}
-		}
-	}
-
-	private void updateSmoothPowerStop() {
-		if (this.smoothPowerStopEnemy == null || this.smoothPowerStopBlockPosition == null) {
-			clearSmoothPowerStop();
-			stopSliding();
-			return;
-		}
-
-		removeInvalidCarriedEnemies();
-
-		if (this.carriedEnemies.isEmpty()) {
-			clearSmoothPowerStop();
-			stopSliding();
-			return;
-		}
-
-		placeCarriedEnemiesAsTrain();
-
-		if (!hasReachedSmoothPowerStopPosition()) {
-			return;
-		}
-
-		Grid.Position blockStop = this.smoothPowerStopBlockPosition.copy();
-
-		releaseCarriedEnemiesAfterSmoothPowerStop(blockStop);
-
-		clearSmoothPowerStop();
-		stopSlidingAt(blockStop);
-	}
-
-	private void removeInvalidCarriedEnemies() {
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-
-		for (Enemies enemy : copy) {
-			if (!enemy.alive() || !enemy.installed()) {
-				this.carriedEnemies.remove(enemy);
-			}
-		}
-	}
-
-	private void releaseCarriedEnemiesAfterSmoothPowerStop(Grid.Position blockStopPosition) {
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-
-		for (int i = 0; i < copy.size(); i++) {
-			Enemies enemy = copy.get(i);
-
-			if (!enemy.alive() || !enemy.installed()) {
-				this.carriedEnemies.remove(enemy);
-				continue;
-			}
-
-			Grid.Position finalPosition = positionInFrontFrom(blockStopPosition, i + 1);
-			ISU.Coord safeCenter = finalPosition == null ? enemy.center() : finalPosition.toISUCoordCentered();
-
-			releaseCarriedEnemy(enemy, safeCenter);
-		}
-	}
-
-	private boolean hasReachedSmoothPowerStopPosition() {
-		if (this.smoothPowerStopBlockPosition == null) {
-			return true;
-		}
-
-		ISU.Coord targetCenter = this.smoothPowerStopBlockPosition.toISUCoordCentered();
-		ISU.Vector towardTarget = center().mkVectorToward(targetCenter);
-
-		double remaining = forwardProjection(towardTarget, this.slideDirection);
-		double tolerance = model().isu().cmPerCell() * 0.06;
-
-		return remaining <= tolerance;
-	}
-
-	private void clearSmoothPowerStop() {
-		this.smoothPowerStopEnemy = null;
-		this.smoothPowerStopBlockPosition = null;
-		this.smoothPowerStopEnemyPosition = null;
-	}
-
-	private ISU.Coord carriedEnemyCenter(int distanceInCells) {
-		return center().mkTranslated(forwardOffset(this.slideDirection, model().isu().cmPerCell() * distanceInCells));
-	}
-
-	private void crushCarriedEnemiesWithoutObstacle() {
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-		this.carriedEnemies.clear();
-
-		for (int i = 0; i < copy.size(); i++) {
-			Enemies enemy = copy.get(i);
-
-			if (enemy.alive()) {
-				enemy.crushAt(this.slideDirection, carriedEnemyCenter(i + 1));
-			}
-		}
-	}
-
-	private void crushCarriedEnemies(Entity obstacle) {
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-		this.carriedEnemies.clear();
-
-		for (int i = 0; i < copy.size(); i++) {
-			Enemies enemy = copy.get(i);
-
-			if (enemy.alive()) {
-				enemy.crushBetweenAt(this, obstacle, this.slideDirection, carriedEnemyCenter(i + 1));
-			}
-		}
-	}
-
-	private void releaseCarriedEnemy(Enemies enemy, ISU.Coord safeCenter) {
-		this.carriedEnemies.remove(enemy);
-
-		if (!enemy.alive()) {
-			return;
-		}
-
-		if (safeCenter != null && enemy.installed()) {
-			model().place(enemy, safeCenter);
-		}
-
-		enemy.releaseAfterBeingCarried();
-	}
-
-	private void releaseCarriedEnemies() {
-		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
-		this.carriedEnemies.clear();
-
-		for (Enemies enemy : copy) {
-			if (enemy.alive()) {
-				enemy.releaseAfterBeingCarried();
-			}
-		}
-	}
-
-	private boolean isPowerAfterTrain(Entity other) {
-		if (!(other instanceof Power) || this.carriedEnemies.isEmpty()) {
-			return false;
-		}
-
-		Grid.Position expected = positionInFront(this.carriedEnemies.size() + 1);
-
-		return expected != null && expected.equals(other.position());
-	}
-
-	private boolean isSmoothPowerTarget(Entity other) {
-		return other instanceof Power && this.smoothPowerStopEnemyPosition != null
-				&& this.smoothPowerStopEnemyPosition.equals(other.position());
-	}
-
-	private Entity enemyStoppingObstacleAt(Grid.Position position) {
-		if (position == null) {
-			return null;
-		}
-
-		Grid.Cell cell = model().grid().cellAt(position);
-
-		for (Entity other : cell.entities()) {
-			if (other != this && other.alive() && isEnemyStoppingObstacle(other)) {
-				return other;
-			}
-		}
-
-		return null;
-	}
-
-	private boolean isEnemyStoppingObstacle(Entity other) {
-		return isCrushingObstacle(other) || other instanceof Power;
-	}
-
-	private boolean isStaticObstacle(Entity other) {
-		return other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner
+	// Obstacles considérés comme fixes pour la glissade.
+	final boolean isStaticObstacle(Entity other) {
+		return other instanceof Obstacle
+				|| other instanceof Mur
+				|| other instanceof Glacon
+				|| other instanceof Spawner
 				|| other instanceof Power;
 	}
 
-	private boolean isCrushingObstacle(Entity other) {
+	// Obstacles capables d'écraser les ennemis transportés.
+	final boolean isCrushingObstacle(Entity other) {
 		return other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
 	}
 
-	private boolean isHardBlockForThisBlock(Entity other) {
+	// Détermine si une entité bloque ce bloc.
+	final boolean isHardBlockForThisBlock(Entity other) {
 		if (other instanceof Enemies) {
 			return false;
 		}
 
-		if (this.sliding && this.smoothPowerStopEnemy != null && isSmoothPowerTarget(other)) {
+		if (isSliding() && this.powerStop.active() && this.powerStop.isSmoothPowerTarget(other)) {
 			return false;
 		}
 
 		if (other instanceof Pengo || other instanceof Friend) {
-			if (!this.sliding) {
+			if (!isSliding()) {
 				return !sameGridCell(other);
 			}
 
-			// Si le bloc glisse, il bloque toujours Pengo/Friend au contact.
 			return true;
 		}
 
-		boolean hardType = other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
-				|| other instanceof Spawner || other instanceof Power;
+		boolean hardType = other instanceof Obstacle
+				|| other instanceof Mur
+				|| other instanceof Glacon
+				|| other instanceof Spawner
+				|| other instanceof Power;
 
 		if (!hardType) {
 			return false;
 		}
 
-		if (!this.sliding) {
+		if (!isSliding()) {
 			return true;
 		}
 
 		return isInFrontOfSlidingBlock(other);
 	}
 
-	private boolean sameGridCell(Entity other) {
+	final boolean sameGridCell(Entity other) {
 		return other != null && position().equals(other.position());
 	}
 
-	private boolean isInFrontOfSlidingBlock(Entity other) {
-		if (other == null || !this.sliding) {
+	// Vérifie si l'entité est devant le bloc dans l'axe de glissade.
+	final boolean isInFrontOfSlidingBlock(Entity other) {
+		if (other == null || !isSliding()) {
 			return false;
 		}
 
 		ISU.Vector towardOther = center().mkVectorToward(other.center());
-		double forward = forwardProjection(towardOther, this.slideDirection);
-		double lateral = Math.abs(lateralProjection(towardOther, this.slideDirection));
+		double forward = this.geometry.forwardProjection(towardOther, this.motion.direction());
+		double lateral = Math.abs(this.geometry.lateralProjection(towardOther, this.motion.direction()));
 		double cell = model().isu().cmPerCell();
 
 		return forward > cell * 0.10 && lateral <= cell * 0.55;
 	}
 
-	private double forwardProjection(ISU.Vector vector, int direction) {
-		switch (direction) {
-		case Orientation.EAST:
-			return vector.x();
-
-		case Orientation.SOUTH:
-			return vector.y();
-
-		case Orientation.WEST:
-			return -vector.x();
-
-		case Orientation.NORTH:
-			return -vector.y();
-
-		default:
-			throw new AssertionError("Not a cardinal direction: " + direction);
-		}
+	final SlideGeometry geometry() {
+		return this.geometry;
 	}
 
-	private double lateralProjection(ISU.Vector vector, int direction) {
-		switch (direction) {
-		case Orientation.EAST:
-		case Orientation.WEST:
-			return vector.y();
-
-		case Orientation.SOUTH:
-		case Orientation.NORTH:
-			return vector.x();
-
-		default:
-			throw new AssertionError("Not a cardinal direction: " + direction);
-		}
-	}
-
-	private double axisLength(int direction) {
-		if (direction == Orientation.EAST || direction == Orientation.WEST) {
-			return model().isu().width();
-		}
-
-		return model().isu().height();
-	}
-
-	private ISU.Vector forwardOffset(int direction, double distance_cm) {
-		switch (direction) {
-		case Orientation.EAST:
-			return model().isu().new Vector(distance_cm, 0.0);
-
-		case Orientation.SOUTH:
-			return model().isu().new Vector(0.0, distance_cm);
-
-		case Orientation.WEST:
-			return model().isu().new Vector(-distance_cm, 0.0);
-
-		case Orientation.NORTH:
-			return model().isu().new Vector(0.0, -distance_cm);
-
-		default:
-			throw new AssertionError("Not a cardinal direction: " + direction);
-		}
-	}
-
-	private ISU.Vector speedVector(int direction, double speed) {
-		switch (direction) {
-		case Orientation.EAST:
-			return model().isu().new Vector(speed, 0.0);
-
-		case Orientation.SOUTH:
-			return model().isu().new Vector(0.0, speed);
-
-		case Orientation.WEST:
-			return model().isu().new Vector(-speed, 0.0);
-
-		case Orientation.NORTH:
-			return model().isu().new Vector(0.0, -speed);
-
-		default:
-			throw new AssertionError("Not a cardinal direction: " + direction);
-		}
-	}
-
-	private Grid.Position neighbor(Grid.Position from, int direction) {
-		if (from == null) {
-			return null;
-		}
-
-		return Orientation.neighbor(model().grid(), from, direction);
+	final PowerStopController powerStop() {
+		return this.powerStop;
 	}
 
 	protected final String slideDebugLabel(String name) {
-		if (this.sliding) {
-			return name + " SLIDE d=" + this.slideDirection + " v=" + Math.round(this.currentSpeed_cmPerSecond);
+		if (isSliding()) {
+			return name
+					+ " SLIDE d="
+					+ this.motion.direction()
+					+ " v="
+					+ Math.round(this.motion.currentSpeedCmPerSecond());
 		}
 
 		return name + " REST";
