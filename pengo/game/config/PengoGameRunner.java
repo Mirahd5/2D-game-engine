@@ -121,13 +121,6 @@ public final class PengoGameRunner {
 		// effet special si les spawners sont alignes
 		PengoBotInstaller.installSpawnerAlignmentEffect(builder, pengo, runState, config.tickDelayMs());
 
-		PengoBotInstaller.installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer,
-				builder, gameState, runState);
-
-		PengoBotInstaller.installIceBots(brain, model, builder, gameState);
-
-		PengoBotInstaller.installGameStateBot(brain, model, gameState);
-
 		// cree le controller clavier
 		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk(), debugOptions);
 		controller.setGameState(gameState);
