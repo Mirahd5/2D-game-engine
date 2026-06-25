@@ -120,7 +120,16 @@ public final class Enemies extends Entity {
 	 * afficher l'image ecrasee_horizontal.png ou ecrasee_vertical.png.
 	 */
 	public void kill() {
-		crush(orientation());
+	    if (!alive()) {
+	        return;
+	    }
+
+	    this.crushed = false;
+	    this.crushPusher = null;
+	    this.crushObstacle = null;
+	    this.frozen = false;
+
+	    death();
 	}
 
 	public void crush(int directionDegree) {
