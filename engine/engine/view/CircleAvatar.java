@@ -3,8 +3,8 @@ package engine.view;
 import engine.model.Entity;
 import oop.graphics.Graphics;
 
-/*
- * Avatar générique représentant une entité par un cercle.
+/**
+ * Avatar qui dessine une entité sous forme de cercle.
  */
 public class CircleAvatar extends ShapeAvatar {
 

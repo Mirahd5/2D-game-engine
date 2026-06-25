@@ -1,43 +1,43 @@
 package engine.view;
 
+/**
+ * Mesure les temps de tick, de repaint et les FPS.
+ */
 public final class PerformanceMonitor {
 
 	private final TimeStats tickStats;
 	private final TimeStats paintStats;
 	private final TimeStats fpsStats;
 
-	private long lastPaintTime;
+	private long lastPaintTime_ns;
 
 	public PerformanceMonitor() {
 		this.tickStats = new TimeStats();
 		this.paintStats = new TimeStats();
 		this.fpsStats = new TimeStats();
-		this.lastPaintTime = 0L;
+
 	}
 
 	public void recordTick(long elapsedMs) {
-		if (elapsedMs < 0L) {
-			return;
-		}
+		assert elapsedMs >= 0L : elapsedMs;
 
 		this.tickStats.record(elapsedMs);
 	}
 
 	public void recordPaintEvent() {
-		long now = System.currentTimeMillis();
+		long now = System.nanoTime();
 
-		if (this.lastPaintTime != 0L) {
-			long elapsed = now - this.lastPaintTime;
+		if (this.lastPaintTime_ns != 0L) {
+			double elapsedMs = (now - this.lastPaintTime_ns) / 1_000_000.0;
 
-			this.paintStats.record(elapsed);
+			this.paintStats.record(elapsedMs);
 
-			if (elapsed > 0L) {
-				double fps = 1000.0 / elapsed;
-				this.fpsStats.record(fps);
+			if (elapsedMs > 0.0) {
+				this.fpsStats.record(1000.0 / elapsedMs);
 			}
 		}
 
-		this.lastPaintTime = now;
+		this.lastPaintTime_ns = now;
 	}
 
 	public TimeStats tickStats() {
@@ -56,6 +56,7 @@ public final class PerformanceMonitor {
 		this.tickStats.reset();
 		this.paintStats.reset();
 		this.fpsStats.reset();
-		this.lastPaintTime = 0L;
+
+		this.lastPaintTime_ns = 0L;
 	}
 }
