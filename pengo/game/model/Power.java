@@ -15,8 +15,6 @@ public final class Power extends Obstacle {
 
     public Power(Model model, String name, PowerType type) {
         super(model, name);
-
-        assert type != null;
         this.type = type;
 
         double diameter = model.isu().cmPerCell() * 0.55;
@@ -44,37 +42,36 @@ public final class Power extends Obstacle {
         this.type = type;
     }
 
-    public void apply(Pengo pengo) {
-        assert pengo != null;
-        assert pengo.model() == model();
+    public void apply(Player player) {
+        assert player.model() == model();
 
         switch (this.type) {
         case SHIELD:
-            pengo.activateShield();
+            player.activateShield();
             break;
 
         case SPEED:
-            pengo.activateSpeed();
+            player.activateSpeed();
             break;
 
         case FREEZE:
-            pengo.activateFreezePower();
+            player.activateFreezePower();
             break;
 
         case STAR:
-            pengo.activateStar();
+            player.activateStar();
             break;
 
         case EXTRA_LIFE:
-            pengo.gainLife();
+            player.gainLife();
             break;
 
         case BOOMFISH:
-        	pengo.explode();
+        	player.explode();
         	break;
 
         case FRIEND_ACTIVATOR:
-            pengo.activateFriendActivator();
+            player.activateFriendActivator();
             break;
 
         default:

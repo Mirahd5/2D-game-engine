@@ -6,31 +6,50 @@ import java.util.List;
 import engine.model.BasicStunt;
 import engine.model.Entity;
 import engine.model.Grid;
+import engine.model.ISU;
 import engine.model.Model;
 import engine.model.Orientation;
 import game.config.PengoRunState;
 
-//classe parent de pengo et de friend comme ils peuvent etre controles
+// classe parent de Pengo et Friend.
 public abstract class Player extends Entity {
 
-	// variables globales
+	// delay apres respawn
 	private static final long HIT_COOLDOWN_MS = 900L;
+
+	// duree des powers
+	private static final long SHIELD_DURATION_MS = 10000L;
+	private static final long SPEED_DURATION_MS = 8000L;
+	private static final long FREEZE_DURATION_MS = 5000L;
+	private static final long STAR_DURATION_MS = 5000L;
+	private static final long RESPAWN_INVINCIBILITY_DURATION_MS = 3000L;
+
+	// grille
 	private final Grid grid;
 	private final boolean torusOnXaxis;
 	private final boolean torusOnYaxis;
 	private final int gridWidth;
 	private final int gridHeight;
 
-	// champs
+	// joueur.
 	private int lives;
 	private long lastHitTime_ms;
 	private boolean controlled;
 	private PengoRunState runState;
 
-	// constructeur dun player
+	// fin de power
+	private long shieldEnd_ms;
+	private long speedEnd_ms;
+	private long freezeEnd_ms;
+	private long starEnd_ms;
+	private long respawnInvincibilityEnd_ms;
+
+	private ISU.Dimension normalStep;
+	private ISU.Dimension boostedStep;
+	private boolean friendActivator;
+
 	protected Player(Model model, String name, int initialLives) {
 		super(model, name);
-
 		this.grid = model.grid();
 		this.torusOnXaxis = model.game().isTorusOnXaxis();
 		this.torusOnYaxis = model.game().isTorusOnYaxis();
@@ -38,14 +57,17 @@ public abstract class Player extends Entity {
 		this.gridWidth = grid.width();
 
 		this.lives = initialLives;
-		this.controlled = false;
-		this.runState = null;
+		this.normalStep = model.isu().new Dimension(model.isu().cmPerCell(), model.isu().cmPerCell());
+		this.boostedStep = model.isu().new Dimension(model.isu().cmPerCell() * 2.0, model.isu().cmPerCell() * 2.0);
+		setStep(this.normalStep);
 	}
 
+	// donne au joueur l'horloge de la partie
 	public final void setRunState(PengoRunState runState) {
 		this.runState = runState;
 	}
 
+	// retourne le temps du jeu sans compter les pauses
 	protected final long gameTimeMs() {
 		if (this.runState == null) {
 			return System.currentTimeMillis();
@@ -53,6 +75,8 @@ public abstract class Player extends Entity {
 
 		return this.runState.nowMs();
 	}
+
+	// LIFE
 
 	public final int nLives() {
 		return this.lives;
@@ -72,6 +96,8 @@ public abstract class Player extends Entity {
 		return this.lives == 0;
 	}
 
+	// CONTROLE
+
 	public final boolean isControlled() {
 		return this.controlled;
 	}
@@ -80,12 +106,293 @@ public abstract class Player extends Entity {
 		this.controlled = controlled;
 	}
 
-	protected boolean hasEnemyProtection() {
-		return false;
+	// POWERS
+
+	public void activateShield() {
+		this.shieldEnd_ms = gameTimeMs() + SHIELD_DURATION_MS;
 	}
 
-	public final boolean faceIceAhead(int directionDegree) {
+	public void deactivateShield() {
+		this.shieldEnd_ms = 0L;
+	}
 
+	public boolean hasShield() {
+		return gameTimeMs() < this.shieldEnd_ms;
+	}
+
+	public void activateRespawnInvincibility() {
+		this.respawnInvincibilityEnd_ms = gameTimeMs() + RESPAWN_INVINCIBILITY_DURATION_MS;
+	}
+
+	public boolean hasRespawnInvincibility() {
+		return gameTimeMs() < this.respawnInvincibilityEnd_ms;
+	}
+
+	public long respawnInvincibilityRemainingMs() {
+		return remainingMs(this.respawnInvincibilityEnd_ms);
+	}
+
+	// respawn
+	public boolean visibleDuringInvincibilityBlink() {
+		if (!hasRespawnInvincibility()) {
+			return true;
+		}
+		long elapsed = RESPAWN_INVINCIBILITY_DURATION_MS - respawnInvincibilityRemainingMs();
+		return (elapsed / 120L) % 2L == 0L;
+	}
+
+	public void activateSpeed() {
+		this.speedEnd_ms = gameTimeMs() + SPEED_DURATION_MS;
+		setStep(this.boostedStep);
+		refreshCurrentMovementSpeed();
+	}
+
+	public void deactivateSpeed() {
+		this.speedEnd_ms = 0L;
+		setStep(this.normalStep);
+		refreshCurrentMovementSpeed();
+	}
+
+	public boolean hasSpeedBoost() {
+		return gameTimeMs() < this.speedEnd_ms;
+	}
+
+	// met a jour la vitesse si le joueur bouge deja
+	private void refreshCurrentMovementSpeed() {
+		if (!isMoving()) {
+			return;
+		}
+		double walkSpeed = 5.0;
+		switch (orientation()) {
+		case 0:
+			setLinearSpeed(model().isu().new Vector(step().x() * walkSpeed, 0.0));
+			break;
+		case 90:
+			setLinearSpeed(model().isu().new Vector(0.0, step().y() * walkSpeed));
+			break;
+		case 180:
+			setLinearSpeed(model().isu().new Vector(-step().x() * walkSpeed, 0.0));
+			break;
+		case 270:
+			setLinearSpeed(model().isu().new Vector(0.0, -step().y() * walkSpeed));
+			break;
+		default:
+			break;
+		}
+	}
+
+	public void activateFreezePower() {
+		this.freezeEnd_ms = gameTimeMs() + FREEZE_DURATION_MS;
+		freezeEnemies();
+	}
+
+	public void deactivateFreezePower() {
+		this.freezeEnd_ms = 0L;
+		unfreezeEnemies();
+	}
+
+	public boolean hasFreezePower() {
+		return gameTimeMs() < this.freezeEnd_ms;
+	}
+
+	public void freezeEnemies() {
+		for (Entity entity : model().entities()) {
+			if (entity instanceof Enemies && entity.alive()) {
+				Enemies enemy = (Enemies) entity;
+				enemy.freeze();
+				// si lennemi avait une action en cours on lannule
+				if (enemy.stunt() instanceof BasicStunt) {
+					BasicStunt stunt = (BasicStunt) enemy.stunt();
+					stunt.cancelCurrentAction();
+				} else {
+					enemy.setLinearSpeed(model().isu().new Vector(0.0, 0.0));
+					enemy.setAngularSpeed(0.0);
+				}
+			}
+		}
+	}
+
+	private void unfreezeEnemies() {
+		for (Entity entity : model().entities()) {
+			if (entity instanceof Enemies && entity.alive()) {
+				Enemies enemy = (Enemies) entity;
+				enemy.unfreeze();
+			}
+		}
+	}
+
+	public void activateStar() {
+		this.starEnd_ms = gameTimeMs() + STAR_DURATION_MS;
+	}
+
+	public void deactivateStar() {
+		this.starEnd_ms = 0L;
+	}
+
+	public boolean hasStar() {
+		return gameTimeMs() < this.starEnd_ms;
+	}
+
+	public void activateFriendActivator() {
+		this.friendActivator = true;
+	}
+
+	public void deactivateFriendActivator() {
+		this.friendActivator = false;
+	}
+
+	public boolean hasFriendActivator() {
+		return this.friendActivator;
+	}
+
+	// calcule le temps left du power
+	private long remainingMs(long endMs) {
+		long remaining = endMs - gameTimeMs();
+		if (remaining < 0L) {
+			return 0L;
+		}
+		return remaining;
+	}
+
+	public long shieldRemainingMs() {
+		return remainingMs(shieldEnd_ms);
+	}
+
+	public long speedRemainingMs() {
+		return remainingMs(speedEnd_ms);
+	}
+
+	public long freezeRemainingMs() {
+		return remainingMs(freezeEnd_ms);
+	}
+
+	public long starRemainingMs() {
+		return remainingMs(starEnd_ms);
+	}
+
+	// retourne le temps restant pour un power
+	public long activePowerRemainingMs(PowerType type) {
+		switch (type) {
+		case SHIELD:
+			return shieldRemainingMs();
+		case SPEED:
+			return speedRemainingMs();
+		case FREEZE:
+			return freezeRemainingMs();
+		case STAR:
+			return starRemainingMs();
+		default:
+			return 0L;
+		}
+	}
+
+	// HUD
+
+	// Choisit le pouvoir a afficher dans le HUD.
+	public PowerType activePowerTypeForHud() {
+		PowerType bestType = null;
+		long bestRemaining = 0L;
+		PowerType[] timedTypes = new PowerType[] { PowerType.STAR, PowerType.SHIELD, PowerType.FREEZE,
+				PowerType.SPEED };
+		for (PowerType type : timedTypes) {
+			long remaining = activePowerRemainingMs(type);
+			if (remaining > bestRemaining) {
+				bestRemaining = remaining;
+				bestType = type;
+			}
+		}
+		if (bestType != null) {
+			return bestType;
+		}
+		if (this.friendActivator) {
+			return PowerType.FRIEND_ACTIVATOR;
+		}
+		return null;
+	}
+
+	// Temps restant du pouvoir affiche dans le HUD.
+	public long activePowerRemainingMsForHud() {
+		PowerType type = activePowerTypeForHud();
+		if (type == null) {
+			return 0L;
+		}
+		return activePowerRemainingMs(type);
+	}
+
+	// Dit si un pouvoir doit etre affiche comme actif dans le HUD.
+	public boolean powerActiveForHud(PowerType type) {
+		switch (type) {
+		case SHIELD:
+			return hasShield();
+		case SPEED:
+			return hasSpeedBoost();
+		case FREEZE:
+			return hasFreezePower();
+		case STAR:
+			return hasStar();
+		case FRIEND_ACTIVATOR:
+			return hasFriendActivator();
+		default:
+			return false;
+		}
+	}
+
+	// Temps restant d'un pouvoir pour le HUD.
+	public long powerRemainingMsForHud(PowerType type) {
+		switch (type) {
+		case SHIELD:
+			return shieldRemainingMs();
+		case SPEED:
+			return speedRemainingMs();
+		case FREEZE:
+			return freezeRemainingMs();
+		case STAR:
+			return starRemainingMs();
+		default:
+			return 0L;
+		}
+	}
+
+	// met a jour les power avec duree limitee
+	public void updateTimedPowers() {
+		long now = gameTimeMs();
+		if (this.freezeEnd_ms > 0L) {
+			if (now < this.freezeEnd_ms) {
+				freezeEnemies();
+			} else {
+				deactivateFreezePower();
+			}
+		}
+		if (this.respawnInvincibilityEnd_ms > 0L && now >= this.respawnInvincibilityEnd_ms) {
+			this.respawnInvincibilityEnd_ms = 0L;
+		}
+		if (this.shieldEnd_ms > 0L && now >= this.shieldEnd_ms) {
+			deactivateShield();
+		}
+		if (this.speedEnd_ms > 0L && now >= this.speedEnd_ms) {
+			deactivateSpeed();
+		}
+		if (this.starEnd_ms > 0L && now >= this.starEnd_ms) {
+			deactivateStar();
+		}
+	}
+
+	protected boolean hasEnemyProtection() {
+		return hasShield() || hasRespawnInvincibility();
+	}
+
+	protected boolean hasStarPower() {
+		return hasStar();
+	}
+
+	public void explode() {
+		forceLoseLife();
+	}
+
+	// PLAYER BEHAVIOR
+
+	// oriente le player dans cette direction
+	public final boolean faceIceAhead(int directionDegree) {
 		if (!alive() || !installed() || isMoving()) {
 			return false;
 		}
@@ -98,8 +405,8 @@ public abstract class Player extends Entity {
 		return true;
 	}
 
+	// essaie de pousser le bloc en face du player
 	public final boolean useIceAhead() {
-
 		if (!alive() || !installed() || isMoving()) {
 			return false;
 		}
@@ -111,16 +418,14 @@ public abstract class Player extends Entity {
 		return pushable.push(direction);
 	}
 
-	// retourne le bloc poussable ahead de la direction sil existe
+	// cherche un pushable dans la case devant le player
 	private Pushable pushableBlockAhead(int direction) {
 		Grid.Position target = Orientation.neighbor(grid, position(), direction, torusOnXaxis, torusOnYaxis);
 		if (target == null) {
 			return null;
 		}
-
 		Grid.Cell targetCell = grid.cellAt(target);
 		List<Entity> entities = targetCell.entities();
-
 		for (Entity entity : entities) {
 			if (entity.alive() && entity instanceof Pushable) {
 				Pushable pushable = (Pushable) entity;
@@ -132,22 +437,26 @@ public abstract class Player extends Entity {
 
 	@Override
 	public void collision(Entity other) {
+		// avec power que si il est controlé
+		if (other instanceof Power && other.alive()) {
+			if (!isControlled()) {
+				return;
+			}
+			Power power = (Power) other;
+			power.apply(this);
+			power.death();
+			return;
+		}
+
 		if (other instanceof Enemies && other.alive()) {
 			Enemies enemy = (Enemies) other;
-
 			if (enemy.isCrushed()) {
 				return;
 			}
-
-			if (this instanceof Pengo) {
-				Pengo pengo = (Pengo) this;
-
-				if (pengo.hasStar()) {
-					enemy.kill();
-					return;
-				}
+			if (hasStarPower()) {
+				enemy.kill();
+				return;
 			}
-
 			hitByEnemy();
 			return;
 		}
@@ -158,68 +467,64 @@ public abstract class Player extends Entity {
 	@Override
 	public void collision(List<Entity> entities) {
 		List<Entity> physicalContacts = new ArrayList<Entity>();
-		boolean touchedEnemy = false;
 
+		boolean touchedEnemy = false;
 		for (Entity entity : entities) {
+			if (entity instanceof Power && entity.alive()) {
+				if (isControlled()) {
+					Power power = (Power) entity;
+					power.apply(this);
+					power.death();
+				}
+				continue;
+			}
+
 			if (entity instanceof Enemies && entity.alive()) {
 				Enemies enemy = (Enemies) entity;
-
 				if (enemy.isCrushed()) {
 					continue;
 				}
-
-				if (this instanceof Pengo) {
-					Pengo pengo = (Pengo) this;
-
-					if (pengo.hasStar()) {
-						enemy.kill();
-						continue;
-					}
+				if (hasStarPower()) {
+					enemy.kill();
+					continue;
 				}
-
 				touchedEnemy = true;
 			} else {
 				physicalContacts.add(entity);
 			}
 		}
-
 		if (touchedEnemy) {
 			hitByEnemy();
 		}
-
 		if (!physicalContacts.isEmpty()) {
 			super.collision(physicalContacts);
 		}
 	}
 
+	// fait perdre une vie sans cooldown
 	public final void forceLoseLife() {
 		if (!alive() || !installed()) {
 			return;
 		}
-
 		loseLife();
-
 		if (isGameOver()) {
-			setLinearSpeed(model().isu().new Vector(0.0, 0.0));
-			setAngularSpeed(0.0);
+			stopPlayer();
 			death();
 			return;
 		}
-
 		respawnAtStart();
 		afterRespawn();
 	}
 
+	// replace player a une position proche du milieu non occupée
 	private void respawnAtStart() {
 		Grid.Position respawn = centerRespawnPosition();
-
 		cancelCurrentMovement();
 		stopPlayer();
-
 		model().place(this, respawn);
 		setOrientation(0);
 	}
-	
+
 	protected void afterRespawn() {
 	}
 
@@ -236,90 +541,73 @@ public abstract class Player extends Entity {
 	}
 
 	public final void hitByEnemy() {
-
 		if (!alive() || !installed()) {
 			return;
 		}
-
 		long now = gameTimeMs();
-
 		if (now - this.lastHitTime_ms < HIT_COOLDOWN_MS) {
 			return;
 		}
-
+		// seul le personnage controle peut perdre une vie
 		if (!isControlled() || hasEnemyProtection()) {
 			return;
 		}
-
 		this.lastHitTime_ms = now;
 		loseLife();
-
 		if (isGameOver()) {
-			setLinearSpeed(model().isu().new Vector(0.0, 0.0));
-			setAngularSpeed(0.0);
+			stopPlayer();
 			death();
 			return;
 		}
-
 		respawnAtStart();
 		afterRespawn();
 	}
 
+	// cherche une position de respawn proche du centre
 	private Grid.Position centerRespawnPosition() {
 		int centerX = this.gridWidth / 2;
 		int centerY = this.gridHeight / 2;
-
 		Grid.Position center = this.grid.new Position(centerX, centerY);
-
 		if (canRespawnOn(center)) {
 			return center;
 		}
-
 		int maxRadius = Math.max(this.gridWidth, this.gridHeight);
-
 		for (int radius = 1; radius <= maxRadius; radius++) {
 			for (int y = centerY - radius; y <= centerY + radius; y++) {
 				for (int x = centerX - radius; x <= centerX + radius; x++) {
 					if (x < 0 || x >= this.gridWidth || y < 0 || y >= this.gridHeight) {
 						continue;
 					}
-
 					Grid.Position position = this.grid.new Position(x, y);
-
 					if (canRespawnOn(position)) {
 						return position;
 					}
 				}
 			}
 		}
-
 		return center;
 	}
 
+	// verifie so player peut respawn sur cette case
 	private boolean canRespawnOn(Grid.Position position) {
 		Grid.Cell cell = this.grid.cellAt(position);
-
 		for (Entity entity : cell.entities()) {
 			if (entity == this || !entity.alive()) {
 				continue;
 			}
-
 			if (entity instanceof Mur || entity instanceof Glacon || entity instanceof Spawner) {
 				return false;
 			}
 		}
-
 		return true;
 	}
 
 	@Override
 	public String debugLabel() {
 		String action = isMoving() ? "WALK" : "REST";
-
 		if (isControlled()) {
 			action = "CONTROL " + action;
 		}
-
 		return name() + " " + action + " dir=" + orientation();
 	}
 }

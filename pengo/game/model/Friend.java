@@ -1,6 +1,5 @@
 package game.model;
 
-
 import engine.model.Bounding;
 import engine.model.Circle;
 import engine.model.ISU;
@@ -12,7 +11,6 @@ import engine.model.Model;
 public final class Friend extends Player {
 
 	private static final int nlife = 1;
-
 
 	public Friend(Model model) {
 		this(model, "Friend");
