@@ -92,7 +92,7 @@ final class PowerStopController {
 		if (!(other instanceof Power) || this.enemyTrain.isEmpty()) {
 			return false;
 		}
-		Grid.Position expected = this.owner.positionInFront(this.enemyTrain.size() + 1);
+		Grid.Position expected = this.owner.positionInFront(this.enemyTrain.frontSlot() + 1);
 		return expected != null && expected.equals(other.position());
 	}
 
@@ -109,7 +109,7 @@ final class PowerStopController {
 		}
 		Grid.Position result = powerPosition.copy();
 		int backward = Orientation.backOf(this.owner.slideDirection());
-		int distance = Math.max(1, this.enemyTrain.size());
+		int distance = Math.max(1, this.enemyTrain.frontSlot());
 		for (int i = 0; i < distance; i++) {
 			result = this.owner.geometry().neighbor(result, backward);
 
