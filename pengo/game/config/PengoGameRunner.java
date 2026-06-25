@@ -83,7 +83,11 @@ public final class PengoGameRunner {
 		// charge automate gal
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);
-		Automaton spawnerLoadAutomaton = loadGalAutomaton(SPAWNER_LOAD_GAL_PATH);
+
+		Automaton spawnerLoadAutomaton = null;
+		if (isGalLoadTestMap(config)) {
+		    spawnerLoadAutomaton = loadGalAutomaton(SPAWNER_LOAD_GAL_PATH);
+		}
 
 		CurrentPlayer currentPlayer = new CurrentPlayer(pengo);
 
