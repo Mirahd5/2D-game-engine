@@ -1,49 +1,56 @@
-// == GAME ==
 package engine.model;
 
 import java.io.PrintStream;
 
 import engine.view.Picture;
 
-/*
- * Game contient la configuration générale d'un jeu.
- *
- * Cette classe fait partie du moteur : elle ne décrit pas PacMan directement,
- * mais les paramètres nécessaires pour construire le monde :
- * taille, unités, géométrie du tore, grille, espace ISU et modèle.
+/**
+ * Configuration générale utilisée pour construire les objets du moteur.
  */
 public abstract class Game {
 
-	private static final double EPS = 0.000001;
+	private static final double EPSILON = 1e-6;
 
-	// Géométrie du monde : chaque axe peut être torique ou non.
-	private boolean torusOnXaxis;
-	private boolean torusOnYaxis;
+	private final boolean torusOnXaxis;
+	private final boolean torusOnYaxis;
 
-	// Facteurs de conversion entre les différentes unités.
-	private double cmPerCell;
-	private int pixelPerCm;
+	private final double cmPerCell;
+	private final int pixelPerCm;
 
-	// Dimensions du monde en cellules.
-	private int width_ncell;
-	private int height_ncell;
+	private final int width_ncell;
+	private final int height_ncell;
 
-	// Dimensions du monde en coordonnées ISU.
-	private double width_cm;
-	private double height_cm;
+	private final double width_cm;
+	private final double height_cm;
 
-	// Objets principaux construits à partir de la configuration du jeu.
-	private Grid grid;
-	private ISU isu;
-	private Picture pict;
-	private Model model;
+	private final Grid grid;
+	private final ISU isu;
+	private final Picture picture;
+	private final Model model;
 
-	public Game(int w_ncell, int h_ncell, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
+	public Game(int width_ncell, int height_ncell, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
 			int pixelPerCm) {
-		assert w_ncell > 0;
-		assert h_ncell > 0;
-		assert cmPerCell > 0.0;
-		assert pixelPerCm > 0;
+		this(width_ncell, height_ncell, width_ncell * cmPerCell, height_ncell * cmPerCell, torusOnXaxis, torusOnYaxis,
+				cmPerCell, pixelPerCm);
+	}
+
+	public Game(double width_cm, double height_cm, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
+			int pixelPerCm) {
+		this(cellCount(width_cm, cmPerCell), cellCount(height_cm, cmPerCell), width_cm, height_cm, torusOnXaxis,
+				torusOnYaxis, cmPerCell, pixelPerCm);
+	}
+
+	private Game(int width_ncell, int height_ncell, double width_cm, double height_cm, boolean torusOnXaxis,
+			boolean torusOnYaxis, double cmPerCell, int pixelPerCm) {
+		assert width_ncell > 0 : width_ncell;
+		assert height_ncell > 0 : height_ncell;
+		assert width_cm > 0.0 : width_cm;
+		assert height_cm > 0.0 : height_cm;
+		assert cmPerCell > 0.0 : cmPerCell;
+		assert pixelPerCm > 0 : pixelPerCm;
+
+		assert Math.abs(width_ncell * cmPerCell - width_cm) < EPSILON;
+		assert Math.abs(height_ncell * cmPerCell - height_cm) < EPSILON;
 
 		this.torusOnXaxis = torusOnXaxis;
 		this.torusOnYaxis = torusOnYaxis;
@@ -51,66 +58,29 @@ public abstract class Game {
 		this.cmPerCell = cmPerCell;
 		this.pixelPerCm = pixelPerCm;
 
-		this.width_ncell = w_ncell;
-		this.height_ncell = h_ncell;
+		this.width_ncell = width_ncell;
+		this.height_ncell = height_ncell;
 
-		// Les dimensions en cm sont déduites des dimensions en cellules.
-		this.width_cm = this.width_ncell * this.cmPerCell;
-		this.height_cm = this.height_ncell * this.cmPerCell;
+		this.width_cm = width_cm;
+		this.height_cm = height_cm;
 
-		buildEngineObjects();
-
-		assert Math.abs(this.width_ncell * this.cmPerCell - this.width_cm) < EPS;
-		assert Math.abs(this.height_ncell * this.cmPerCell - this.height_cm) < EPS;
-	}
-
-	public Game(double w_cm, double h_cm, boolean torusOnXaxis, boolean torusOnYaxis, double cmPerCell,
-			int pixelPerCm) {
-		assert w_cm > 0.0;
-		assert h_cm > 0.0;
-		assert cmPerCell > 0.0;
-		assert pixelPerCm > 0;
-
-		/*
-		 * Ici, on construit le jeu à partir des dimensions en cm. Elles doivent donc
-		 * tomber exactement sur un nombre entier de cellules.
-		 */
-		assert Math.abs(w_cm / cmPerCell - Math.round(w_cm / cmPerCell)) < EPS;
-		assert Math.abs(h_cm / cmPerCell - Math.round(h_cm / cmPerCell)) < EPS;
-
-		this.torusOnXaxis = torusOnXaxis;
-		this.torusOnYaxis = torusOnYaxis;
-
-		this.cmPerCell = cmPerCell;
-		this.pixelPerCm = pixelPerCm;
-
-		this.width_cm = w_cm;
-		this.height_cm = h_cm;
-
-		// Les dimensions en cellules sont déduites des dimensions en cm.
-		this.width_ncell = (int) Math.round(this.width_cm / this.cmPerCell);
-		this.height_ncell = (int) Math.round(this.height_cm / this.cmPerCell);
-
-		buildEngineObjects();
-
-		assert Math.abs(this.width_ncell * this.cmPerCell - this.width_cm) < EPS;
-		assert Math.abs(this.height_ncell * this.cmPerCell - this.height_cm) < EPS;
-	}
-
-	/*
-	 * Construit les objets du moteur qui dépendent de la configuration.
-	 *
-	 * L'ordre est important : - ISU utilise les dimensions du jeu ; - Grid utilise
-	 * aussi le jeu ; - ISU reçoit ensuite la Grid pour faire les conversions ; -
-	 * Model regroupe les entités du monde.
-	 */
-	private void buildEngineObjects() {
 		this.isu = new ISU(this);
 		this.grid = new Grid(this);
 		this.isu.set(this.grid);
 
-		this.pict = new Picture(this);
+		this.picture = new Picture(this);
 		this.model = new Model(this);
+	}
+
+	private static int cellCount(double length_cm, double cmPerCell) {
+		assert length_cm > 0.0 : length_cm;
+		assert cmPerCell > 0.0 : cmPerCell;
+
+		double count = length_cm / cmPerCell;
+
+		assert Math.abs(count - Math.round(count)) < EPSILON : "dimension must contain an integer number of cells";
+
+		return (int) Math.round(count);
 	}
 
 	public Game game() {
@@ -141,6 +111,14 @@ public abstract class Game {
 		return this.height_cm * this.pixelPerCm;
 	}
 
+	public double getCmPerCell() {
+		return this.cmPerCell;
+	}
+
+	public int getPixelPerCm() {
+		return this.pixelPerCm;
+	}
+
 	public boolean isTorusOnXaxis() {
 		return this.torusOnXaxis;
 	}
@@ -157,14 +135,6 @@ public abstract class Game {
 		return this.torusOnYaxis;
 	}
 
-	public double getCmPerCell() {
-		return this.cmPerCell;
-	}
-
-	public int getPixelPerCm() {
-		return this.pixelPerCm;
-	}
-
 	public ISU getIsu() {
 		return this.isu;
 	}
@@ -174,7 +144,7 @@ public abstract class Game {
 	}
 
 	public Picture getPicture() {
-		return this.pict;
+		return this.picture;
 	}
 
 	public Model model() {

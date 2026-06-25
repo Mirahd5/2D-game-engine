@@ -47,20 +47,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		setSize(model.isu().new Dimension(collisionSize, collisionSize));
 		setStep(model.isu().new Dimension(cell, cell));
 
-		this.sliding = false;
-		this.slideDirection = 0;
-		this.currentSpeed_cmPerSecond = 0.0;
-		this.deceleration_cmPerSecond2 = 0.0;
-		this.traveledDistance_cm = 0.0;
-		this.maximumDistance_cm = 0.0;
-		this.previousCenter = null;
-		this.lastStablePosition = null;
-		this.lastUpdate_ms = 0L;
-		this.runState = null;
 		this.carriedEnemies = new ArrayList<Enemies>();
-		this.smoothPowerStopEnemy = null;
-		this.smoothPowerStopBlockPosition = null;
-		this.smoothPowerStopEnemyPosition = null;
 
 		setZOrder(zOrder);
 		setSOrder(sOrder);
@@ -105,7 +92,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			return false;
 		}
 
-		int direction = Orientation.normalizeCardinal(directionDegree);
+		int direction = Orientation.normalize(directionDegree);
 		Grid.Position target = neighbor(position(), direction);
 
 		if (target == null) {
@@ -122,6 +109,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		this.previousCenter = center();
 		this.lastStablePosition = position().copy();
 		this.lastUpdate_ms = gameTimeMs();
+
 		clearSmoothPowerStop();
 		this.carriedEnemies.clear();
 
@@ -134,6 +122,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		setLinearSpeed(speedVector(direction, this.currentSpeed_cmPerSecond));
 
 		this.sliding = true;
+
 		return true;
 	}
 
@@ -162,6 +151,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		this.previousCenter = currentCenter;
+
 		rememberStableCellIfUseful();
 
 		if (this.traveledDistance_cm + EPS >= this.maximumDistance_cm) {
@@ -170,6 +160,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		double dt = Math.max(0.0, elapsed / 1000.0);
+
 		this.currentSpeed_cmPerSecond = Math.max(0.0,
 				this.currentSpeed_cmPerSecond - this.deceleration_cmPerSecond2 * dt);
 
@@ -180,7 +171,7 @@ public abstract class Glissade extends Entity implements Pushable {
 
 		setLinearSpeed(speedVector(this.slideDirection, this.currentSpeed_cmPerSecond));
 
-		AgainstCrossingEnemies();
+		againstCrossingEnemies();
 
 		if (this.smoothPowerStopEnemy != null) {
 			updateSmoothPowerStop();
@@ -221,8 +212,6 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	@Override
 	public final void collision(Entity other) {
-		assert other != null;
-
 		if (this.smoothPowerStopEnemy != null) {
 			updateSmoothPowerStop();
 
@@ -276,8 +265,6 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	@Override
 	public final void collision(List<Entity> entities) {
-		assert entities != null;
-
 		if (this.smoothPowerStopEnemy != null) {
 			updateSmoothPowerStop();
 
@@ -352,8 +339,6 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	@Override
 	public final boolean blocks(Entity other) {
-		assert other != null;
-
 		if (other instanceof Enemies) {
 			Enemies enemy = (Enemies) other;
 
@@ -383,7 +368,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		return isEnemyInSolidTrainZone(enemy);
 	}
 
-	private void AgainstCrossingEnemies() {
+	private void againstCrossingEnemies() {
 		if (!this.sliding || !alive() || !installed()) {
 			return;
 		}
@@ -400,6 +385,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			if (!enemy.alive() || enemy.isCrushed() || this.carriedEnemies.contains(enemy)) {
 				continue;
 			}
+
 			int expectedIndex = this.carriedEnemies.size() + 1;
 
 			if (this.smoothPowerStopEnemy == null && isCarryCandidateAtIndex(enemy, expectedIndex)) {
@@ -436,10 +422,6 @@ public abstract class Glissade extends Entity implements Pushable {
 		double lateral = Math.abs(lateralProjection(towardEnemy, this.slideDirection));
 		double cell = model().isu().cmPerCell();
 
-		/*
-		 * Zone stricte du corps du bloc, pas toute la trajectoire.
-		 * Un poisson juste au-dessus/dessous du train ne rentre donc pas ici.
-		 */
 		return forward >= -cell * 0.72 && forward <= cell * 0.86 && lateral <= cell * 0.48;
 	}
 
@@ -453,18 +435,12 @@ public abstract class Glissade extends Entity implements Pushable {
 		double lateral = Math.abs(lateralProjection(towardEnemy, this.slideDirection));
 		double cell = model().isu().cmPerCell();
 
-		/*
-		 * Le train solide va du corps du bloc jusqu'au dernier poisson porté.
-		 * Si aucun poisson n'est porté, la zone ne couvre que le corps du bloc.
-		 *
-		 * lateral <= 0.32 cell évite de bloquer un poisson vraiment sur le côté.
-		 */
 		double rearLimit = -cell * 0.72;
 		double frontLimit = cell * (Math.max(0, this.carriedEnemies.size()) + 0.92);
 
 		return forward >= rearLimit && forward <= frontLimit && lateral <= cell * 0.48;
 	}
-	
+
 	public final boolean isSliding() {
 		return this.sliding;
 	}
@@ -513,7 +489,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			return this.lastStablePosition.copy();
 		}
 
-		Grid.Position behind = neighbor(current, (this.slideDirection + 180) % 360);
+		Grid.Position behind = neighbor(current, Orientation.backOf(this.slideDirection));
 
 		if (behind != null && cellCanReceiveStoppedBlock(behind)) {
 			return behind;
@@ -534,8 +510,8 @@ public abstract class Glissade extends Entity implements Pushable {
 				continue;
 			}
 
-			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
-					|| other instanceof Spawner || other instanceof Power) {
+			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner
+					|| other instanceof Power) {
 				return false;
 			}
 		}
@@ -579,6 +555,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		prepareCarriedEnemy(enemy);
+
 		return true;
 	}
 
@@ -614,6 +591,7 @@ public abstract class Glissade extends Entity implements Pushable {
 				Enemies lastEnemy = this.carriedEnemies.get(this.carriedEnemies.size() - 1);
 				startSmoothPowerStop(lastEnemy, blockStopBeforePower(afterTrain), afterTrain.copy());
 			}
+
 			return;
 		}
 
@@ -634,6 +612,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		stopSlidingAt(position().copy());
+
 		return true;
 	}
 
@@ -670,8 +649,6 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private void prepareCarriedEnemy(Enemies enemy) {
-		assert enemy != null;
-
 		if (!this.carriedEnemies.contains(enemy)) {
 			this.carriedEnemies.add(enemy);
 		}
@@ -715,8 +692,7 @@ public abstract class Glissade extends Entity implements Pushable {
 
 		double cell = model().isu().cmPerCell();
 
-		return Math.abs(enemyForward - expectedForward) <= cell * 0.78
-				&& enemyLateral <= cell * 0.46;
+		return Math.abs(enemyForward - expectedForward) <= cell * 0.78 && enemyLateral <= cell * 0.46;
 	}
 
 	private Enemies firstCarryableEnemyAt(Grid.Position position) {
@@ -731,8 +707,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			if (other instanceof Enemies && other.alive()) {
 				Enemies enemy = (Enemies) other;
 
-				if (!enemy.isCrushed()
-						&& !this.carriedEnemies.contains(enemy)
+				if (!enemy.isCrushed() && !this.carriedEnemies.contains(enemy)
 						&& isCarryCandidateAtIndex(enemy, expectedIndex)) {
 					return enemy;
 				}
@@ -780,7 +755,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		Grid.Position result = powerPosition.copy();
-		int backward = (this.slideDirection + 180) % 360;
+		int backward = Orientation.backOf(this.slideDirection);
 		int distance = Math.max(1, this.carriedEnemies.size());
 
 		for (int i = 0; i < distance; i++) {
@@ -795,7 +770,6 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private void startSmoothPowerStop(Enemies enemy, Grid.Position blockStopPosition, Grid.Position enemyStopPosition) {
-		assert enemy != null;
 		assert blockStopPosition != null;
 		assert enemyStopPosition != null;
 
@@ -856,8 +830,6 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private void releaseCarriedEnemiesAfterSmoothPowerStop(Grid.Position blockStopPosition) {
-		assert blockStopPosition != null;
-
 		List<Enemies> copy = new ArrayList<Enemies>(this.carriedEnemies);
 
 		for (int i = 0; i < copy.size(); i++) {
@@ -926,8 +898,6 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private void releaseCarriedEnemy(Enemies enemy, ISU.Coord safeCenter) {
-		assert enemy != null;
-
 		this.carriedEnemies.remove(enemy);
 
 		if (!enemy.alive()) {
@@ -958,12 +928,12 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		Grid.Position expected = positionInFront(this.carriedEnemies.size() + 1);
+
 		return expected != null && expected.equals(other.position());
 	}
 
 	private boolean isSmoothPowerTarget(Entity other) {
-		return other instanceof Power
-				&& this.smoothPowerStopEnemyPosition != null
+		return other instanceof Power && this.smoothPowerStopEnemyPosition != null
 				&& this.smoothPowerStopEnemyPosition.equals(other.position());
 	}
 
@@ -988,8 +958,8 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	private boolean isStaticObstacle(Entity other) {
-		return other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
-				|| other instanceof Spawner || other instanceof Power;
+		return other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner
+				|| other instanceof Power;
 	}
 
 	private boolean isCrushingObstacle(Entity other) {
@@ -1006,11 +976,11 @@ public abstract class Glissade extends Entity implements Pushable {
 		}
 
 		if (other instanceof Pengo || other instanceof Friend) {
-		    if (!this.sliding) {
-		        return !sameGridCell(other);
-		    }
+			if (!this.sliding) {
+				return !sameGridCell(other);
+			}
 
-		    return !sameGridCell(other) && isInFrontOfSlidingBlock(other);
+			return !sameGridCell(other) && isInFrontOfSlidingBlock(other);
 		}
 
 		boolean hardType = other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
@@ -1046,14 +1016,18 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	private double forwardProjection(ISU.Vector vector, int direction) {
 		switch (direction) {
-		case 0:
+		case Orientation.EAST:
 			return vector.x();
-		case 90:
+
+		case Orientation.SOUTH:
 			return vector.y();
-		case 180:
+
+		case Orientation.WEST:
 			return -vector.x();
-		case 270:
+
+		case Orientation.NORTH:
 			return -vector.y();
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
@@ -1061,19 +1035,21 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	private double lateralProjection(ISU.Vector vector, int direction) {
 		switch (direction) {
-		case 0:
-		case 180:
+		case Orientation.EAST:
+		case Orientation.WEST:
 			return vector.y();
-		case 90:
-		case 270:
+
+		case Orientation.SOUTH:
+		case Orientation.NORTH:
 			return vector.x();
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
 	}
 
 	private double axisLength(int direction) {
-		if (direction == 0 || direction == 180) {
+		if (direction == Orientation.EAST || direction == Orientation.WEST) {
 			return model().isu().width();
 		}
 
@@ -1082,14 +1058,18 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	private ISU.Vector forwardOffset(int direction, double distance_cm) {
 		switch (direction) {
-		case 0:
+		case Orientation.EAST:
 			return model().isu().new Vector(distance_cm, 0.0);
-		case 90:
+
+		case Orientation.SOUTH:
 			return model().isu().new Vector(0.0, distance_cm);
-		case 180:
+
+		case Orientation.WEST:
 			return model().isu().new Vector(-distance_cm, 0.0);
-		case 270:
+
+		case Orientation.NORTH:
 			return model().isu().new Vector(0.0, -distance_cm);
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
@@ -1097,14 +1077,18 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	private ISU.Vector speedVector(int direction, double speed) {
 		switch (direction) {
-		case 0:
+		case Orientation.EAST:
 			return model().isu().new Vector(speed, 0.0);
-		case 90:
+
+		case Orientation.SOUTH:
 			return model().isu().new Vector(0.0, speed);
-		case 180:
+
+		case Orientation.WEST:
 			return model().isu().new Vector(-speed, 0.0);
-		case 270:
+
+		case Orientation.NORTH:
 			return model().isu().new Vector(0.0, -speed);
+
 		default:
 			throw new AssertionError("Not a cardinal direction: " + direction);
 		}
@@ -1115,50 +1099,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			return null;
 		}
 
-		int dx = 0;
-		int dy = 0;
-
-		switch (direction) {
-		case 0:
-			dx = 1;
-			break;
-		case 90:
-			dy = 1;
-			break;
-		case 180:
-			dx = -1;
-			break;
-		case 270:
-			dy = -1;
-			break;
-		default:
-			throw new AssertionError("Not a cardinal direction: " + direction);
-		}
-
-		int x = from.x() + dx;
-		int y = from.y() + dy;
-
-		if (!model().game().isTorusOnXaxis() && (x < 0 || x >= model().grid().width())) {
-			return null;
-		}
-
-		if (!model().game().isTorusOnYaxis() && (y < 0 || y >= model().grid().height())) {
-			return null;
-		}
-
-		if (model().game().isTorusOnXaxis()) {
-			x = wrapCoordinate(x, model().grid().width());
-		}
-
-		if (model().game().isTorusOnYaxis()) {
-			y = wrapCoordinate(y, model().grid().height());
-		}
-
-		return model().grid().new Position(x, y);
-	}
-
-	private int wrapCoordinate(int value, int size) {
-		return ((value % size) + size) % size;
+		return Orientation.neighbor(model().grid(), from, direction);
 	}
 
 	protected final String slideDebugLabel(String name) {

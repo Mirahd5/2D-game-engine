@@ -4,17 +4,8 @@ import engine.model.Entity;
 import engine.model.ISU;
 import oop.graphics.Graphics;
 
-/*
- * Avatar générique pour les entités dessinées avec une forme simple.
- *
- * Il factorise :
- * - le calcul du centre en pixels ;
- * - le calcul de la taille en pixels ;
- * - la rotation graphique autour du centre ;
- * - la sauvegarde/restauration de la transformation graphique.
- *
- * Les sous-classes choisissent seulement la forme à dessiner :
- * cercle, rectangle, etc.
+/**
+ * Avatar générique pour dessiner une entité avec une forme simple.
  */
 public abstract class ShapeAvatar extends Avatar {
 
@@ -22,23 +13,31 @@ public abstract class ShapeAvatar extends Avatar {
 		super(view, entity);
 	}
 
-	/*
-	 * Par défaut, une forme n'est pas tournée.
-	 * RectAvatar redéfinit cette méthode.
-	 */
 	protected boolean rotateWithEntity() {
 		return false;
 	}
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
+		if (!this.entity.alive() || !this.entity.installed()) {
+			return;
+		}
 
 		ISU.Dimension size = this.entity.size();
 		ISU.Coord center = this.entity.center();
 
-		int width = this.view.toPixelWidth(size.x());
-		int height = this.view.toPixelHeight(size.y());
+		double scale = this.view.revealScale(this.entity);
+
+		if (scale <= 0.0) {
+			return;
+		}
+
+		int width = this.view.toPixelWidth(size.x() * scale);
+		int height = this.view.toPixelHeight(size.y() * scale);
+
+		if (width <= 0 || height <= 0) {
+			return;
+		}
 
 		int centerX = this.view.toPixelX(center.x());
 		int centerY = this.view.toPixelY(center.y());
@@ -59,8 +58,5 @@ public abstract class ShapeAvatar extends Avatar {
 		graphics.setTransform(savedTransform);
 	}
 
-	/*
-	 * Chaque sous-classe dessine sa forme concrète.
-	 */
 	protected abstract void paintShape(Graphics graphics, int x, int y, int width, int height);
 }

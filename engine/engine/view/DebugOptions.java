@@ -1,5 +1,8 @@
 package engine.view;
 
+/**
+ * Options d'affichage et de test utilisées en mode debug.
+ */
 public final class DebugOptions {
 
 	private boolean enabled;
@@ -10,6 +13,7 @@ public final class DebugOptions {
 
 	public DebugOptions() {
 		this.enabled = false;
+
 		this.showActions = true;
 		this.showBoundingBoxes = true;
 		this.showPerformance = true;
@@ -34,6 +38,14 @@ public final class DebugOptions {
 
 	public boolean loadTest() {
 		return this.enabled && this.loadTest;
+	}
+
+	public void enable() {
+		this.enabled = true;
+	}
+
+	public void disable() {
+		this.enabled = false;
 	}
 
 	public void toggleEnabled() {

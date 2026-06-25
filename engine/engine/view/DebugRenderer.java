@@ -7,7 +7,13 @@ import engine.model.Hitbox;
 import oop.graphics.Font;
 import oop.graphics.Graphics;
 
+/**
+ * Dessine les informations de debug de la vue.
+ */
 final class DebugRenderer {
+
+	private static final int LABEL_OFFSET_X = 28;
+	private static final int MIN_BOX_SIZE = 1;
 
 	private DebugRenderer() {
 	}
@@ -15,15 +21,16 @@ final class DebugRenderer {
 	static void paintWorldDebug(Graphics graphics, View view, List<Entity> entities) {
 		DebugOptions options = view.debugOptions();
 
-		if (options == null || !options.enabled()) {
+		if (!options.enabled()) {
 			return;
 		}
 
 		Font oldFont = graphics.getFont();
+
 		graphics.setFont(graphics.getFont("Monospaced", Font.BOLD, 10));
 
 		for (Entity entity : entities) {
-			if (entity == null || !entity.alive() || !entity.installed()) {
+			if (!entity.alive() || !entity.installed()) {
 				continue;
 			}
 
@@ -39,8 +46,26 @@ final class DebugRenderer {
 		graphics.setFont(oldFont);
 	}
 
+	static void paintPerformance(Graphics graphics, View view) {
+		DebugOptions options = view.debugOptions();
+
+		if (!options.showPerformance()) {
+			return;
+		}
+
+		PerformanceMonitor monitor = view.performanceMonitor();
+
+		int x = 12;
+		int y = view.overlayHeightPixel() + 12;
+		int width = 330;
+		int height = options.loadTest() ? 116 : 98;
+
+		paintPerformanceBackground(graphics, x, y, width, height);
+		paintPerformanceText(graphics, view, monitor, x, y);
+	}
+
 	private static void paintBoundingBox(Graphics graphics, View view, Entity entity) {
-		if (entity.bounding() == null || entity.bounding().isEmpty()) {
+		if (entity.bounding().isEmpty()) {
 			return;
 		}
 
@@ -48,33 +73,31 @@ final class DebugRenderer {
 
 		int x = view.toPixelX(hitbox.xmin());
 		int y = view.toPixelY(hitbox.ymin());
-		int w = view.toPixelWidth(hitbox.xmax() - hitbox.xmin());
-		int h = view.toPixelHeight(hitbox.ymax() - hitbox.ymin());
 
-		if (w < 1) {
-			w = 1;
-		}
+		int width = view.toPixelWidth(hitbox.xmax() - hitbox.xmin());
+		int height = view.toPixelHeight(hitbox.ymax() - hitbox.ymin());
 
-		if (h < 1) {
-			h = 1;
-		}
+		width = Math.max(width, MIN_BOX_SIZE);
+		height = Math.max(height, MIN_BOX_SIZE);
 
 		graphics.setColor(Graphics.Colors.green);
-		graphics.drawRect(x, y, w, h);
+		graphics.drawRect(x, y, width, height);
 	}
 
 	private static void paintDebugLabel(Graphics graphics, View view, Entity entity) {
 		String label = entity.debugLabel();
 
-		if (label == null || label.length() == 0) {
+		if (label.length() == 0) {
 			return;
 		}
 
-		int x = view.toPixelX(entity.center().x()) - 28;
+		int x = view.toPixelX(entity.center().x()) - LABEL_OFFSET_X;
 		int y = view.toPixelY(entity.center().y()) - view.toPixelHeight(entity.size().y() / 2.0) - 6;
 
-		if (y < view.overlayHeightPixel() + 10) {
-			y = view.overlayHeightPixel() + 10;
+		int minY = view.overlayHeightPixel() + 10;
+
+		if (y < minY) {
+			y = minY;
 		}
 
 		graphics.setColor(Graphics.Colors.black);
@@ -84,26 +107,19 @@ final class DebugRenderer {
 		graphics.drawString(label, x, y);
 	}
 
-	static void paintPerformance(Graphics graphics, View view) {
-		DebugOptions options = view.debugOptions();
-		PerformanceMonitor monitor = view.performanceMonitor();
-
-		if (options == null || monitor == null || !options.showPerformance()) {
-			return;
-		}
-
-		int x = 12;
-		int y = view.overlayHeightPixel() + 12;
-		int w = 330;
-		int h = options.loadTest() ? 116 : 98;
-
+	private static void paintPerformanceBackground(Graphics graphics, int x, int y, int width, int height) {
 		graphics.setColor(graphics.getColor(210, 0, 0, 0));
-		graphics.fillRect(x, y, w, h);
+		graphics.fillRect(x, y, width, height);
 
 		graphics.setColor(Graphics.Colors.cyan);
-		graphics.drawRect(x, y, w, h);
+		graphics.drawRect(x, y, width, height);
+	}
+
+	private static void paintPerformanceText(Graphics graphics, View view, PerformanceMonitor monitor, int x, int y) {
+		DebugOptions options = view.debugOptions();
 
 		Font oldFont = graphics.getFont();
+
 		graphics.setFont(graphics.getFont("Monospaced", Font.BOLD, 12));
 
 		graphics.setColor(Graphics.Colors.white);

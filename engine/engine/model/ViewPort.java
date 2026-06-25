@@ -1,31 +1,17 @@
 package engine.model;
 
-/*
- * Partie du monde actuellement visible.
- *
- * Le ViewPort appartient au Model et est exprimé
- * entièrement dans le repère ISU.
+/**
+ * Partie visible du monde, exprimée dans le repère ISU.
  */
 public final class ViewPort {
 
 	private final Model model;
 	private final ISU isu;
 
-	/*
-	 * Coin supérieur gauche du ViewPort.
-	 */
 	private ISU.Coord origin;
-
-	/*
-	 * Largeur et hauteur visibles en ISU.
-	 */
 	private ISU.Dimension dimension;
 
 	public ViewPort(Model model, ISU.Coord origin, ISU.Dimension dimension) {
-		assert model != null;
-		assert origin != null;
-		assert dimension != null;
-
 		this.model = model;
 		this.isu = model.isu();
 
@@ -50,10 +36,6 @@ public final class ViewPort {
 		return this.isu;
 	}
 
-	/*
-	 * On retourne des copies pour empêcher une modification du ViewPort sans passer
-	 * par ses méthodes.
-	 */
 	public ISU.Coord origin() {
 		return this.origin.mkCopy();
 	}
@@ -78,24 +60,74 @@ public final class ViewPort {
 		return this.dimension.y();
 	}
 
-	/*
-	 * Contraintes demandées par le professeur :
-	 *
-	 * axe non torique : dimension <= dimension de la carte
-	 *
-	 * axe torique : dimension < dimension de la carte afin d'éviter le pavage de la
-	 * carte.
-	 */
+	public void setOrigin(ISU.Coord origin) {
+		assert origin.isu() == this.isu;
+
+		this.origin = origin.mkCopy();
+
+		normalizeOrigin();
+	}
+
+	public void setDimension(ISU.Dimension dimension) {
+		assert dimension.isu() == this.isu;
+
+		ISU.Dimension copy = dimension.copy();
+
+		checkDimension(copy);
+
+		this.dimension = copy;
+
+		normalizeOrigin();
+	}
+
+	public void centerOn(Entity entity) {
+		assert entity.model() == this.model;
+		assert entity.installed();
+
+		ISU.Coord center = entity.center();
+
+		double targetX = center.x() - width() / 2.0;
+		double targetY = center.y() - height() / 2.0;
+
+		targetX = legalOriginX(targetX);
+		targetY = legalOriginY(targetY);
+
+		setOrigin(this.isu.new Coord(targetX, targetY));
+	}
+
+	public void follow(Entity entity) {
+		centerOn(entity);
+	}
+
+	public void follow(Entity entity, double elasticity) {
+		assert entity.model() == this.model;
+		assert entity.installed();
+
+		assert elasticity >= 0.0 : elasticity;
+		assert elasticity <= 1.0 : elasticity;
+
+		ISU.Coord center = entity.center();
+
+		double targetX = legalOriginX(center.x() - width() / 2.0);
+		double targetY = legalOriginY(center.y() - height() / 2.0);
+
+		double dx = deltaXTo(targetX);
+		double dy = deltaYTo(targetY);
+
+		double newX = this.origin.x() + dx * elasticity;
+		double newY = this.origin.y() + dy * elasticity;
+
+		setOrigin(this.isu.new Coord(newX, newY));
+	}
+
 	private void checkDimension(ISU.Dimension candidate) {
-		assert candidate != null;
 		assert candidate.isu() == this.isu;
 
 		double width = candidate.x();
-
 		double height = candidate.y();
 
-		assert width > 0.0;
-		assert height > 0.0;
+		assert width > 0.0 : width;
+		assert height > 0.0 : height;
 
 		if (this.isu.xAxis().onTorus()) {
 			assert width < this.isu.width() : "viewport width must be smaller than toric map width";
@@ -110,125 +142,18 @@ public final class ViewPort {
 		}
 	}
 
-	public void setOrigin(ISU.Coord newOrigin) {
-		assert newOrigin != null;
-		assert newOrigin.isu() == this.isu;
-
-		this.origin = newOrigin.mkCopy();
-
-		normalizeOrigin();
-	}
-
-	public void setDimension(ISU.Dimension newDimension) {
-		assert newDimension != null;
-		assert newDimension.isu() == this.isu;
-
-		ISU.Dimension copy = newDimension.copy();
-
-		checkDimension(copy);
-
-		this.dimension = copy;
-
-		/*
-		 * Une nouvelle dimension peut rendre l'ancienne origine invalide sur un axe non
-		 * torique.
-		 */
-		normalizeOrigin();
-	}
-
-	/*
-	 * Place immédiatement l'entité au centre du ViewPort.
-	 */
-	public void centerOn(Entity entity) {
-		assert entity != null;
-		assert entity.model() == this.model;
-		assert entity.installed();
-
-		ISU.Coord center = entity.center();
-
-		double targetX = center.x() - width() / 2.0;
-
-		double targetY = center.y() - height() / 2.0;
-
-		targetX = legalOriginX(targetX);
-
-		targetY = legalOriginY(targetY);
-
-		setOrigin(this.isu.new Coord(targetX, targetY));
-	}
-
-	/*
-	 * Nom pratique correspondant directement au comportement présenté dans les
-	 * slides.
-	 */
-	public void follow(Entity entity) {
-		centerOn(entity);
-	}
-
-	/*
-	 * Suivi progressif facultatif.
-	 *
-	 * elasticity = 1.0 : centrage immédiat.
-	 *
-	 * elasticity = 0.0 : aucun mouvement.
-	 */
-	public void follow(Entity entity, double elasticity) {
-		assert entity != null;
-		assert entity.model() == this.model;
-		assert entity.installed();
-
-		assert elasticity >= 0.0;
-		assert elasticity <= 1.0;
-
-		ISU.Coord center = entity.center();
-
-		double targetX = legalOriginX(center.x() - width() / 2.0);
-
-		double targetY = legalOriginY(center.y() - height() / 2.0);
-
-		double dx;
-
-		if (this.isu.xAxis().onTorus()) {
-			dx = this.isu.xAxis().delta(this.origin.x(), targetX);
-		} else {
-			dx = targetX - this.origin.x();
-		}
-
-		double dy;
-
-		if (this.isu.yAxis().onTorus()) {
-			dy = this.isu.yAxis().delta(this.origin.y(), targetY);
-		} else {
-			dy = targetY - this.origin.y();
-		}
-
-		setOrigin(this.isu.new Coord(this.origin.x() + dx * elasticity,
-
-				this.origin.y() + dy * elasticity));
-	}
-
-	/*
-	 * Normalise ou limite l'origine selon le type d'axe.
-	 */
 	private void normalizeOrigin() {
-		double normalizedX = legalOriginX(this.origin.x());
+		double x = legalOriginX(this.origin.x());
+		double y = legalOriginY(this.origin.y());
 
-		double normalizedY = legalOriginY(this.origin.y());
-
-		this.origin = this.isu.new Coord(normalizedX, normalizedY);
+		this.origin = this.isu.new Coord(x, y);
 	}
 
 	private double legalOriginX(double requestedX) {
 		if (this.isu.xAxis().onTorus()) {
-			/*
-			 * Sur un tore, l'origine peut être partout.
-			 */
 			return this.isu.xAxis().normalize(requestedX);
 		}
 
-		/*
-		 * Sur une carte non torique, le ViewPort doit rester entièrement dans la carte.
-		 */
 		double maximum = this.isu.width() - width();
 
 		return clamp(requestedX, 0.0, maximum);
@@ -242,6 +167,22 @@ public final class ViewPort {
 		double maximum = this.isu.height() - height();
 
 		return clamp(requestedY, 0.0, maximum);
+	}
+
+	private double deltaXTo(double targetX) {
+		if (this.isu.xAxis().onTorus()) {
+			return this.isu.xAxis().delta(this.origin.x(), targetX);
+		}
+
+		return targetX - this.origin.x();
+	}
+
+	private double deltaYTo(double targetY) {
+		if (this.isu.yAxis().onTorus()) {
+			return this.isu.yAxis().delta(this.origin.y(), targetY);
+		}
+
+		return targetY - this.origin.y();
 	}
 
 	private double clamp(double value, double minimum, double maximum) {
