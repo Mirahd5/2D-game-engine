@@ -19,81 +19,74 @@ public final class GalGameContext {
 	private final Entity self;
 	private final BasicStunt stunt;
 	private final CurrentPlayer currentPlayer;
+
 	private final Grid grid;
-	private final boolean torusOnXaxis;
-	private final boolean torusOnYaxis;
 	private final int gridWidth;
 	private final int gridHeight;
 
 	public GalGameContext(Entity self, BasicStunt stunt, CurrentPlayer currentPlayer) {
 		assert stunt.entity() == self;
+
 		this.self = self;
 		this.stunt = stunt;
 		this.currentPlayer = currentPlayer;
+
 		this.grid = self.model().grid();
-		this.torusOnXaxis = self.model().game().isTorusOnXaxis();
-		this.torusOnYaxis = self.model().game().isTorusOnYaxis();
 		this.gridWidth = this.grid.width();
 		this.gridHeight = this.grid.height();
 	}
 
 	public void waitAction() {
-		// Wait / Rest : aucune action moteur.
 	}
 
 	public void moveAction(String direction) {
-		stunt.walk(resolveDirection(direction));
+		this.stunt.walk(resolveDirection(direction));
 	}
 
 	public void turnAction(String direction) {
-		self.setOrientation(resolveDirection(direction));
+		this.self.setOrientation(resolveDirection(direction));
 	}
 
 	public boolean cellCondition(String directionName, String categoryName) {
 		int direction = resolveDirection(directionName);
-		Grid.Position target = Orientation.neighbor(grid, self.position(), direction, torusOnXaxis, torusOnYaxis);
+
+		Grid.Position target = Orientation.neighbor(this.grid, this.self.position(), direction);
 
 		if (target == null) {
 			return false;
 		}
 
-		Grid.Cell cell = grid.cellAt(target);
-		String category = normalizeName(categoryName);
+		Grid.Cell cell = this.grid.cellAt(target);
 		List<Entity> entities = cell.entities();
 
-		// case vide doit etre accessible
+		String category = normalizeName(categoryName);
+
 		if (isVoidCategory(category)) {
 			return free(cell);
 		}
 
-		// contient le joueur controlé
 		if (isPlayerCategory(category)) {
-			Entity player = currentPlayer.currentPlayer();
+			Entity player = this.currentPlayer.currentPlayer();
 			return player != null && player.alive() && cell.contains(player);
 		}
 
-		// contoent ennemi vivant
 		if (isEnemy(category)) {
 			return containsAlive(entities, Enemies.class);
 		}
 
-		// contient soit pengo soit friend vivant
 		if (isTeam(category)) {
 			return containsAlive(entities, Friend.class) || containsAlive(entities, Pengo.class);
 		}
 
-		// un obstacle
 		if (isObstacle(category)) {
 			return containsAlive(entities, Mur.class) || containsAlive(entities, Glacon.class)
 					|| containsAlive(entities, Spawner.class);
 		}
 
-		// pushable item
 		if (isPushable(category)) {
 			return containsAlive(entities, Glacon.class) || containsAlive(entities, Spawner.class);
 		}
 
-		// contient power
 		if (isPower(category)) {
 			return containsAlive(entities, Power.class);
 		}
@@ -101,40 +94,58 @@ public final class GalGameContext {
 		return false;
 	}
 
-	// pour Closest (poursuivre le pengo when angry)
 	public boolean closestCondition(String targetName, String directionName) {
 		if (!isPlayerCategory(normalizeName(targetName))) {
 			return false;
 		}
+
 		Entity target = findPengo();
+
 		if (target == null || !target.alive()) {
 			return false;
 		}
+
 		int wantedDirection = resolveDirection(directionName);
 
-		Grid.Position from = self.position();
+		Grid.Position from = this.self.position();
 		Grid.Position to = target.position();
 
-		int dx = signedDelta(from.x(), to.x(), gridWidth, torusOnXaxis);
-		int dy = signedDelta(from.y(), to.y(), gridHeight, torusOnYaxis);
+		int dx = this.grid.xAxis().delta(from.x(), to.x());
+		int dy = this.grid.yAxis().delta(from.y(), to.y());
 
 		int closestDirection;
+
 		if (Math.abs(dx) >= Math.abs(dy)) {
-			closestDirection = dx >= 0 ? 0 : 180;
+			closestDirection = dx >= 0 ? Orientation.EAST : Orientation.WEST;
 		} else {
-			closestDirection = dy >= 0 ? 90 : 270;
+			closestDirection = dy >= 0 ? Orientation.SOUTH : Orientation.NORTH;
 		}
+
 		return closestDirection == wantedDirection;
 	}
 
-	// verifie si lentite est face acette direction
 	public boolean faces(String directionName) {
-		int orientation = Orientation.normalizeCardinal(self.orientation());
+		int orientation = Orientation.normalize(this.self.orientation());
 		int direction = resolveDirection(directionName);
+
 		return orientation == direction;
 	}
 
-	// verife si free pour self
+	public boolean gotCondition(String categoryName) {
+		String category = normalizeName(categoryName);
+
+		if (isEnemy(category)) {
+			return nEnemyLeft() == 1;
+		}
+
+		if (isDanger(category)) {
+			Pengo pengo = findPengo();
+			return pengo != null && pengo.nLives() <= 1;
+		}
+
+		return false;
+	}
+
 	private boolean free(Grid.Cell cell) {
 		if (this.self instanceof Enemies) {
 			Grid.Position center = this.grid.new Position(this.gridWidth / 2, this.gridHeight / 2);
@@ -143,123 +154,92 @@ public final class GalGameContext {
 				return false;
 			}
 		}
-		List<Entity> entities = cell.entities();
 
-		for (Entity e : entities) {
-			if (e != self && e.alive()) {
-				if (e instanceof Enemies) {
-					return false;
-				}
+		for (Entity entity : cell.entities()) {
+			if (entity == this.self || !entity.alive()) {
+				continue;
+			}
 
-				if (self.blocks(e) || e.blocks(self)) {
-					return false;
-				}
+			if (entity instanceof Enemies) {
+				return false;
+			}
+
+			if (this.self.blocks(entity) || entity.blocks(this.self)) {
+				return false;
 			}
 		}
 
 		return true;
 	}
 
-	public boolean gotCondition(String categoryName) {
-		String category = normalizeName(categoryName);
-		// Got(A) il reste juste un enemy alive
-		if (isEnemy(category)) {
-			return nEnemyLeft() == 1;
-		}
-		// Got(D) Pengo has only one life left
-		if (isDanger(category)) {
-			Pengo pengo = findPengo();
-			return pengo != null && pengo.nLives() <= 1;
-		}
-		return false;
-
-	}
-
-	// retourne le nbr d enemy vivant
 	private int nEnemyLeft() {
 		int count = 0;
-		List<Entity> entities = self.model().entities();
-		for (Entity entity : entities) {
-			if (entity instanceof Enemies e && e.alive()) {
+
+		for (Entity entity : this.self.model().entities()) {
+			if (entity instanceof Enemies && entity.alive()) {
 				count++;
 			}
 		}
+
 		return count;
 	}
 
 	private Pengo findPengo() {
-		List<Entity> entities = self.model().entities();
-		for (Entity entity : entities) {
-			if (entity instanceof Pengo p && p.alive()) {
-				return p;
+		for (Entity entity : this.self.model().entities()) {
+			if (entity instanceof Pengo && entity.alive()) {
+				return (Pengo) entity;
 			}
 		}
+
 		return null;
 	}
 
 	private int resolveDirection(String directionName) {
 		String direction = normalizeName(directionName);
-		int orientation = Orientation.normalizeCardinal(self.orientation());
+		int orientation = Orientation.normalize(this.self.orientation());
 
-		// forward
 		if (direction.length() == 0 || direction.equals("F") || direction.equals("FORWARD") || direction.equals("FRONT")
 				|| direction.equals("H") || direction.equals("HERE")) {
 			return orientation;
 		}
 
-		// backwards
 		if (direction.equals("B") || direction.equals("BACK") || direction.equals("BACKWARD")) {
 			return Orientation.backOf(orientation);
 		}
 
-		// left
 		if (direction.equals("L") || direction.equals("LEFT")) {
 			return Orientation.leftOf(orientation);
 		}
 
-		// right
 		if (direction.equals("R") || direction.equals("RIGHT")) {
 			return Orientation.rightOf(orientation);
 		}
 
 		if (direction.equals("N") || direction.equals("NORTH")) {
-			return 270;
+			return Orientation.NORTH;
 		}
 
 		if (direction.equals("S") || direction.equals("SOUTH")) {
-			return 90;
+			return Orientation.SOUTH;
 		}
 
 		if (direction.equals("E") || direction.equals("EAST")) {
-			return 0;
+			return Orientation.EAST;
 		}
 
 		if (direction.equals("W") || direction.equals("WEST") || direction.equals("O")) {
-			return 180;
+			return Orientation.WEST;
 		}
 
 		throw new UnsupportedOperationException("Direction GAL non supportee : " + directionName);
 	}
 
-	// distance signée entre 2 coord si torique le plus court
-	private int signedDelta(int from, int to, int size, boolean torus) {
-		int delta = to - from;
-
-		if (torus) {
-			if (delta > size / 2) {
-				delta -= size;
-			} else if (delta < -size / 2) {
-				delta += size;
-			}
+	private static String normalizeName(String name) {
+		if (name == null) {
+			return "";
 		}
 
-		return delta;
-	}
-
-	// HELPERS
-
-	private static String normalizeName(String name) {
-		return name == null ? "" : name.trim().toUpperCase();
+		return name.trim().toUpperCase();
 	}
 
 	private static boolean isVoidCategory(String category) {
@@ -294,13 +274,13 @@ public final class GalGameContext {
 		return category.equals("D") || category.equals("DANGER");
 	}
 
-	// estce que la liste contient une entity de ce typevivant?
 	private static boolean containsAlive(List<Entity> entities, Class<?> type) {
 		for (Entity entity : entities) {
 			if (type.isInstance(entity) && entity.alive()) {
 				return true;
 			}
 		}
+
 		return false;
 	}
 }

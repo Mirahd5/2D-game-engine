@@ -110,6 +110,16 @@ public final class PengoGameRunner {
 		PengoBotInstaller.installIceBots(brain, model, builder, gameState);
 		PengoBotInstaller.installGameStateBot(brain, model, gameState);
 
+		// effet special si les spawners sont alignes
+		PengoBotInstaller.installSpawnerAlignmentEffect(builder, pengo, runState, config.tickDelayMs());
+
+		PengoBotInstaller.installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer,
+				builder, gameState, runState);
+
+		PengoBotInstaller.installIceBots(brain, model, builder, gameState);
+
+		PengoBotInstaller.installGameStateBot(brain, model, gameState);
+
 		// cree le controller clavier
 		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk(), debugOptions);
 		controller.setGameState(gameState);
@@ -123,7 +133,7 @@ public final class PengoGameRunner {
 
 		// installe le spawn aleatoire des powers
 		PengoPowerSpawner.resetPowerSpawnCounters();
-		PengoPowerSpawner.installRandomPowerSpawner(model, view, gameState, builder, runState,currentPlayer);
+		PengoPowerSpawner.installRandomPowerSpawner(model, view, gameState, builder, runState, currentPlayer);
 
 		// lance l'affichage
 		PainterTask painterTask = new PainterTask(painter, config.paintDelayMs());

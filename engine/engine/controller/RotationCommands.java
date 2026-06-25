@@ -1,11 +1,7 @@
 package engine.controller;
 
-/*
- * Commandes génériques de rotation produites
- * par un contrôleur souris.
- *
- * Le MouseController ne connaît ni le Bot,
- * ni le Stunt, ni le jeu concret.
+/**
+ * Commandes de rotation produites par un contrôleur.
  */
 public interface RotationCommands {
 

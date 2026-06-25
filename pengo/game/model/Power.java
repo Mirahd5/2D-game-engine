@@ -81,10 +81,7 @@ public final class Power extends Obstacle {
     
     @Override
     public boolean blocks(Entity other) {
-    	/*
-    	 * Le power bloque seulement les glaçons.
-    	 * Pengo et Friend doivent pouvoir marcher dessus pour le ramasser.
-    	 */
-    	return other instanceof Glacon;
+        return false;
     }
+
 }

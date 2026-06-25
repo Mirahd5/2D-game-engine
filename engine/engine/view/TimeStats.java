@@ -1,5 +1,8 @@
 package engine.view;
 
+/**
+ * Statistiques simples sur une série de valeurs positives.
+ */
 public final class TimeStats {
 
 	private long count;
@@ -8,7 +11,6 @@ public final class TimeStats {
 	private double sum;
 
 	public TimeStats() {
-		reset();
 	}
 
 	public void reset() {
@@ -19,9 +21,7 @@ public final class TimeStats {
 	}
 
 	public void record(double value) {
-		if (value < 0.0) {
-			return;
-		}
+		assert value >= 0.0 : value;
 
 		if (this.count == 0L) {
 			this.min = value;
@@ -33,6 +33,10 @@ public final class TimeStats {
 
 		this.sum += value;
 		this.count++;
+	}
+
+	public long count() {
+		return this.count;
 	}
 
 	public double min() {

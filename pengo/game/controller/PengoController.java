@@ -7,27 +7,27 @@ import engine.brain.PlayerBot;
 import engine.controller.Controller;
 import engine.model.Entity;
 import engine.model.Orientation;
+import engine.view.DebugOptions;
+import engine.view.View;
 import game.model.PengoGameState;
 import game.model.Player;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
-import engine.view.View;
-import engine.view.DebugOptions;
 
 public final class PengoController extends Controller {
 
 	private final Switch controlSwitcher;
+	private final View view;
 	private final boolean continuousWalk;
 
-	private PengoGameState gameState;
-
-	private final View view;
-
 	private final Set<Integer> pressedKeys;
+
+	private final DebugOptions debugOptions;
+
+	private PengoGameState gameState;
 	private Integer continuousDirection;
 
-	// debug
-	private final DebugOptions debugOptions;
+	private static final int KEY_TAB = 9;
 
 	private static final int KEY_F1 = 112;
 	private static final int KEY_F2 = 113;
@@ -40,21 +40,20 @@ public final class PengoController extends Controller {
 	}
 
 	public PengoController(Switch controlSwitcher, View view, boolean continuousWalk, DebugOptions debugOptions) {
-		assert controlSwitcher != null;
-		assert view != null;
-
 		this.controlSwitcher = controlSwitcher;
 		this.view = view;
 		this.continuousWalk = continuousWalk;
-		this.debugOptions = debugOptions;
-		this.gameState = null;
+
+		if (debugOptions == null) {
+			this.debugOptions = view.debugOptions();
+		} else {
+			this.debugOptions = debugOptions;
+		}
 
 		this.pressedKeys = new HashSet<Integer>();
-		this.continuousDirection = null;
 	}
 
 	public void setGameState(PengoGameState gameState) {
-		assert gameState != null;
 		this.gameState = gameState;
 	}
 
@@ -72,7 +71,7 @@ public final class PengoController extends Controller {
 	public boolean continuousWalk() {
 		return this.continuousWalk;
 	}
-	
+
 	public boolean gameFinished() {
 		return this.gameState != null && this.gameState.finished();
 	}
@@ -85,22 +84,15 @@ public final class PengoController extends Controller {
 		return this.gameState != null && this.gameState.lost();
 	}
 
-	// =========================
-	// Keyboard
-	// =========================
+	// KEYBOARD
 
 	@Override
-	public void pressed(Canvas canvas, int keyCode, char keyChar) {
-
+	protected void keyPressed(Canvas canvas, int keyCode, char keyChar) {
 		if (handleDebugKey(keyCode)) {
 			return;
 		}
-		
-		if (!enabled()) {
-			return;
-		}
 
-		if (this.gameState != null && this.gameState.finished()) {
+		if (gameFinished()) {
 			return;
 		}
 
@@ -109,22 +101,22 @@ public final class PengoController extends Controller {
 		switch (keyCode) {
 		case VirtualKeyCodes.VK_RIGHT:
 		case VirtualKeyCodes.VK_D:
-			directionPressed(keyCode, 0);
+			directionPressed(keyCode, Orientation.EAST);
 			break;
 
 		case VirtualKeyCodes.VK_DOWN:
 		case VirtualKeyCodes.VK_S:
-			directionPressed(keyCode, 90);
+			directionPressed(keyCode, Orientation.SOUTH);
 			break;
 
 		case VirtualKeyCodes.VK_LEFT:
 		case VirtualKeyCodes.VK_Q:
-			directionPressed(keyCode, 180);
+			directionPressed(keyCode, Orientation.WEST);
 			break;
 
 		case VirtualKeyCodes.VK_UP:
 		case VirtualKeyCodes.VK_Z:
-			directionPressed(keyCode, 270);
+			directionPressed(keyCode, Orientation.NORTH);
 			break;
 
 		case VirtualKeyCodes.VK_SPACE:
@@ -133,7 +125,7 @@ public final class PengoController extends Controller {
 			}
 			break;
 
-		case 9: // TAB
+		case KEY_TAB:
 			if (this.pressedKeys.add(keyCode)) {
 				this.controlSwitcher.switchControl();
 			}
@@ -144,18 +136,37 @@ public final class PengoController extends Controller {
 		}
 	}
 
-	private void directionPressed(int keyCode, int direction) {
-		boolean firstPress = this.pressedKeys.add(keyCode);
-
-		if (this.continuousWalk) {
-			this.continuousDirection = Orientation.normalizeCardinal(direction);
-		}
-
-		if (!firstPress && !this.continuousWalk) {
+	@Override
+	protected void keyReleased(Canvas canvas, int keyCode, char keyChar) {
+		if (gameFinished()) {
 			return;
 		}
 
-		moveOnly(direction);
+		this.pressedKeys.remove(keyCode);
+
+		Integer releasedDirection = directionForKey(keyCode);
+
+		if (releasedDirection == null) {
+			return;
+		}
+
+		Integer stillPressedDirection = findStillPressedDirection();
+
+		if (this.continuousWalk && releasedDirection.equals(this.continuousDirection)) {
+			this.continuousDirection = stillPressedDirection;
+		}
+
+		if (stillPressedDirection == null) {
+			PlayerBot bot = this.controlSwitcher.playerBot();
+
+			if (bot != null) {
+				bot.stopWishing();
+			}
+		}
+	}
+
+	@Override
+	protected void keyTyped(Canvas canvas, char keyChar) {
 	}
 
 	public void updateContinuousWalk() {
@@ -163,7 +174,7 @@ public final class PengoController extends Controller {
 			return;
 		}
 
-		if (this.gameState != null && this.gameState.finished()) {
+		if (gameFinished()) {
 			return;
 		}
 
@@ -176,6 +187,57 @@ public final class PengoController extends Controller {
 		}
 
 		moveOnly(this.continuousDirection);
+	}
+
+	private void directionPressed(int keyCode, int direction) {
+		boolean firstPress = this.pressedKeys.add(keyCode);
+
+		int normalizedDirection = Orientation.normalize(direction);
+
+		if (this.continuousWalk) {
+			this.continuousDirection = normalizedDirection;
+		}
+
+		if (!firstPress && !this.continuousWalk) {
+			return;
+		}
+
+		moveOnly(normalizedDirection);
+	}
+
+	private Integer findStillPressedDirection() {
+		for (Integer key : this.pressedKeys) {
+			Integer direction = directionForKey(key);
+
+			if (direction != null) {
+				return direction;
+			}
+		}
+
+		return null;
+	}
+
+	private Integer directionForKey(int keyCode) {
+		switch (keyCode) {
+		case VirtualKeyCodes.VK_RIGHT:
+		case VirtualKeyCodes.VK_D:
+			return Orientation.EAST;
+
+		case VirtualKeyCodes.VK_DOWN:
+		case VirtualKeyCodes.VK_S:
+			return Orientation.SOUTH;
+
+		case VirtualKeyCodes.VK_LEFT:
+		case VirtualKeyCodes.VK_Q:
+			return Orientation.WEST;
+
+		case VirtualKeyCodes.VK_UP:
+		case VirtualKeyCodes.VK_Z:
+			return Orientation.NORTH;
+
+		default:
+			return null;
+		}
 	}
 
 	private void moveOnly(int direction) {
@@ -195,11 +257,9 @@ public final class PengoController extends Controller {
 
 		PlayerBot bot = this.controlSwitcher.playerBot();
 
-		if (bot == null) {
-			return;
+		if (bot != null) {
+			bot.wish(direction);
 		}
-
-		bot.wish(direction);
 	}
 
 	private void useAction() {
@@ -213,97 +273,15 @@ public final class PengoController extends Controller {
 		}
 	}
 
+	// MOUSE
+
 	@Override
-	public void released(Canvas canvas, int keyCode, char keyChar) {
-		if (!enabled()) {
-			return;
-		}
-
-		if (this.gameState != null && this.gameState.finished()) {
-			return;
-		}
-
-		this.pressedKeys.remove(keyCode);
-
-		Integer releasedDirection = directionForKey(keyCode);
-
-		if (releasedDirection == null) {
-			return;
-		}
-
-		Integer stillPressedDirection = findStillPressedDirection();
-
-		if (this.continuousWalk) {
-			if (releasedDirection.equals(this.continuousDirection)) {
-				this.continuousDirection = stillPressedDirection;
-			}
-		}
-
-		if (stillPressedDirection == null) {
-			PlayerBot bot = this.controlSwitcher.playerBot();
-
-			if (bot != null) {
-				bot.stopWishing();
-			}
-		}
-	}
-
-	private Integer findStillPressedDirection() {
-		for (Integer key : this.pressedKeys) {
-			Integer direction = directionForKey(key);
-
-			if (direction != null) {
-				return direction;
-			}
-		}
-
-		return null;
-	}
-
-	private Integer directionForKey(int keyCode) {
-		switch (keyCode) {
-		case VirtualKeyCodes.VK_RIGHT:
-		case VirtualKeyCodes.VK_D:
-			return 0;
-
-		case VirtualKeyCodes.VK_DOWN:
-		case VirtualKeyCodes.VK_S:
-			return 90;
-
-		case VirtualKeyCodes.VK_LEFT:
-		case VirtualKeyCodes.VK_Q:
-			return 180;
-
-		case VirtualKeyCodes.VK_UP:
-		case VirtualKeyCodes.VK_Z:
-			return 270;
-
-		default:
-			return null;
-		}
+	protected void mouseMoved(Canvas canvas, int x, int y) {
 	}
 
 	@Override
-	public void typed(Canvas canvas, char keyChar) {
-		// Non utilisé.
-	}
-
-	// =========================
-	// Mouse
-	// =========================
-
-	@Override
-	public void moved(Canvas canvas, int x, int y) {
-		// Non utilisé pour l'instant.
-	}
-
-	@Override
-	public void pressed(Canvas canvas, int button, int x, int y) {
-		if (!enabled()) {
-			return;
-		}
-
-		if (this.gameState != null && this.gameState.finished()) {
+	protected void mousePressed(Canvas canvas, int button, int x, int y) {
+		if (gameFinished()) {
 			return;
 		}
 
@@ -318,20 +296,21 @@ public final class PengoController extends Controller {
 		}
 	}
 
+	@Override
+	protected void mouseReleased(Canvas canvas, int x, int y, int button) {
+	}
+
 	private int directionFromMouseClick(int mouseX, int mouseY) {
 		this.controlSwitcher.updateControlledEntity();
 
 		Entity controlled = this.controlSwitcher.controlledEntity();
 
 		if (!(controlled instanceof Player)) {
-			return 90;
+			return Orientation.SOUTH;
 		}
 
-		/*
-		 * Si le clic est dans le HUD à droite, on ignore et on garde l'orientation.
-		 */
 		if (mouseX > this.view.widthPixel()) {
-			return Orientation.normalizeCardinal(controlled.orientation());
+			return Orientation.normalize(controlled.orientation());
 		}
 
 		int centerX = this.view.toPixelX(controlled.center().x());
@@ -342,17 +321,17 @@ public final class PengoController extends Controller {
 
 		if (Math.abs(dx) >= Math.abs(dy)) {
 			if (dx >= 0) {
-				return 0; // droite
+				return Orientation.EAST;
 			}
 
-			return 180; // gauche
+			return Orientation.WEST;
 		}
 
 		if (dy >= 0) {
-			return 90; // bas
+			return Orientation.SOUTH;
 		}
 
-		return 270; // haut
+		return Orientation.NORTH;
 	}
 
 	private void faceOnly(int direction) {
@@ -364,7 +343,7 @@ public final class PengoController extends Controller {
 			return;
 		}
 
-		int normalized = Orientation.normalizeCardinal(direction);
+		int normalized = Orientation.normalize(direction);
 
 		controlled.setOrientation(normalized);
 
@@ -373,11 +352,6 @@ public final class PengoController extends Controller {
 		if (bot != null) {
 			bot.stopWishing();
 		}
-	}
-
-	@Override
-	public void released(Canvas canvas, int x, int y, int button) {
-		// Rien : un clic fait une rotation immédiate.
 	}
 
 	private boolean handleDebugKey(int keyCode) {

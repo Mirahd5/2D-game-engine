@@ -1,6 +1,9 @@
 package engine.model;
 
-public class RotationStunt extends Stunt {
+/**
+ * Stunt de rotation continue autour du centre de l'entité.
+ */
+public final class RotationStunt extends Stunt {
 
 	private static final double DEFAULT_ANGULAR_SPEED = 180.0;
 
@@ -16,11 +19,25 @@ public class RotationStunt extends Stunt {
 	public RotationStunt(Model model, Entity entity, double angularSpeed) {
 		super(model, entity);
 
-		assert angularSpeed > 0.0;
+		assert angularSpeed > 0.0 : angularSpeed;
 
 		this.angularSpeed = angularSpeed;
-		this.turningLeft = false;
-		this.turningRight = false;
+	}
+
+	public double angularSpeed() {
+		return this.angularSpeed;
+	}
+
+	public boolean turningLeft() {
+		return this.turningLeft;
+	}
+
+	public boolean turningRight() {
+		return this.turningRight;
+	}
+
+	public boolean rotating() {
+		return this.turningLeft || this.turningRight;
 	}
 
 	public void startTurnLeft() {
@@ -52,9 +69,7 @@ public class RotationStunt extends Stunt {
 
 		this.turningLeft = false;
 
-		if (!this.turningRight && this.entity.alive() && this.entity.installed()) {
-			this.entity.setAngularSpeed(0.0);
-		}
+		stopIfNoRotation();
 	}
 
 	public void stopTurnRight() {
@@ -64,31 +79,25 @@ public class RotationStunt extends Stunt {
 
 		this.turningRight = false;
 
-		if (!this.turningLeft && this.entity.alive() && this.entity.installed()) {
-			this.entity.setAngularSpeed(0.0);
-		}
+		stopIfNoRotation();
 	}
 
 	@Override
 	protected void onInvalidate() {
 		this.turningLeft = false;
 		this.turningRight = false;
-	}
 
-	public boolean isTurningLeft() {
-		return this.turningLeft;
-	}
-
-	public boolean isTurningRight() {
-		return this.turningRight;
-	}
-
-	public boolean isRotating() {
-		return this.turningLeft || this.turningRight;
+		this.entity.setAngularSpeed(0.0);
 	}
 
 	@Override
 	public boolean walk(int degree) {
 		return false;
+	}
+
+	private void stopIfNoRotation() {
+		if (!this.turningLeft && !this.turningRight) {
+			this.entity.setAngularSpeed(0.0);
+		}
 	}
 }

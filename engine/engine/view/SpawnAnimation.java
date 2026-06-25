@@ -1,10 +1,14 @@
 package engine.view;
 
+/**
+ * Animation de spawn avec léger effet de zoom.
+ */
 public final class SpawnAnimation {
 
 	private static final long DEFAULT_DURATION_MS = 900L;
 
 	private final long durationMs;
+
 	private long elapsedMs;
 
 	public SpawnAnimation() {
@@ -12,16 +16,23 @@ public final class SpawnAnimation {
 	}
 
 	public SpawnAnimation(long durationMs) {
-		assert durationMs > 0L;
+		assert durationMs > 0L : durationMs;
 
 		this.durationMs = durationMs;
-		this.elapsedMs = 0L;
+	}
+
+	public long durationMs() {
+		return this.durationMs;
+	}
+
+	public long elapsedMs() {
+		return this.elapsedMs;
 	}
 
 	public void tick(long elapsed) {
-		assert elapsed >= 0L;
+		assert elapsed >= 0L : elapsed;
 
-		if (this.elapsedMs >= this.durationMs) {
+		if (finished()) {
 			return;
 		}
 
@@ -33,20 +44,8 @@ public final class SpawnAnimation {
 	}
 
 	public double scale() {
-		double progress = (double) this.elapsedMs / (double) this.durationMs;
+		double progress = progress();
 
-		if (progress < 0.0) {
-			progress = 0.0;
-		}
-
-		if (progress > 1.0) {
-			progress = 1.0;
-		}
-
-		/*
-		 * Animation visible : 0% -> très petit 70% -> dépasse un peu la taille normale
-		 * 100% -> taille normale
-		 */
 		if (progress < 0.70) {
 			double p = progress / 0.70;
 			return 0.05 + p * 1.15;
@@ -62,5 +61,19 @@ public final class SpawnAnimation {
 
 	public void reset() {
 		this.elapsedMs = 0L;
+	}
+
+	private double progress() {
+		double progress = (double) this.elapsedMs / (double) this.durationMs;
+
+		if (progress < 0.0) {
+			return 0.0;
+		}
+
+		if (progress > 1.0) {
+			return 1.0;
+		}
+
+		return progress;
 	}
 }

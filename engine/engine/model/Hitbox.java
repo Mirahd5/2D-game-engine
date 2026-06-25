@@ -1,22 +1,19 @@
 package engine.model;
 
-/*
- * Hitbox représente une boîte rectangulaire alignée sur les axes X et Y.
- *
- * Elle sert de test rapide avant les collisions précises.
- * Si deux hitbox ne se touchent pas, les formes qu'elles contiennent
- * ne peuvent pas se toucher non plus.
+/**
+ * Boîte rectangulaire alignée sur les axes, utilisée comme filtre rapide de
+ * collision.
  */
-public class Hitbox {
+public final class Hitbox {
 
-	private double xmin;
-	private double xmax;
-	private double ymin;
-	private double ymax;
+	private final double xmin;
+	private final double xmax;
+	private final double ymin;
+	private final double ymax;
 
 	public Hitbox(double xmin, double xmax, double ymin, double ymax) {
-		assert xmin <= xmax;
-		assert ymin <= ymax;
+		assert xmin <= xmax : "invalid x interval";
+		assert ymin <= ymax : "invalid y interval";
 
 		this.xmin = xmin;
 		this.xmax = xmax;
@@ -40,56 +37,33 @@ public class Hitbox {
 		return this.ymax;
 	}
 
-	/*
-	 * Test classique d'intersection entre deux rectangles alignés.
-	 *
-	 * Deux hitbox ne se touchent pas si l'une est complètement
-	 * à gauche, à droite, au-dessus ou en dessous de l'autre.
-	 */
-	public boolean intersects(Hitbox h) {
-		assert h != null;
-
-		return !(
-			this.xmax < h.xmin ||
-			h.xmax < this.xmin ||
-			this.ymax < h.ymin ||
-			h.ymax < this.ymin
-		);
+	public double width() {
+		return this.xmax - this.xmin;
 	}
 
-	/*
-	 * Variante utilisée quand le monde est un tore.
-	 *
-	 * Une forme proche d'un bord peut toucher une autre forme située
-	 * de l'autre côté du monde. Pour gérer ce cas simplement, on teste
-	 * aussi des copies de la deuxième hitbox décalées d'un tour de monde.
-	 */
-	public boolean intersectsOnTorus(Hitbox h, double worldWidth, double worldHeight) {
-		return intersects(h, true, true, worldWidth, worldHeight);
+	public double height() {
+		return this.ymax - this.ymin;
 	}
 
-	/*
-	 * Même principe que intersectsOnTorus, mais axe par axe.
-	 * C'est important pour PacMan : souvent X est torique, mais Y ne l'est pas.
-	 */
-	public boolean intersects(Hitbox h, boolean torusX, boolean torusY, double worldWidth, double worldHeight) {
-		assert h != null;
-		assert worldWidth > 0.0;
-		assert worldHeight > 0.0;
+	public boolean intersects(Hitbox hitbox) {
+		return !(this.xmax < hitbox.xmin || hitbox.xmax < this.xmin || this.ymax < hitbox.ymin
+				|| hitbox.ymax < this.ymin);
+	}
 
-		double[] dxs = torusX ? new double[] { 0.0, -worldWidth, worldWidth } : new double[] { 0.0 };
-		double[] dys = torusY ? new double[] { 0.0, -worldHeight, worldHeight } : new double[] { 0.0 };
+	public boolean intersectsOnTorus(Hitbox hitbox, double worldWidth, double worldHeight) {
+		return intersects(hitbox, true, true, worldWidth, worldHeight);
+	}
 
-		for (double dx : dxs) {
-			for (double dy : dys) {
-				Hitbox shifted = new Hitbox(
-					h.xmin() + dx,
-					h.xmax() + dx,
-					h.ymin() + dy,
-					h.ymax() + dy
-				);
+	public boolean intersects(Hitbox hitbox, boolean torusX, boolean torusY, double worldWidth, double worldHeight) {
+		assert worldWidth > 0.0 : worldWidth;
+		assert worldHeight > 0.0 : worldHeight;
 
-				if (this.intersects(shifted)) {
+		double[] xOffsets = torusX ? new double[] { 0.0, -worldWidth, worldWidth } : new double[] { 0.0 };
+		double[] yOffsets = torusY ? new double[] { 0.0, -worldHeight, worldHeight } : new double[] { 0.0 };
+
+		for (double dx : xOffsets) {
+			for (double dy : yOffsets) {
+				if (intersectsShifted(hitbox, dx, dy)) {
 					return true;
 				}
 			}
@@ -98,20 +72,18 @@ public class Hitbox {
 		return false;
 	}
 
-	/*
-	 * Construit une hitbox qui englobe deux hitbox.
-	 *
-	 * Cette méthode est utile pour créer la hitbox globale d'un Bounding
-	 * composé de plusieurs formes.
-	 */
-	public Hitbox union(Hitbox h) {
-		assert h != null;
+	public Hitbox union(Hitbox hitbox) {
+		return new Hitbox(Math.min(this.xmin, hitbox.xmin), Math.max(this.xmax, hitbox.xmax),
+				Math.min(this.ymin, hitbox.ymin), Math.max(this.ymax, hitbox.ymax));
+	}
 
-		return new Hitbox(
-			Math.min(this.xmin, h.xmin),
-			Math.max(this.xmax, h.xmax),
-			Math.min(this.ymin, h.ymin),
-			Math.max(this.ymax, h.ymax)
-		);
+	private boolean intersectsShifted(Hitbox hitbox, double dx, double dy) {
+		double shiftedXmin = hitbox.xmin + dx;
+		double shiftedXmax = hitbox.xmax + dx;
+		double shiftedYmin = hitbox.ymin + dy;
+		double shiftedYmax = hitbox.ymax + dy;
+
+		return !(this.xmax < shiftedXmin || shiftedXmax < this.xmin || this.ymax < shiftedYmin
+				|| shiftedYmax < this.ymin);
 	}
 }
