@@ -3,8 +3,8 @@ package engine.view;
 import engine.model.Entity;
 import oop.graphics.Graphics;
 
-/**
- * Avatar qui dessine une entité sous forme de rectangle orienté.
+/*
+ * Avatar générique représentant une entité par un rectangle orienté.
  */
 public class RectAvatar extends ShapeAvatar {
 

@@ -3,49 +3,30 @@ package engine.view;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/**
- * Image contenant plusieurs sprites découpables.
- */
-public final class SpriteSheet {
+public class SpriteSheet {
 
-	private final String path;
-
+	private String path;
 	private BufferedImage sheet;
 
 	public SpriteSheet(String path) {
-		assert path.length() > 0 : "empty sprite sheet path";
-
+		assert path != null;
 		this.path = path;
+		this.sheet = null;
 	}
 
-	public String path() {
-		return this.path;
-	}
+	public void load(Graphics g) {
+		assert g != null;
 
-	public boolean loaded() {
-		return this.sheet != null;
-	}
-
-	public void load(Graphics graphics) {
 		if (this.sheet == null) {
-			this.sheet = graphics.load(this.path);
+			this.sheet = g.load(this.path);
 		}
 	}
 
-	public BufferedImage image(Graphics graphics) {
-		load(graphics);
+	public BufferedImage frame(Graphics g, int x, int y, int w, int h) {
+		assert g != null;
 
-		return this.sheet;
-	}
+		load(g);
 
-	public BufferedImage frame(Graphics graphics, int x, int y, int width, int height) {
-		assert x >= 0 : x;
-		assert y >= 0 : y;
-		assert width > 0 : width;
-		assert height > 0 : height;
-
-		load(graphics);
-
-		return this.sheet.getSubimage(x, y, width, height);
+		return this.sheet.getSubimage(x, y, w, h);
 	}
 }

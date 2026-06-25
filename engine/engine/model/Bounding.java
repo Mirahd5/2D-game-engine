@@ -3,20 +3,33 @@ package engine.model;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-/**
- * Union de formes simples qui recouvrent une entité.
+/*
+ * Bounding représente l'union des formes simples
+ * qui recouvrent une entité.
+ *
+ * Un Bounding peut contenir plusieurs Circle et Rect.
  */
 public final class Bounding {
 
 	private final Set<IShape> shapes;
 
+	/*
+	 * Toutes les formes d'un Bounding doivent appartenir au même repère ISU.
+	 */
 	private ISU isu;
 
 	public Bounding() {
 		this.shapes = new LinkedHashSet<IShape>();
+		this.isu = null;
 	}
 
+	/*
+	 * Ajoute une forme au Bounding.
+	 */
 	public void add(IShape shape) {
+		assert shape != null;
+		assert shape.isu() != null;
+
 		if (this.isu == null) {
 			this.isu = shape.isu();
 		} else {
@@ -34,14 +47,22 @@ public final class Bounding {
 		return this.shapes.size();
 	}
 
+	/*
+	 * La collection ne doit pas être modifiable directement depuis l'extérieur.
+	 */
 	public Set<IShape> shapes() {
 		return new LinkedHashSet<IShape>(this.shapes);
 	}
 
 	public ISU isu() {
+		assert this.isu != null : "An empty Bounding has no ISU";
+
 		return this.isu;
 	}
 
+	/*
+	 * Construit une Hitbox qui englobe toutes les formes du Bounding.
+	 */
 	public Hitbox hitbox() {
 		assert !this.shapes.isEmpty() : "An empty Bounding has no Hitbox";
 
@@ -58,7 +79,12 @@ public final class Bounding {
 		return result;
 	}
 
+	/*
+	 * Teste une forme contre toutes les formes contenues dans ce Bounding.
+	 */
 	public boolean intersects(IShape shape) {
+		assert shape != null;
+
 		if (this.shapes.isEmpty()) {
 			return false;
 		}
@@ -74,21 +100,35 @@ public final class Bounding {
 		return false;
 	}
 
+	/*
+	 * Teste l'intersection entre deux Bounding.
+	 */
 	public boolean intersects(Bounding other) {
+		assert other != null;
+
 		if (this.shapes.isEmpty() || other.shapes.isEmpty()) {
 			return false;
 		}
 
-		assert other.isu() == this.isu : "Bounding objects must use the same ISU";
+		assert other.isu() == this.isu() : "Bounding objects must use the same ISU";
 
+		/*
+		 * Filtre rapide par les Hitbox globales.
+		 */
 		Hitbox firstHitbox = this.hitbox();
+
 		Hitbox secondHitbox = other.hitbox();
 
-		if (!firstHitbox.intersects(secondHitbox, this.isu.xAxis().onTorus(), this.isu.yAxis().onTorus(),
-				this.isu.width(), this.isu.height())) {
+		boolean possibleIntersection = firstHitbox.intersects(secondHitbox, this.isu.xAxis().onTorus(),
+				this.isu.yAxis().onTorus(), this.isu.width(), this.isu.height());
+
+		if (!possibleIntersection) {
 			return false;
 		}
 
+		/*
+		 * Test précis entre toutes les paires de formes.
+		 */
 		for (IShape first : this.shapes) {
 			for (IShape second : other.shapes) {
 				if (first.intersects(second)) {

@@ -4,27 +4,42 @@ import java.util.List;
 
 import engine.model.Entity;
 import engine.model.ISU;
-import engine.model.Orientation;
 import engine.model.Stunt;
 
-/**
- * Bot qui poursuit une cible en choisissant une direction cardinale.
+/*
+ * Bot simple qui poursuit une entité donnée.
+ *
+ * Le Bot choisit une direction.
+ * Le Stunt exécute le déplacement.
+ * Le Model applique physiquement le mouvement.
  */
 public final class AttackBot extends Bot {
 
-	private static final double EPSILON = 1e-9;
+	private static final double EPSILON = 0.000000001;
 
+	/*
+	 * Cible poursuivie pendant toute la vie du Bot.
+	 */
 	private final Entity target;
 
+	/*
+	 * null signifie qu'aucun déplacement n'a encore été effectué.
+	 */
 	private Integer lastDirection;
 
 	public AttackBot(Brain brain, Stunt stunt, Entity target) {
 		super(brain, stunt);
 
+		assert target != null;
 		assert target != stunt.entity();
+
+		/*
+		 * L'attaquant et la cible doivent appartenir au même monde simulé.
+		 */
 		assert target.model() == stunt.entity().model();
 
 		this.target = target;
+		this.lastDirection = null;
 	}
 
 	public Entity target() {
@@ -33,21 +48,31 @@ public final class AttackBot extends Bot {
 
 	@Override
 	public void think() {
+		/*
+		 * Le Bot a peut-être été remplacé ou son Stunt a été invalidé.
+		 */
 		if (!valid()) {
 			return;
 		}
 
-		Entity self = this.stunt.entity();
+		Entity attacker = this.stunt.entity();
 
-		if (!self.alive() || !self.installed()) {
+		if (!attacker.alive() || !attacker.installed()) {
 			return;
 		}
 
+		/*
+		 * Une cible morte ou retirée du Model ne doit plus être poursuivie.
+		 */
 		if (!this.target.alive() || !this.target.installed()) {
 			return;
 		}
 
-		if (self.isMoving()) {
+		/*
+		 * Une marche est une action qui prend du temps. On attend sa fin avant d'en
+		 * demander une autre.
+		 */
+		if (attacker.isMoving()) {
 			return;
 		}
 
@@ -72,71 +97,85 @@ public final class AttackBot extends Bot {
 	private void walkTowardTarget() {
 		Entity self = this.stunt.entity();
 
+		/*
+		 * Vecteur torique le plus court allant de l'attaquant vers sa cible.
+		 */
 		ISU.Vector toward = self.center().mkVectorToward(this.target.center());
 
 		double dx = toward.x();
 		double dy = toward.y();
 
-		if (samePosition(dx, dy)) {
+		/*
+		 * Les deux centres sont confondus. Le contact sera traité par les collisions.
+		 */
+		if (Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON) {
 			return;
 		}
 
-		int horizontal = dx >= 0.0 ? Orientation.EAST : Orientation.WEST;
-		int vertical = dy >= 0.0 ? Orientation.SOUTH : Orientation.NORTH;
+		int horizontal = dx >= 0.0 ? 0 : 180;
 
-		int[] directions = orderedDirections(dx, dy, horizontal, vertical);
+		int vertical = dy >= 0.0 ? 90 : 270;
 
-		if (tryWalkWithoutReverse(directions)) {
-			return;
-		}
+		int[] directions;
 
-		tryWalk(directions);
-	}
-
-	private boolean samePosition(double dx, double dy) {
-		return Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON;
-	}
-
-	private int[] orderedDirections(double dx, double dy, int horizontal, int vertical) {
+		/*
+		 * On privilégie l'axe sur lequel la cible est la plus éloignée.
+		 */
 		if (Math.abs(dx) >= Math.abs(dy)) {
-			return new int[] { horizontal, vertical, Orientation.backOf(vertical), Orientation.backOf(horizontal) };
+			directions = new int[] { horizontal, vertical, opposite(vertical), opposite(horizontal) };
+		} else {
+			directions = new int[] { vertical, horizontal, opposite(horizontal), opposite(vertical) };
 		}
 
-		return new int[] { vertical, horizontal, Orientation.backOf(horizontal), Orientation.backOf(vertical) };
-	}
+		/*
+		 * On évite d'abord le demi-tour, mais seulement si un déplacement précédent
+		 * existe.
+		 */
+		if (this.lastDirection != null) {
+			int reverse = opposite(this.lastDirection);
 
-	private boolean tryWalkWithoutReverse(int[] directions) {
-		if (this.lastDirection == null) {
-			return false;
-		}
+			for (int direction : directions) {
+				if (direction == reverse) {
+					continue;
+				}
 
-		int reverse = Orientation.backOf(this.lastDirection);
+				if (this.stunt.walk(direction)) {
+					this.lastDirection = direction;
 
-		for (int direction : directions) {
-			if (direction != reverse && walk(direction)) {
-				return true;
+					return;
+				}
 			}
 		}
 
-		return false;
-	}
-
-	private boolean tryWalk(int[] directions) {
+		/*
+		 * Premier déplacement, ou aucune autre direction possible : toutes les
+		 * directions sont autorisées.
+		 */
 		for (int direction : directions) {
-			if (walk(direction)) {
-				return true;
+			if (this.stunt.walk(direction)) {
+				this.lastDirection = direction;
+
+				return;
 			}
 		}
-
-		return false;
 	}
 
-	private boolean walk(int direction) {
-		if (!this.stunt.walk(direction)) {
-			return false;
-		}
+	private int opposite(int direction) {
+		switch (direction) {
+		case 0:
+			return 180;
 
-		this.lastDirection = direction;
-		return true;
+		case 90:
+			return 270;
+
+		case 180:
+			return 0;
+
+		case 270:
+			return 90;
+
+		default:
+			throw new AssertionError("Direction must be cardinal: " + direction);
+		}
 	}
 }

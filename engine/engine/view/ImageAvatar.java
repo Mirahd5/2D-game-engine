@@ -5,9 +5,6 @@ import engine.model.ISU;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
-/**
- * Avatar qui dessine une entité avec une ou plusieurs images.
- */
 public abstract class ImageAvatar extends Avatar {
 
 	private final String[] paths;
@@ -20,13 +17,15 @@ public abstract class ImageAvatar extends Avatar {
 	public ImageAvatar(View view, Entity entity, String[] paths) {
 		super(view, entity);
 
-		assert paths.length > 0 : "an ImageAvatar needs at least one image";
+		assert paths != null;
+		assert paths.length > 0;
 
 		this.paths = paths.clone();
-		this.images = new BufferedImage[this.paths.length];
+		this.images = new BufferedImage[paths.length];
 
 		for (String path : this.paths) {
-			assert path.length() > 0 : "empty image path";
+			assert path != null;
+			assert !path.isEmpty();
 		}
 
 		this.currentFrame = 0;
@@ -42,8 +41,8 @@ public abstract class ImageAvatar extends Avatar {
 	}
 
 	protected final void setCurrentFrame(int frameIndex) {
-		assert frameIndex >= 0 : frameIndex;
-		assert frameIndex < frameCount() : frameIndex;
+		assert frameIndex >= 0;
+		assert frameIndex < frameCount();
 
 		this.currentFrame = frameIndex;
 	}
@@ -57,13 +56,15 @@ public abstract class ImageAvatar extends Avatar {
 	}
 
 	protected final String pathAt(int frameIndex) {
-		assert frameIndex >= 0 : frameIndex;
-		assert frameIndex < frameCount() : frameIndex;
+		assert frameIndex >= 0;
+		assert frameIndex < frameCount();
 
 		return this.paths[frameIndex];
 	}
 
 	protected BufferedImage image(Graphics graphics) {
+		assert graphics != null;
+
 		if (this.images[this.currentFrame] == null) {
 			this.images[this.currentFrame] = graphics.load(this.paths[this.currentFrame]);
 		}
@@ -89,31 +90,21 @@ public abstract class ImageAvatar extends Avatar {
 
 	@Override
 	public void tick(long elapsed) {
-		assert elapsed >= 0L : elapsed;
+		assert elapsed >= 0L;
 
 		tickSpawnAnimation(elapsed);
 	}
 
 	@Override
 	public void paint(Graphics graphics) {
-		if (!this.entity.alive() || !this.entity.installed()) {
-			return;
-		}
+		assert graphics != null;
 
 		BufferedImage image = image(graphics);
 
 		ISU.Dimension size = this.entity.size();
 		ISU.Coord center = this.entity.center();
 
-		double revealScale = this.view.revealScale(this.entity);
-
-		double spawnScale = 1.0;
-
-		if (!this.view.startupRevealActive()) {
-			spawnScale = spawnAnimationScale();
-		}
-
-		double scale = visualScale() * revealScale * spawnScale;
+		double scale = visualScale() * this.view.revealScale(this.entity);
 
 		if (scale <= 0.0) {
 			return;
@@ -121,10 +112,6 @@ public abstract class ImageAvatar extends Avatar {
 
 		int width = this.view.toPixelWidth(size.x() * scale);
 		int height = this.view.toPixelHeight(size.y() * scale);
-
-		if (width <= 0 || height <= 0) {
-			return;
-		}
 
 		int centerX = this.view.toPixelX(center.x());
 		int centerY = this.view.toPixelY(center.y());

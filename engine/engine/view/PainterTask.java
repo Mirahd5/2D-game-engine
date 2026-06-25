@@ -4,8 +4,13 @@ import oop.graphics.Canvas;
 import oop.tasks.Runtime;
 import oop.tasks.Runnable;
 
-/**
- * Tâche périodique qui demande le repaint du Canvas.
+/*
+ * Tâche périodique qui demande un repaint du Canvas.
+ *
+ * Elle ne dessine pas directement :
+ * - PainterTask demande canvas.repaint()
+ * - Painter reçoit ensuite paint(Graphics)
+ * - Painter délègue à View.paint(...)
  */
 public final class PainterTask implements Runnable {
 
@@ -16,19 +21,13 @@ public final class PainterTask implements Runnable {
 	private boolean stopped;
 
 	public PainterTask(Painter painter, int delay) {
-		assert delay > 0 : delay;
+		assert painter != null;
+		assert delay > 0;
 
 		this.painter = painter;
 		this.delay = delay;
 		this.lastTime = System.currentTimeMillis();
-	}
-
-	public int delay() {
-		return this.delay;
-	}
-
-	public boolean stopped() {
-		return this.stopped;
+		this.stopped = false;
 	}
 
 	public void stop() {
@@ -37,45 +36,42 @@ public final class PainterTask implements Runnable {
 
 	@Override
 	public void run() {
+
 		if (this.stopped) {
 			return;
 		}
 
 		long now = System.currentTimeMillis();
+
 		long elapsed = now - this.lastTime;
 
 		this.lastTime = now;
 
-		repaintCanvas();
-		postNextRun(elapsed);
-	}
-
-	private void repaintCanvas() {
 		Canvas canvas = this.painter.canvas();
 
 		if (canvas != null) {
 			canvas.repaint();
 		}
-	}
 
-	private void postNextRun(long elapsed) {
-		if (this.stopped) {
-			return;
-		}
-
-		int nextDelay = correctedDelay(elapsed);
-
-		Runtime.post(this, nextDelay);
-	}
-
-	private int correctedDelay(long elapsed) {
+		/*
+		 * Correction du retard.
+		 *
+		 * Si delay = 30 ms et que le repaint précédent est arrivé après 45 ms :
+		 *
+		 * skew = 45 - 30 = 15 nextDelay = 30 - 15 = 15
+		 *
+		 * Cela aide à maintenir la fréquence globale demandée par les slides.
+		 */
 		long skew = elapsed - this.delay;
+
 		int nextDelay = (int) (this.delay - skew);
 
 		if (nextDelay < 1) {
-			return 1;
+			nextDelay = 1;
 		}
 
-		return nextDelay;
+		if (!this.stopped) {
+			Runtime.post(this, nextDelay);
+		}
 	}
 }

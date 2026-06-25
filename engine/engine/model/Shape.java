@@ -1,20 +1,23 @@
 package engine.model;
 
-/**
- * Classe de base des formes géométriques utilisées dans un Bounding.
+/*
+ * Classe abstraite commune aux formes géométriques
+ * utilisées par les Bounding.
  */
 public abstract class Shape implements IShape {
 
 	protected final ISU isu;
-	protected final ISU.Coord center;
+	protected ISU.Coord center;
 
 	public Shape(ISU.Coord center) {
+		assert center != null;
+
 		this.isu = center.isu();
-		this.center = center.mkCopy();
+		this.center = center;
 	}
 
 	public ISU.Coord center() {
-		return this.center.mkCopy();
+		return this.center;
 	}
 
 	@Override
@@ -23,11 +26,20 @@ public abstract class Shape implements IShape {
 	}
 
 	public void translate(ISU.Vector vector) {
+		assert vector != null;
 		assert vector.isu() == this.isu;
 
 		this.center.translate(vector);
 	}
 
+	/*
+	 * Vérifie la contrainte imposée par TASK2 :
+	 *
+	 * chaque dimension d'une Shape doit être strictement plus petite que le plus
+	 * petit demi-périmètre des axes toriques.
+	 *
+	 * Sur un monde non torique, cette contrainte n'est pas nécessaire.
+	 */
 	protected final void checkToricDimensions(double width, double height) {
 		assert width > 0.0 : width;
 		assert height > 0.0 : height;
@@ -42,12 +54,17 @@ public abstract class Shape implements IShape {
 			smallestHalfPerimeter = Math.min(smallestHalfPerimeter, this.isu.yAxis().halfPerimeter());
 		}
 
+		/*
+		 * Aucun axe torique : pas de contrainte liée au tore.
+		 */
 		if (Double.isInfinite(smallestHalfPerimeter)) {
 			return;
 		}
 
-		assert width < smallestHalfPerimeter : "shape width must be smaller than the smallest toric half-perimeter";
+		assert width < smallestHalfPerimeter : "shape width must be smaller than the smallest toric half-perimeter"
+				+ " (width=" + width + ", limit=" + smallestHalfPerimeter + ")";
 
-		assert height < smallestHalfPerimeter : "shape height must be smaller than the smallest toric half-perimeter";
+		assert height < smallestHalfPerimeter : "shape height must be smaller than the smallest toric half-perimeter"
+				+ " (height=" + height + ", limit=" + smallestHalfPerimeter + ")";
 	}
 }

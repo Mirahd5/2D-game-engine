@@ -3,8 +3,11 @@ package engine.view;
 import engine.model.Entity;
 import oop.graphics.Graphics;
 
-/**
- * Représentation graphique d'une entité.
+/*
+ * Avatar est la représentation graphique d'une entité.
+ *
+ * Le modèle contient les entités et leur état.
+ * L'avatar sait comment dessiner une entité dans la vue.
  */
 public abstract class Avatar {
 
@@ -12,23 +15,31 @@ public abstract class Avatar {
 	protected final Entity entity;
 
 	public Avatar(View view, Entity entity) {
+		assert view != null;
+		assert entity != null;
 		assert entity.model() == view.model();
 
 		this.view = view;
 		this.entity = entity;
 	}
 
-	public final View view() {
+	public View view() {
 		return this.view;
 	}
 
-	public final Entity entity() {
+	public Entity entity() {
 		return this.entity;
 	}
 
-	public abstract void paint(Graphics graphics);
+	/*
+	 * Chaque type d'avatar définit sa propre façon de dessiner l'entité.
+	 */
+	public abstract void paint(Graphics g);
 
+	/*
+	 * Par défaut, un avatar n'a rien à mettre à jour. Les avatars animés
+	 * redéfinissent cette méthode.
+	 */
 	public void tick(long elapsed) {
-		assert elapsed >= 0L : elapsed;
 	}
 }

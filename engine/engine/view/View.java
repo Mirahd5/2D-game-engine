@@ -10,17 +10,12 @@ import engine.model.Model;
 import engine.model.ViewPort;
 import oop.graphics.Graphics;
 
-/**
- * Vue principale du moteur : conversion pixels/ISU, dessin du monde, overlay et
- * debug.
- */
 public class View {
 
 	private final Model model;
 
 	private int widthPixel;
 	private int heightPixel;
-
 	private StartupReveal startupReveal;
 
 	private DebugOptions debugOptions;
@@ -33,17 +28,14 @@ public class View {
 	}
 
 	public View(Model model, int widthPixel, int heightPixel, Overlay overlay) {
-		assert widthPixel > 0 : widthPixel;
-		assert heightPixel > 0 : heightPixel;
+		assert model != null;
+		assert widthPixel > 0;
+		assert heightPixel > 0;
 
 		this.model = model;
 		this.widthPixel = widthPixel;
 		this.heightPixel = heightPixel;
-
 		this.overlay = overlay;
-
-		this.debugOptions = new DebugOptions();
-		this.performanceMonitor = new PerformanceMonitor();
 	}
 
 	public Model model() {
@@ -98,32 +90,6 @@ public class View {
 		this.overlay = null;
 	}
 
-	public DebugOptions debugOptions() {
-		return this.debugOptions;
-	}
-
-	public void setDebugOptions(DebugOptions debugOptions) {
-		if (debugOptions == null) {
-			this.debugOptions = new DebugOptions();
-			return;
-		}
-
-		this.debugOptions = debugOptions;
-	}
-
-	public PerformanceMonitor performanceMonitor() {
-		return this.performanceMonitor;
-	}
-
-	public void setPerformanceMonitor(PerformanceMonitor performanceMonitor) {
-		if (performanceMonitor == null) {
-			this.performanceMonitor = new PerformanceMonitor();
-			return;
-		}
-
-		this.performanceMonitor = performanceMonitor;
-	}
-
 	public void startStartupReveal() {
 		this.startupReveal = new StartupReveal(this.model.entities());
 	}
@@ -133,6 +99,8 @@ public class View {
 	}
 
 	public double revealScale(Entity entity) {
+		assert entity != null;
+
 		if (this.startupReveal == null) {
 			return 1.0;
 		}
@@ -141,13 +109,17 @@ public class View {
 	}
 
 	public void resize(int widthPixel, int heightPixel) {
-		assert widthPixel > 0 : widthPixel;
-		assert heightPixel > 0 : heightPixel;
+		assert widthPixel > 0;
+		assert heightPixel > 0;
 
 		this.widthPixel = widthPixel;
 		this.heightPixel = heightPixel;
 	}
 
+	/*
+	 * On utilise une seule échelle pour X et Y. Comme ça, la map garde ses
+	 * proportions.
+	 */
 	public double worldScale() {
 		double scaleX = this.widthPixel / this.viewPort().width();
 		double scaleY = this.heightPixel / this.viewPort().height();
@@ -164,17 +136,23 @@ public class View {
 	}
 
 	public int renderedWorldWidthPixel() {
-		return Math.max(1, (int) Math.round(this.viewPort().width() * worldScale()));
+		return (int) Math.round(this.viewPort().width() * worldScale());
 	}
 
 	public int renderedWorldHeightPixel() {
-		return Math.max(1, (int) Math.round(this.viewPort().height() * worldScale()));
+		return (int) Math.round(this.viewPort().height() * worldScale());
 	}
 
+	/*
+	 * Centre la map horizontalement dans l'espace disponible.
+	 */
 	public int worldOffsetXPixel() {
 		return Math.max(0, (this.widthPixel - renderedWorldWidthPixel()) / 2);
 	}
 
+	/*
+	 * Centre la map verticalement sous le HUD.
+	 */
 	public int worldOffsetYPixel() {
 		return overlayHeightPixel() + Math.max(0, (this.heightPixel - renderedWorldHeightPixel()) / 2);
 	}
@@ -189,30 +167,6 @@ public class View {
 		double translated = translatedY(yIsu);
 
 		return worldOffsetYPixel() + (int) Math.round(translated * worldScale());
-	}
-
-	public int toPixelWidth(double widthIsu) {
-		return (int) Math.round(widthIsu * worldScale());
-	}
-
-	public int toPixelHeight(double heightIsu) {
-		return (int) Math.round(heightIsu * worldScale());
-	}
-
-	public ISU.Coord toISUCoord(int xPixel, int yPixel) {
-		int left = worldOffsetXPixel();
-		int top = worldOffsetYPixel();
-
-		int right = left + renderedWorldWidthPixel() - 1;
-		int bottom = top + renderedWorldHeightPixel() - 1;
-
-		int safeX = clampInt(xPixel, left, right);
-		int safeY = clampInt(yPixel, top, bottom);
-
-		double xIsu = this.viewPort().x() + (safeX - left) / worldScale();
-		double yIsu = this.viewPort().y() + (safeY - top) / worldScale();
-
-		return this.model.isu().new Coord(xIsu, yIsu);
 	}
 
 	private double translatedX(double xIsu) {
@@ -235,32 +189,120 @@ public class View {
 		return translated;
 	}
 
+	public int toPixelWidth(double widthIsu) {
+		return (int) Math.round(widthIsu * worldScale());
+	}
+
+	public int toPixelHeight(double heightIsu) {
+		return (int) Math.round(heightIsu * worldScale());
+	}
+
+	public ISU.Coord toISUCoord(int xPixel, int yPixel) {
+		int left = worldOffsetXPixel();
+		int top = worldOffsetYPixel();
+		int right = left + renderedWorldWidthPixel() - 1;
+		int bottom = top + renderedWorldHeightPixel() - 1;
+
+		int safeX = clampInt(xPixel, left, right);
+		int safeY = clampInt(yPixel, top, bottom);
+
+		double xIsu = this.viewPort().x() + (safeX - left) / worldScale();
+		double yIsu = this.viewPort().y() + (safeY - top) / worldScale();
+
+		return this.model.isu().new Coord(xIsu, yIsu);
+	}
+
+	private static int clampInt(int value, int min, int max) {
+		if (value < min) {
+			return min;
+		}
+
+		if (value > max) {
+			return max;
+		}
+
+		return value;
+	}
+
 	public void paint(Graphics graphics) {
+		assert graphics != null;
+
 		Object savedTransform = graphics.getTransform();
 
 		int worldX = worldOffsetXPixel();
 		int worldY = worldOffsetYPixel();
-		int worldWidth = renderedWorldWidthPixel();
-		int worldHeight = renderedWorldHeightPixel();
+		int worldW = renderedWorldWidthPixel();
+		int worldH = renderedWorldHeightPixel();
 
-		paintBackground(graphics);
+		/*
+		 * Fond noir global sous le HUD.
+		 */
+		graphics.setColor(Graphics.Colors.black);
+		graphics.fillRect(0, overlayHeightPixel(), this.widthPixel, this.heightPixel);
 
-		List<Entity> visible = sortedVisibleEntities();
+		/*
+		 * On clippe seulement la zone réelle où la map est affichée.
+		 */
+		graphics.setClip(worldX, worldY, worldW, worldH);
 
-		paintWorld(graphics, visible, worldX, worldY, worldWidth, worldHeight);
+		List<Entity> visible = new ArrayList<Entity>(this.model.visibleEntities());
 
+		visible.sort(new Comparator<Entity>() {
+			@Override
+			public int compare(Entity first, Entity second) {
+				if (first.zOrder() != second.zOrder()) {
+					return Integer.compare(first.zOrder(), second.zOrder());
+				}
+
+				return Integer.compare(first.sOrder(), second.sOrder());
+			}
+		});
+
+		for (Entity entity : visible) {
+			if (!entity.alive() || !entity.installed() || entity.avatar() == null) {
+				continue;
+			}
+
+			if (this.startupReveal != null && !this.startupReveal.visible(entity)) {
+				continue;
+			}
+
+			entity.avatar().paint(graphics);
+		}
+
+		/*
+		 * Important : On remet la transformation avant de dessiner le debug. Les
+		 * avatars peuvent avoir fait des translate/scale/rotate.
+		 */
 		graphics.setTransform(savedTransform);
+		graphics.setClip(worldX, worldY, worldW, worldH);
 
-		paintDebugWorld(graphics, visible, worldX, worldY, worldWidth, worldHeight);
-		paintOverlay(graphics);
-		paintPerformance(graphics);
+		DebugRenderer.paintWorldDebug(graphics, this, visible);
 
-		graphics.setTransform(savedTransform);
+		/*
+		 * HUD / overlay.
+		 */
+		if (this.overlay != null) {
+			graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
+
+			if (this.overlay.heightPixel() > 0) {
+				this.overlay.paint(graphics, this, 0, 0);
+			}
+
+			if (this.overlay.widthPixel() > 0) {
+				this.overlay.paint(graphics, this, this.widthPixel, overlayHeightPixel());
+			}
+		}
+
+		/*
+		 * Debug performance par-dessus tout.
+		 */
 		graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
+		DebugRenderer.paintPerformance(graphics, this);
 	}
 
 	public void tick(long elapsed) {
-		assert elapsed >= 0L : elapsed;
+		assert elapsed >= 0;
 
 		if (this.startupReveal != null) {
 			this.startupReveal.tick(elapsed);
@@ -279,87 +321,22 @@ public class View {
 		}
 	}
 
-	private void paintBackground(Graphics graphics) {
-		graphics.setColor(Graphics.Colors.black);
-		graphics.fillRect(0, overlayHeightPixel(), this.widthPixel, this.heightPixel);
+	// debug methodes
+	public DebugOptions debugOptions() {
+		return this.debugOptions;
 	}
 
-	private void paintWorld(Graphics graphics, List<Entity> visible, int x, int y, int width, int height) {
-		graphics.setClip(x, y, width, height);
-
-		for (Entity entity : visible) {
-			if (!canPaint(entity)) {
-				continue;
-			}
-
-			if (this.startupReveal != null && !this.startupReveal.visible(entity)) {
-				continue;
-			}
-
-			entity.avatar().paint(graphics);
-		}
+	public void setDebugOptions(DebugOptions debugOptions) {
+		this.debugOptions = debugOptions;
 	}
 
-	private void paintDebugWorld(Graphics graphics, List<Entity> visible, int x, int y, int width, int height) {
-		graphics.setClip(x, y, width, height);
-
-		DebugRenderer.paintWorldDebug(graphics, this, visible);
+	public PerformanceMonitor performanceMonitor() {
+		return this.performanceMonitor;
 	}
 
-	private void paintOverlay(Graphics graphics) {
-		if (this.overlay == null) {
-			return;
-		}
-
-		graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
-
-		if (this.overlay.heightPixel() > 0) {
-			this.overlay.paint(graphics, this, 0, 0);
-		}
-
-		if (this.overlay.widthPixel() > 0) {
-			this.overlay.paint(graphics, this, this.widthPixel, overlayHeightPixel());
-		}
+	public void setPerformanceMonitor(PerformanceMonitor performanceMonitor) {
+		this.performanceMonitor = performanceMonitor;
 	}
-
-	private void paintPerformance(Graphics graphics) {
-		graphics.setClip(0, 0, totalWidthPixel(), totalHeightPixel());
-
-		DebugRenderer.paintPerformance(graphics, this);
-	}
-
-	private List<Entity> sortedVisibleEntities() {
-		List<Entity> visible = new ArrayList<Entity>(this.model.visibleEntities());
-
-		visible.sort(new Comparator<Entity>() {
-			@Override
-			public int compare(Entity first, Entity second) {
-				int result = Integer.compare(first.zOrder(), second.zOrder());
-
-				if (result != 0) {
-					return result;
-				}
-
-				return Integer.compare(first.sOrder(), second.sOrder());
-			}
-		});
-
-		return visible;
-	}
-
-	private boolean canPaint(Entity entity) {
-		return entity.alive() && entity.installed() && entity.avatar() != null;
-	}
-
-	private static int clampInt(int value, int minimum, int maximum) {
-		if (value < minimum) {
-			return minimum;
-		}
-
-		if (value > maximum) {
-			return maximum;
-		}
-
-		return value;
-	}
+	
+	
 }

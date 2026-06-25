@@ -1,21 +1,18 @@
 package engine.view;
 
-/**
- * Mesure les temps de tick, de repaint et les FPS.
- */
 public final class PerformanceMonitor {
 
 	private final TimeStats tickStats;
 	private final TimeStats paintStats;
 	private final TimeStats fpsStats;
 
-	private long lastPaintTime_ns;
+	private long lastPaintTime;
 
 	public PerformanceMonitor() {
 		this.tickStats = new TimeStats();
 		this.paintStats = new TimeStats();
 		this.fpsStats = new TimeStats();
-
+		this.lastPaintTime = 0L;
 	}
 
 	public void recordTick(long elapsedMs) {
@@ -27,19 +24,20 @@ public final class PerformanceMonitor {
 	}
 
 	public void recordPaintEvent() {
-		long now = System.nanoTime();
+		long now = System.currentTimeMillis();
 
-		if (this.lastPaintTime_ns != 0L) {
-			double elapsedMs = (now - this.lastPaintTime_ns) / 1_000_000.0;
+		if (this.lastPaintTime != 0L) {
+			long elapsed = now - this.lastPaintTime;
 
-			this.paintStats.record(elapsedMs);
+			this.paintStats.record(elapsed);
 
-			if (elapsedMs > 0.0) {
-				this.fpsStats.record(1000.0 / elapsedMs);
+			if (elapsed > 0L) {
+				double fps = 1000.0 / elapsed;
+				this.fpsStats.record(fps);
 			}
 		}
 
-		this.lastPaintTime_ns = now;
+		this.lastPaintTime = now;
 	}
 
 	public TimeStats tickStats() {
@@ -58,7 +56,6 @@ public final class PerformanceMonitor {
 		this.tickStats.reset();
 		this.paintStats.reset();
 		this.fpsStats.reset();
-
-		this.lastPaintTime_ns = 0L;
+		this.lastPaintTime = 0L;
 	}
 }

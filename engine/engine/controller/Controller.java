@@ -2,8 +2,14 @@ package engine.controller;
 
 import oop.graphics.Canvas;
 
-/**
- * Contrôleur générique qui transforme les événements clavier et souris en actions de jeu.
+/*
+ * Contrôleur générique du moteur.
+ *
+ * Il reçoit les événements clavier et souris de la plateforme.
+ * Par défaut, il ne fait rien.
+ *
+ * Les jeux spécifiques héritent de cette classe et redéfinissent seulement
+ * les hooks protégés dont ils ont besoin.
  */
 public abstract class Controller implements Canvas.KeyListener, Canvas.MouseListener {
 
@@ -13,20 +19,20 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 		this.enabled = true;
 	}
 
-	public final boolean enabled() {
+	public boolean enabled() {
 		return this.enabled;
 	}
 
-	public final void enable() {
+	public void enable() {
 		this.enabled = true;
 	}
 
-	public final void disable() {
+	public void disable() {
 		this.enabled = false;
 	}
 
 	@Override
-	public final void pressed(Canvas canvas, int keyCode, char keyChar) {
+	public void pressed(Canvas canvas, int keyCode, char keyChar) {
 		if (!this.enabled) {
 			return;
 		}
@@ -35,7 +41,7 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 	}
 
 	@Override
-	public final void released(Canvas canvas, int keyCode, char keyChar) {
+	public void released(Canvas canvas, int keyCode, char keyChar) {
 		if (!this.enabled) {
 			return;
 		}
@@ -44,7 +50,7 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 	}
 
 	@Override
-	public final void typed(Canvas canvas, char keyChar) {
+	public void typed(Canvas canvas, char keyChar) {
 		if (!this.enabled) {
 			return;
 		}
@@ -53,7 +59,7 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 	}
 
 	@Override
-	public final void moved(Canvas canvas, int x, int y) {
+	public void moved(Canvas canvas, int x, int y) {
 		if (!this.enabled) {
 			return;
 		}
@@ -62,7 +68,7 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 	}
 
 	@Override
-	public final void pressed(Canvas canvas, int button, int x, int y) {
+	public void pressed(Canvas canvas, int button, int x, int y) {
 		if (!this.enabled) {
 			return;
 		}
@@ -71,7 +77,7 @@ public abstract class Controller implements Canvas.KeyListener, Canvas.MouseList
 	}
 
 	@Override
-	public final void released(Canvas canvas, int x, int y, int button) {
+	public void released(Canvas canvas, int x, int y, int button) {
 		if (!this.enabled) {
 			return;
 		}

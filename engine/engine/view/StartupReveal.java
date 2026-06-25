@@ -8,8 +8,14 @@ import java.util.Map;
 
 import engine.model.Entity;
 
-/**
- * Animation d'intro : les entités apparaissent ligne par ligne.
+/*
+ * Animation d'intro :
+ * les entités apparaissent ligne par ligne, de gauche à droite.
+ *
+ * Chaque entité a :
+ * - un temps de départ ;
+ * - une durée d'apparition ;
+ * - une échelle de 0.0 à 1.0.
  */
 public final class StartupReveal {
 
@@ -17,7 +23,6 @@ public final class StartupReveal {
 	private static final long DEFAULT_ENTITY_REVEAL_DURATION_MS = 260L;
 
 	private final Map<Entity, Long> startTimes;
-
 	private final long delayBetweenEntitiesMs;
 	private final long entityRevealDurationMs;
 
@@ -25,39 +30,84 @@ public final class StartupReveal {
 	private long totalDurationMs;
 
 	public StartupReveal(List<Entity> entities) {
-		this(entities, DEFAULT_DELAY_BETWEEN_ENTITIES_MS, DEFAULT_ENTITY_REVEAL_DURATION_MS);
+		this(
+			entities,
+			DEFAULT_DELAY_BETWEEN_ENTITIES_MS,
+			DEFAULT_ENTITY_REVEAL_DURATION_MS
+		);
 	}
 
-	public StartupReveal(List<Entity> entities, long delayBetweenEntitiesMs, long entityRevealDurationMs) {
-		assert delayBetweenEntitiesMs >= 0L : delayBetweenEntitiesMs;
-		assert entityRevealDurationMs > 0L : entityRevealDurationMs;
+	public StartupReveal(
+		List<Entity> entities,
+		long delayBetweenEntitiesMs,
+		long entityRevealDurationMs
+	) {
+		assert entities != null;
+		assert delayBetweenEntitiesMs >= 0L;
+		assert entityRevealDurationMs > 0L;
 
 		this.delayBetweenEntitiesMs = delayBetweenEntitiesMs;
 		this.entityRevealDurationMs = entityRevealDurationMs;
-
 		this.startTimes = new IdentityHashMap<Entity, Long>();
+
+		this.elapsedMs = 0L;
+		this.totalDurationMs = 0L;
 
 		buildOrder(entities);
 	}
 
-	public long elapsedMs() {
-		return this.elapsedMs;
-	}
+	private void buildOrder(List<Entity> entities) {
+		List<Entity> ordered = new ArrayList<Entity>();
 
-	public long totalDurationMs() {
-		return this.totalDurationMs;
-	}
+		for (Entity entity : entities) {
+			if (entity != null && entity.alive() && entity.installed()) {
+				ordered.add(entity);
+			}
+		}
 
-	public boolean finished() {
-		return this.elapsedMs >= this.totalDurationMs;
-	}
+		/*
+		 * Ordre arcade :
+		 * - d'abord les lignes du haut vers le bas ;
+		 * - puis dans chaque ligne, gauche vers droite ;
+		 * - puis zOrder/sOrder pour rester stable.
+		 */
+		ordered.sort(new Comparator<Entity>() {
+			@Override
+			public int compare(Entity first, Entity second) {
+				int firstY = first.position().y();
+				int secondY = second.position().y();
 
-	public boolean active() {
-		return !finished();
+				if (firstY != secondY) {
+					return Integer.compare(firstY, secondY);
+				}
+
+				int firstX = first.position().x();
+				int secondX = second.position().x();
+
+				if (firstX != secondX) {
+					return Integer.compare(firstX, secondX);
+				}
+
+				if (first.zOrder() != second.zOrder()) {
+					return Integer.compare(first.zOrder(), second.zOrder());
+				}
+
+				return Integer.compare(first.sOrder(), second.sOrder());
+			}
+		});
+
+		long start = 0L;
+
+		for (Entity entity : ordered) {
+			this.startTimes.put(entity, start);
+			start += this.delayBetweenEntitiesMs;
+		}
+
+		this.totalDurationMs = start + this.entityRevealDurationMs;
 	}
 
 	public void tick(long elapsed) {
-		assert elapsed >= 0L : elapsed;
+		assert elapsed >= 0L;
 
 		if (finished()) {
 			return;
@@ -70,11 +120,23 @@ public final class StartupReveal {
 		}
 	}
 
+	public boolean finished() {
+		return this.elapsedMs >= this.totalDurationMs;
+	}
+
+	public boolean active() {
+		return !finished();
+	}
+
 	public boolean visible(Entity entity) {
+		assert entity != null;
+
 		return scale(entity) > 0.0;
 	}
 
 	public double scale(Entity entity) {
+		assert entity != null;
+
 		Long start = this.startTimes.get(entity);
 
 		if (start == null) {
@@ -96,74 +158,19 @@ public final class StartupReveal {
 		return easeOut(progress);
 	}
 
-	public void reset() {
-		this.elapsedMs = 0L;
-	}
-
-	private void buildOrder(List<Entity> entities) {
-		List<Entity> ordered = new ArrayList<Entity>();
-
-		for (Entity entity : entities) {
-			if (entity.alive() && entity.installed()) {
-				ordered.add(entity);
-			}
-		}
-
-		ordered.sort(new Comparator<Entity>() {
-			@Override
-			public int compare(Entity first, Entity second) {
-				int result = Integer.compare(first.position().y(), second.position().y());
-
-				if (result != 0) {
-					return result;
-				}
-
-				result = Integer.compare(first.position().x(), second.position().x());
-
-				if (result != 0) {
-					return result;
-				}
-
-				result = Integer.compare(first.zOrder(), second.zOrder());
-
-				if (result != 0) {
-					return result;
-				}
-
-				return Integer.compare(first.sOrder(), second.sOrder());
-			}
-		});
-
-		if (ordered.isEmpty()) {
-			this.totalDurationMs = 0L;
-			return;
-		}
-
-		long start = 0L;
-
-		for (Entity entity : ordered) {
-			this.startTimes.put(entity, start);
-			start += this.delayBetweenEntitiesMs;
-		}
-
-		this.totalDurationMs = start - this.delayBetweenEntitiesMs + this.entityRevealDurationMs;
-	}
-
 	private static double easeOut(double progress) {
-		progress = clamp01(progress);
+		if (progress < 0.0) {
+			progress = 0.0;
+		}
 
+		if (progress > 1.0) {
+			progress = 1.0;
+		}
+
+		/*
+		 * Courbe plus jolie que linéaire :
+		 * commence rapide puis ralentit vers 100%.
+		 */
 		return 1.0 - Math.pow(1.0 - progress, 3.0);
-	}
-
-	private static double clamp01(double value) {
-		if (value < 0.0) {
-			return 0.0;
-		}
-
-		if (value > 1.0) {
-			return 1.0;
-		}
-
-		return value;
 	}
 }

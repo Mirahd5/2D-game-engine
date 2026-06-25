@@ -5,9 +5,6 @@ import java.util.List;
 
 import engine.model.Entity;
 
-/**
- * Composant qui appelle les Bots pour décider leurs prochaines actions.
- */
 public class Brain {
 
 	private final List<Bot> bots;
@@ -17,6 +14,7 @@ public class Brain {
 	}
 
 	public void add(Bot bot) {
+		assert bot != null;
 		assert bot.brain() == this;
 
 		if (!this.bots.contains(bot)) {
@@ -25,6 +23,8 @@ public class Brain {
 	}
 
 	public void remove(Bot bot) {
+		assert bot != null;
+
 		this.bots.remove(bot);
 	}
 
@@ -37,10 +37,22 @@ public class Brain {
 			}
 		}
 
-		removeInvalidBots();
+		List<Bot> toRemove = new ArrayList<Bot>();
+
+		for (Bot bot : this.bots) {
+			if (!bot.valid()) {
+				toRemove.add(bot);
+			}
+		}
+
+		for (Bot bot : toRemove) {
+			this.bots.remove(bot);
+		}
 	}
 
 	public void removeBotsOf(Entity entity) {
+		assert entity != null;
+
 		List<Bot> toRemove = new ArrayList<Bot>();
 
 		for (Bot bot : this.bots) {
@@ -58,17 +70,4 @@ public class Brain {
 		return new ArrayList<Bot>(this.bots);
 	}
 
-	private void removeInvalidBots() {
-		List<Bot> toRemove = new ArrayList<Bot>();
-
-		for (Bot bot : this.bots) {
-			if (!bot.valid()) {
-				toRemove.add(bot);
-			}
-		}
-
-		for (Bot bot : toRemove) {
-			this.bots.remove(bot);
-		}
-	}
 }

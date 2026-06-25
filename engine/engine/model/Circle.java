@@ -1,9 +1,9 @@
 package engine.model;
 
-/**
- * Cercle utilisé comme forme de collision.
+/*
+ * Cercle utilisé dans les Bounding.
  */
-public final class Circle extends Shape {
+public class Circle extends Shape {
 
 	private final double radius;
 
@@ -13,6 +13,10 @@ public final class Circle extends Shape {
 		assert radius > 0.0 : radius;
 
 		double diameter = 2.0 * radius;
+
+		/*
+		 * La largeur et la hauteur d'un cercle sont égales à son diamètre.
+		 */
 		checkToricDimensions(diameter, diameter);
 
 		this.radius = radius;
@@ -24,6 +28,7 @@ public final class Circle extends Shape {
 
 	@Override
 	public boolean intersects(IShape shape) {
+		assert shape != null;
 		assert shape.isu() == this.isu;
 
 		return shape.intersects(this);
@@ -31,16 +36,19 @@ public final class Circle extends Shape {
 
 	@Override
 	public boolean intersects(Circle circle) {
+		assert circle != null;
 		assert circle.isu() == this.isu;
 
-		double distance = this.center.distanceTo(circle.center());
-		double radiusSum = this.radius + circle.radius();
+		double distance = this.center.distanceTo(circle.center);
+
+		double radiusSum = this.radius + circle.radius;
 
 		return distance <= radiusSum;
 	}
 
 	@Override
 	public boolean intersects(Rect rect) {
+		assert rect != null;
 		assert rect.isu() == this.isu;
 
 		return rect.intersects(this);
@@ -48,11 +56,7 @@ public final class Circle extends Shape {
 
 	@Override
 	public Hitbox hitbox() {
-		double xmin = this.center.x() - this.radius;
-		double xmax = this.center.x() + this.radius;
-		double ymin = this.center.y() - this.radius;
-		double ymax = this.center.y() + this.radius;
-
-		return new Hitbox(xmin, xmax, ymin, ymax);
+		return new Hitbox(this.center.x() - this.radius, this.center.x() + this.radius, this.center.y() - this.radius,
+				this.center.y() + this.radius);
 	}
 }

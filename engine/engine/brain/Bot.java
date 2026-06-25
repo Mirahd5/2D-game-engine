@@ -5,15 +5,15 @@ import java.util.List;
 import engine.model.Entity;
 import engine.model.Stunt;
 
-/**
- * Bot générique qui choisit les actions d'une entité via son Stunt.
- */
 public abstract class Bot {
 
 	protected final Brain brain;
 	protected final Stunt stunt;
 
 	protected Bot(Brain brain, Stunt stunt) {
+		assert brain != null;
+		assert stunt != null;
+
 		this.brain = brain;
 		this.stunt = stunt;
 
@@ -28,25 +28,24 @@ public abstract class Bot {
 		return this.stunt;
 	}
 
-	public final Entity entity() {
-		return this.stunt.entity();
-	}
-
 	public abstract void think();
 
-	/*
-	 * Les réactions sont optionnelles : une sous-classe redéfinit seulement les
-	 * événements utiles.
-	 */
 	public void done() {
+		// Réaction optionnelle dans les sous-classes.
 	}
 
 	public void collision(Entity entity) {
+		// Réaction optionnelle dans les sous-classes.
 	}
 
 	public void collision(List<Entity> entities) {
+		// Réaction optionnelle dans les sous-classes.
 	}
 
+	/*
+	 * Un Bot est valide seulement si : - son Stunt est encore valide ; - il est
+	 * toujours le Bot actuellement associé à ce Stunt.
+	 */
 	public final boolean valid() {
 		return this.stunt.valid() && this.stunt.bot() == this;
 	}

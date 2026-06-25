@@ -2,24 +2,21 @@ package engine.view;
 
 import engine.model.Entity;
 
-/**
- * Avatar image avec animation par frames.
- */
 public abstract class AnimatedImageAvatar extends ImageAvatar {
 
 	private final long frameDuration;
 
 	private long elapsedSinceFrame;
-	private int lastOrientation;
+	private int animatedOrientation;
 
 	public AnimatedImageAvatar(View view, Entity entity, String[] paths, long frameDuration) {
 		super(view, entity, paths);
 
-		assert frameDuration > 0L : frameDuration;
+		assert frameDuration > 0L;
 
 		this.frameDuration = frameDuration;
 		this.elapsedSinceFrame = 0L;
-		this.lastOrientation = entity.orientation();
+		this.animatedOrientation = entity.orientation();
 	}
 
 	public final long frameDuration() {
@@ -41,7 +38,7 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 
 	@Override
 	public void tick(long elapsed) {
-		assert elapsed >= 0L : elapsed;
+		assert elapsed >= 0L;
 
 		tickSpawnAnimation(elapsed);
 
@@ -50,33 +47,18 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 			return;
 		}
 
-		updateOrientation();
+		int orientation = this.entity.orientation();
+
+		if (resetOnOrientationChange() && orientation != this.animatedOrientation) {
+			this.animatedOrientation = orientation;
+			resetAnimation();
+		}
 
 		if (!shouldAnimate()) {
 			resetAnimation();
 			return;
 		}
 
-		advanceAnimation(elapsed);
-	}
-
-	private void updateOrientation() {
-		int orientation = this.entity.orientation();
-
-		if (!resetOnOrientationChange()) {
-			this.lastOrientation = orientation;
-			return;
-		}
-
-		if (orientation == this.lastOrientation) {
-			return;
-		}
-
-		this.lastOrientation = orientation;
-		resetAnimation();
-	}
-
-	private void advanceAnimation(long elapsed) {
 		this.elapsedSinceFrame += elapsed;
 
 		while (this.elapsedSinceFrame >= this.frameDuration) {
@@ -84,4 +66,4 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 			nextFrame();
 		}
 	}
-}
+}	

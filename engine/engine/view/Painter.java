@@ -3,22 +3,20 @@ package engine.view;
 import oop.graphics.Canvas;
 import oop.graphics.Graphics;
 
-/**
- * Adaptateur entre le Canvas graphique et la View du moteur.
- */
-public final class Painter implements Canvas.PaintListener {
+public class Painter implements Canvas.PaintListener {
 
-	private final View view;
-	private final PerformanceMonitor performanceMonitor;
-
+	private View view;
 	private Canvas canvas;
+	private PerformanceMonitor performanceMonitor;
 
 	public Painter(View view) {
 		this(view, null);
 	}
 
 	public Painter(View view, PerformanceMonitor performanceMonitor) {
+		assert view != null;
 		this.view = view;
+		this.canvas = null;
 		this.performanceMonitor = performanceMonitor;
 	}
 
@@ -28,32 +26,29 @@ public final class Painter implements Canvas.PaintListener {
 
 	@Override
 	public void visible(Canvas canvas) {
+		assert canvas != null;
+
 		this.canvas = canvas;
-		this.canvas.repaint();
+		canvas.repaint();
 	}
 
 	@Override
-	public void paint(Canvas canvas, Graphics graphics) {
-		this.canvas = canvas;
+	public void paint(Canvas canvas, Graphics g) {
+		assert canvas != null;
+		assert g != null;
 
 		if (this.performanceMonitor != null) {
 			this.performanceMonitor.recordPaintEvent();
 		}
 
-		clear(graphics, canvas);
+		g.setColor(Graphics.Colors.black);
+		g.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-		this.view.paint(graphics);
+		this.view.paint(g);
 	}
 
 	@Override
 	public void revoked(Canvas canvas) {
-		if (this.canvas == canvas) {
-			this.canvas = null;
-		}
-	}
-
-	private void clear(Graphics graphics, Canvas canvas) {
-		graphics.setColor(Graphics.Colors.black);
-		graphics.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
+		this.canvas = null;
 	}
 }
