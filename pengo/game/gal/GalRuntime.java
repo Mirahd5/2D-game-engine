@@ -214,6 +214,11 @@ public final class GalRuntime {
 			this.context.turnAction(firstParameterOrDefault(action, "R"));
 			return;
 		}
+		
+		if ("Egg".equals(action.name) || "EGG".equals(action.name)) {
+		    this.context.eggAction();
+		    return;
+		}
 
 		if ("Pop".equals(action.name) || "Wizz".equals(action.name)) {
 			this.context.waitAction();

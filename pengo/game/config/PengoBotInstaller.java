@@ -120,6 +120,37 @@ public final class PengoBotInstaller {
 			brain.add(spawnerBot);
 		}
 	}
+	
+	public static void installSpawnerLoadGalBots(Brain brain, Model model, View view, BuildMap builder,
+	        Automaton spawnerAutomaton, Automaton enemyAutomaton, CurrentPlayer currentPlayer,
+	        PengoGameState gameState, PengoRunState runState) {
+
+	    for (final Spawner spawner : builder.spawners()) {
+	        BasicStunt spawnerStunt = new BasicStunt(model, spawner);
+	        spawner.setStunt(spawnerStunt);
+
+	        GalBot spawnerBot = new GalBot(brain, spawnerStunt, spawner, spawnerAutomaton, currentPlayer,
+	                new java.lang.Runnable() {
+	                    @Override
+	                    public void run() {
+	                        if (runState.stopped() || runState.paused() || gameState.finished()) {
+	                            return;
+	                        }
+
+	                        Grid.Position position = PengoPowerSpawner.randomFreePosition(model, builder);
+
+	                        if (position == null) {
+	                            return;
+	                        }
+
+	                        createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, position, gameState,
+	                                runState);
+	                    }
+	                });
+
+	        brain.add(spawnerBot);
+	    }
+	}
 
 	public static void installIceBots(Brain brain, Model model, BuildMap builder, PengoGameState gameState) {
 		for (final Glacon ice : builder.iceBlocks()) {
