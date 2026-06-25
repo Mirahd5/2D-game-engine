@@ -1,8 +1,5 @@
 package game.controller;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import engine.brain.Brain;
 import engine.brain.PlayerBot;
 import engine.model.BasicStunt;
@@ -22,34 +19,21 @@ public final class Switch {
 	private final Model model;
 	private final Ticker ticker;
 	private final Pengo pengo;
-	private final List<Friend> friends;
+	private final Friend friend;
 	private final Automaton randomAutomaton;
 	private final CurrentPlayer currentPlayer;
-
 	private Entity controlledEntity;
 	private PlayerBot playerBot;
 
-	public Switch(Brain brain, Model model, Ticker ticker, Pengo pengo, List<Friend> friends, Automaton randomAutomaton,
+	public Switch(Brain brain, Model model, Ticker ticker, Pengo pengo, Friend friend, Automaton randomAutomaton,
 			CurrentPlayer currentPlayer) {
-		assert brain != null;
-		assert model != null;
-		assert ticker != null;
-		assert pengo != null;
-		assert friends != null;
-		assert randomAutomaton != null;
-		assert currentPlayer != null;
-
 		this.brain = brain;
 		this.model = model;
 		this.ticker = ticker;
 		this.pengo = pengo;
-		this.friends = new ArrayList<Friend>(friends);
+		this.friend = friend;
 		this.randomAutomaton = randomAutomaton;
 		this.currentPlayer = currentPlayer;
-
-		this.controlledEntity = null;
-		this.playerBot = null;
-
 		control(this.pengo);
 	}
 
@@ -61,97 +45,91 @@ public final class Switch {
 		return this.playerBot;
 	}
 
+	// switch entre friend et pengo
 	public void switchControl() {
 		updateControlledEntity();
-
-		if (!this.pengo.hasFriendActivator()) {
+		if (!canSwitch()) {
 			return;
 		}
-
-		if (this.pengo.isGameOver() || !this.pengo.alive()) {
+		Entity nextEntity = nextEntityToControl();
+		if (nextEntity == null || nextEntity == this.controlledEntity) {
 			return;
 		}
-
-		Entity next = nextControlledEntity();
-
-		if (next == null || next == this.controlledEntity) {
-			return;
-		}
-
-		Entity previous = this.controlledEntity;
-
-		makeAutomatic(previous);
-		control(next);
+		makeAutomatic(this.controlledEntity);
+		control(nextEntity);
 	}
-	
+
 	public void updateControlledEntity() {
-		if (this.controlledEntity != null && this.controlledEntity.alive() && this.controlledEntity.installed()) {
+		if (isUsable(this.controlledEntity)) {
 			return;
 		}
-
 		Entity previousControlledEntity = this.controlledEntity;
-
-		if (previousControlledEntity instanceof Friend) {
-			Friend friend = (Friend) previousControlledEntity;
-			friend.setControlled(false);
+		// on update letat de controlled
+		if (this.controlledEntity instanceof Player) {
+			Player player = (Player) this.controlledEntity;
+			player.setControlled(false);
 		}
-
-		if (this.pengo.alive() && this.pengo.installed() && this.pengo.nLives() > 0) {
+		if (isUsable(this.pengo) && this.pengo.nLives() > 0) {
 			control(this.pengo);
 			return;
 		}
-
 		this.controlledEntity = null;
 		this.playerBot = null;
 	}
 
-	private Entity nextControlledEntity() {
-		if (this.controlledEntity instanceof Pengo) {
-			return firstAvailableFriend();
+	// switch power
+	private boolean canSwitch() {
+		if (!this.pengo.hasFriendActivator()) {
+			return false;
 		}
+		if (!isUsable(this.pengo) || this.pengo.isGameOver()) {
+			return false;
+		}
+		if (!friendCanBeControlled()) {
+			return false;
+		}
+		return true;
+	}
 
+	
+	private Entity nextEntityToControl() {
+		if (this.controlledEntity == this.pengo) {
+			return this.friend;
+		}
 		return this.pengo;
 	}
 
-	private Friend firstAvailableFriend() {
-		for (Friend friend : this.friends) {
-			if (friend.alive() && friend.installed() && friend.nLives() > 0) {
-				return friend;
-			}
-		}
+	private boolean isUsable(Entity entity) {
+		return entity != null && entity.alive() && entity.installed();
+	}
 
-		return null;
+	private boolean friendCanBeControlled() {
+		return isUsable(this.friend) && this.friend.nLives() > 0;
 	}
 
 	private void makeAutomatic(Entity entity) {
-		if (entity == null || !entity.alive() || !entity.installed()) {
+		if (!isUsable(entity)) {
 			return;
 		}
-
 		this.brain.removeBotsOf(entity);
-
-		if (entity instanceof Player) {
-			Player player = (Player) entity;
-			player.setControlled(false);
-		}
-
 		if (!(entity instanceof Player)) {
 			return;
 		}
+
+		Player player = (Player) entity;
+		player.setControlled(false);
 
 		BasicStunt autoStunt = new BasicStunt(this.model, entity);
 		entity.setStunt(autoStunt);
 
 		GalBot autoBot = new GalBot(this.brain, autoStunt, entity, this.randomAutomaton, this.currentPlayer);
-
 		this.brain.add(autoBot);
 	}
 
 	private void control(Entity entity) {
-		if (entity == null || !entity.alive() || !entity.installed()) {
+		if (!isUsable(entity)) {
 			return;
 		}
-		
 		this.brain.removeBotsOf(entity);
 
 		BasicStunt playerStunt = new BasicStunt(this.model, entity);

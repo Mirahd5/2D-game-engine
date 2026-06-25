@@ -3,7 +3,6 @@ package game;
 import java.io.BufferedReader;
 import java.util.logging.Logger;
 import java.io.FileReader;
-import java.util.logging.Logger;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +39,6 @@ import game.view.SpawnerAvatar;
  */
 public final class BuildMap {
 
-
 	private final Model model;
 	private final Grid grid;
 	private final View view;
@@ -49,17 +47,17 @@ public final class BuildMap {
 	private char[][] map;
 
 	private Pengo pengo;
+	private Friend friend;
 	private final List<Mur> walls;
 	private final List<Glacon> iceBlocks;
 	private final List<Spawner> spawners;
 	private final List<Enemies> enemies;
-	private final List<Friend> friends;
 	private final List<Power> powers;
 
 	private boolean built;
-	
+
 	private static final Logger logger = Logger.getLogger(BuildMap.class.getName());
-	
+
 	public BuildMap(Game game, View view, String mapPath) throws IOException {
 		assert !mapPath.isEmpty();
 		assert game.model() == view.model();
@@ -73,7 +71,6 @@ public final class BuildMap {
 		this.iceBlocks = new ArrayList<Glacon>();
 		this.spawners = new ArrayList<Spawner>();
 		this.enemies = new ArrayList<Enemies>();
-		this.friends = new ArrayList<Friend>();
 		this.powers = new ArrayList<Power>();
 
 		this.built = false;
@@ -225,6 +222,15 @@ public final class BuildMap {
 		this.pengo = install(player, x, y);
 	}
 
+	private void addFriend(int x, int y) {
+		if (this.friend != null) {
+			throw new IllegalStateException("The map contains more than one Friend");
+		}
+		Friend friend = new Friend(this.model, "friend-" + x + "-" + y);
+		friend.setAvatar(new FriendAvatar(this.view, friend));
+		this.friend = install(friend, x, y);
+	}
+
 	private void addSpawner(int x, int y) {
 		Spawner spawner = new Spawner(this.model, "spawner-" + x + "-" + y);
 		spawner.setAvatar(new SpawnerAvatar(this.view, spawner));
@@ -235,12 +241,6 @@ public final class BuildMap {
 		Enemies enemy = new Enemies(this.model, "enemy-" + x + "-" + y);
 		enemy.setAvatar(new EnemiesAvatar(this.view, enemy));
 		this.enemies.add(install(enemy, x, y));
-	}
-
-	private void addFriend(int x, int y) {
-		Friend friend = new Friend(this.model, "friend-" + x + "-" + y);
-		friend.setAvatar(new FriendAvatar(this.view, friend));
-		this.friends.add(install(friend, x, y));
 	}
 
 	private void addPower(int x, int y, PowerType type) {
@@ -268,6 +268,10 @@ public final class BuildMap {
 		return this.pengo;
 	}
 
+	public Friend friend() {
+		return this.friend;
+	}
+
 	public List<Mur> walls() {
 		return new ArrayList<Mur>(this.walls);
 	}
@@ -282,10 +286,6 @@ public final class BuildMap {
 
 	public List<Enemies> enemies() {
 		return new ArrayList<Enemies>(this.enemies);
-	}
-
-	public List<Friend> friends() {
-		return new ArrayList<Friend>(this.friends);
 	}
 
 	public List<Power> powers() {
