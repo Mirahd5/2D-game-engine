@@ -74,9 +74,12 @@ final class GridSnapper {
 				continue;
 			}
 
+			if (other instanceof Power) {
+				continue;
+			}
+
 			// ces entités empechent le bloc de snapper sur cette cellule
-			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner
-					|| other instanceof Power) {
+			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
 				return false;
 			}
 		}

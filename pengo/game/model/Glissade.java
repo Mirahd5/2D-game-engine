@@ -304,13 +304,55 @@ public abstract class Glissade extends Entity implements Pushable {
 		return result;
 	}
 
+	// Ramasse un power touche par un glacon/spawner qui glisse.
+	// Le Power ne bloque plus la glissade : il est donne au joueur controle puis supprime.
+	final boolean collectPowerForControlledPlayer(Power power) {
+		if (power == null || !power.alive()) {
+			return false;
+		}
+
+		Player receiver = controlledPlayer();
+
+		if (receiver == null) {
+			return false;
+		}
+
+		power.apply(receiver);
+		power.death();
+
+		return true;
+	}
+
+	private Player controlledPlayer() {
+		Player fallback = null;
+
+		for (Entity entity : model().entities()) {
+			if (entity instanceof Player && entity.alive()) {
+				Player player = (Player) entity;
+
+				if (player.isControlled()) {
+					return player;
+				}
+
+				if (fallback == null && player instanceof Pengo) {
+					fallback = player;
+				}
+			}
+		}
+
+		return fallback;
+	}
+
 	// Obstacles considérés comme fixes pour la glissade.
 	final boolean isStaticObstacle(Entity other) {
+		if (other instanceof Power) {
+			return false;
+		}
+
 		return other instanceof Obstacle
 				|| other instanceof Mur
 				|| other instanceof Glacon
-				|| other instanceof Spawner
-				|| other instanceof Power;
+				|| other instanceof Spawner;
 	}
 
 	// Obstacles capables d'écraser les ennemis transportés.
@@ -321,6 +363,10 @@ public abstract class Glissade extends Entity implements Pushable {
 	// Détermine si une entité bloque ce bloc.
 	final boolean isHardBlockForThisBlock(Entity other) {
 		if (other instanceof Enemies) {
+			return false;
+		}
+
+		if (other instanceof Power) {
 			return false;
 		}
 
@@ -339,8 +385,7 @@ public abstract class Glissade extends Entity implements Pushable {
 		boolean hardType = other instanceof Obstacle
 				|| other instanceof Mur
 				|| other instanceof Glacon
-				|| other instanceof Spawner
-				|| other instanceof Power;
+				|| other instanceof Spawner;
 
 		if (!hardType) {
 			return false;

@@ -105,7 +105,6 @@ final class EnemyTrain {
 		removeInvalidCarriedEnemies();
 
 		if (this.carriedEnemies.isEmpty()) {
-			this.owner.powerStop().stopBeforePowerIfNeeded();
 			return;
 		}
 
@@ -510,6 +509,6 @@ final class EnemyTrain {
 
 	// obstacles qui arretent les ennemis transportes
 	private boolean isEnemyStoppingObstacle(Entity other) {
-		return this.owner.isCrushingObstacle(other) || other instanceof Power;
+		return this.owner.isCrushingObstacle(other);
 	}
 }

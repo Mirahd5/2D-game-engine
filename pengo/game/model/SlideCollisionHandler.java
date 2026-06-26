@@ -35,24 +35,20 @@ final class SlideCollisionHandler {
 			return true;
 		}
 
+		// Un Power ne bloque plus la glissade : il est recupere par le joueur controle.
+		if (this.owner.isSliding() && other instanceof Power && other.alive()) {
+			this.owner.collectPowerForControlledPlayer((Power) other);
+			this.owner.restoreSlideSpeed();
+			this.enemyTrain.carryEnemies();
+			return true;
+		}
+
 		// essaie de capturer un ennemi touche par le bloc
 		boolean capturedEnemy = this.enemyTrain.handleSlidingContact(other);
 
 		if (capturedEnemy) {
 			this.owner.restoreSlideSpeed();
 			this.enemyTrain.carryEnemies();
-			return true;
-		}
-
-		// demarre larret special si un power est juste apres le train
-		if (this.owner.isSliding() && other instanceof Power && !this.enemyTrain.isEmpty()
-				&& this.powerStop.isPowerAfterTrain(other)) {
-			Enemies lastEnemy = this.enemyTrain.lastEnemy();
-
-			this.powerStop.start(lastEnemy, this.powerStop.blockStopBeforePower(other.position()),
-					other.position().copy());
-
-			this.owner.restoreSlideSpeed();
 			return true;
 		}
 
@@ -102,19 +98,16 @@ final class SlideCollisionHandler {
 			if (other == this.owner || !other.alive()) {
 				continue;
 			}
-			// capture les ennemis touches pendant la glissade
-			if (this.enemyTrain.handleSlidingContact(other)) {
+
+			// Un Power ne bloque plus la glissade : il est recupere puis ignore.
+			if (this.owner.isSliding() && other instanceof Power) {
+				this.owner.collectPowerForControlledPlayer((Power) other);
 				capturedEnemy = true;
 				continue;
 			}
-			// detecte un power place juste apres le train
-			if (this.owner.isSliding() && other instanceof Power && !this.enemyTrain.isEmpty()
-					&& this.powerStop.isPowerAfterTrain(other)) {
-				Enemies lastEnemy = this.enemyTrain.lastEnemy();
 
-				this.powerStop.start(lastEnemy, this.powerStop.blockStopBeforePower(other.position()),
-						other.position().copy());
-
+			// capture les ennemis touches pendant la glissade
+			if (this.enemyTrain.handleSlidingContact(other)) {
 				capturedEnemy = true;
 				continue;
 			}
@@ -167,6 +160,10 @@ final class SlideCollisionHandler {
 			}
 			return this.enemyTrain.blocksEnemyWhileSliding(enemy);
 		}
+		if (other instanceof Power) {
+			return false;
+		}
+
 		// le power cible ne bloque pas pendant l arret special
 		if (this.owner.isSliding() && this.powerStop.active() && this.powerStop.isSmoothPowerTarget(other)) {
 			return false;
