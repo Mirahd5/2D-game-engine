@@ -18,7 +18,6 @@ public class Rect extends Shape {
 	public Rect(ISU.Coord center, ISU.Dimension size, int angle_degree) {
 		super(center);
 
-		assert size != null;
 		assert size.isu() == this.isu;
 
 		/*
@@ -53,17 +52,12 @@ public class Rect extends Shape {
 
 	@Override
 	public boolean intersects(IShape shape) {
-		assert shape != null;
 
-		/*
-		 * Double dispatch : on laisse l'autre forme choisir le bon test d'intersection.
-		 */
 		return shape.intersects(this);
 	}
 
 	@Override
 	public boolean intersects(Circle circle) {
-		assert circle != null;
 
 		// On ramène le problème dans le repère du rectangle.
 		RectCircleIntersection rci = new RectCircleIntersection(this, circle);
@@ -93,8 +87,6 @@ public class Rect extends Shape {
 		private double circleY;
 
 		RectCircleIntersection(Rect outer, Circle circle) {
-			assert outer != null;
-			assert circle != null;
 
 			this.outer = outer;
 			this.circle = circle;
@@ -147,7 +139,6 @@ public class Rect extends Shape {
 
 	@Override
 	public boolean intersects(Rect rect) {
-		assert rect != null;
 
 		RectRectIntersection rri = new RectRectIntersection(this, rect);
 
@@ -167,8 +158,6 @@ public class Rect extends Shape {
 		private Rect r2;
 
 		RectRectIntersection(Rect r1, Rect r2) {
-			assert r1 != null;
-			assert r2 != null;
 
 			this.r1 = r1;
 			this.r2 = r2;

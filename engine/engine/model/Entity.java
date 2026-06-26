@@ -54,16 +54,11 @@ public abstract class Entity {
 	protected int orientation_degree;
 
 	public Entity(Model model, String name) {
-		assert model != null;
-		assert name != null;
-
 		this.model = model;
 		this.grid = model.grid();
 		this.isu = model.isu();
 		this.name = name;
-		this.installed = false;
 
-		this.orientation_degree = 0;
 		this.occupied = new HashSet<Grid.Cell>();
 
 		/*
@@ -81,10 +76,6 @@ public abstract class Entity {
 
 		this.alive = true;
 
-		this.zOrder = 0;
-		this.sOrder = 0;
-
-		// deploy();
 	}
 
 	// SETTERS
@@ -114,20 +105,16 @@ public abstract class Entity {
 	}
 
 	protected final void setSize(Grid.Dimension dimension) {
-		assert dimension != null;
-
 		setSize(dimension.toISUDimension());
 	}
 
 	protected final void setStep(ISU.Dimension step) {
-		assert step != null;
 		assert step.isu() == this.isu;
 
 		this.step = this.isu.new Dimension(step.x(), step.y());
 	}
 
 	protected final void setSize(ISU.Dimension dimension) {
-		assert dimension != null;
 		assert dimension.isu() == this.isu;
 
 		boolean wasInstalled = this.installed;
@@ -153,7 +140,6 @@ public abstract class Entity {
 	}
 
 	public final void setStunt(Stunt stunt) {
-		assert stunt != null;
 		assert stunt.model() == this.model;
 		assert stunt.entity() == this;
 
@@ -199,7 +185,6 @@ public abstract class Entity {
 	}
 
 	public void setLinearSpeed(ISU.Vector speed) {
-		assert speed != null;
 		assert speed.isu() == this.isu;
 
 		this.lSpeed = this.isu.new Vector(speed.x(), speed.y());
@@ -324,8 +309,6 @@ public abstract class Entity {
 
 	public void moveNorth(int nStep) {
 		assert nStep >= 0 : nStep;
-		assert this.isu != null;
-		assert this.step != null;
 
 		ISU.Vector v = isu.new Vector(0.0, -nStep * this.step.y());
 		translate(v);
@@ -333,15 +316,12 @@ public abstract class Entity {
 
 	public void moveSouth(int nStep) {
 		assert nStep >= 0 : nStep;
-		assert this.isu != null;
-		assert this.step != null;
 
 		ISU.Vector v = isu.new Vector(0.0, nStep * this.step.y());
 		translate(v);
 	}
 
 	public void moveEast(double length_cm) {
-		assert this.isu != null;
 		assert length_cm >= 0.0 : length_cm;
 
 		ISU.Vector v = isu.new Vector(length_cm, 0.0);
@@ -349,7 +329,6 @@ public abstract class Entity {
 	}
 
 	public void moveWest(double length_cm) {
-		assert this.isu != null;
 		assert length_cm >= 0.0 : length_cm;
 
 		ISU.Vector v = isu.new Vector(-length_cm, 0.0);
@@ -362,24 +341,17 @@ public abstract class Entity {
 	 * Deux entités se touchent si leurs bounding shapes se touchent.
 	 */
 	public boolean intersects(Entity e) {
-		assert e != null;
-		assert this.bounding != null;
-		assert e.bounding != null;
 
 		return this.bounding.intersects(e.bounding);
 	}
 
 	public double distanceCenterToCenter(Entity e) {
-		assert e != null;
-		assert this.center != null;
-		assert e.center != null;
 
 		return this.center.distanceTo(e.center);
 	}
 
 	/*
-	 * Chaque sous-classe construit son propre bounding. PacMan peut utiliser un
-	 * cercle, un obstacle un rectangle, etc.
+	 * Chaque sous-classe construit son propre bounding.
 	 */
 	protected abstract Bounding createBounding(ISU.Coord center, ISU.Dimension size, int orientationDegree);
 
@@ -389,8 +361,6 @@ public abstract class Entity {
 	 */
 	protected final void updateBounding() {
 		this.bounding = createBounding(this.center, this.size, this.orientation_degree);
-
-		assert this.bounding != null;
 	}
 
 	/*
@@ -398,9 +368,7 @@ public abstract class Entity {
 	 * centre, sa position ou ses cellules.
 	 */
 	final Bounding boundingAt(ISU.Coord center, int orientationDegree) {
-		assert center != null;
 		assert center.isu() == this.isu;
-		assert this.size != null;
 
 		int normalizedOrientation = ((orientationDegree % 360) + 360) % 360;
 
@@ -413,7 +381,6 @@ public abstract class Entity {
 	// OCCUPATION DE LA GRILLE
 
 	protected final void occupy(Grid.Position position) {
-		assert position != null;
 		assert this.installed;
 
 		Grid.Cell cell = this.grid.cellAt(position);
@@ -441,7 +408,6 @@ public abstract class Entity {
 	 */
 	protected void deploy() {
 		assert this.installed;
-		assert this.position != null;
 
 		occupy(this.position);
 	}
@@ -449,7 +415,6 @@ public abstract class Entity {
 	// NOTIFICATIONS DE COLLISION
 
 	public void collision(Entity e) {
-		assert e != null;
 
 		if (this.stunt != null) {
 			this.stunt.collision(e);
@@ -457,7 +422,6 @@ public abstract class Entity {
 	}
 
 	public void collision(java.util.List<Entity> entities) {
-		assert entities != null;
 
 		if (this.stunt != null) {
 			this.stunt.collision(entities);
@@ -532,8 +496,6 @@ public abstract class Entity {
 	 */
 	final Hitbox motionHitboxBetween(ISU.Coord from, ISU.Vector movement, int fromOrientation, int toOrientation,
 			int nsteps) {
-		assert from != null;
-		assert movement != null;
 		assert from.isu() == this.isu;
 		assert movement.isu() == this.isu;
 		assert nsteps >= 1;
@@ -562,13 +524,8 @@ public abstract class Entity {
 
 	/*
 	 * Indique si cette entité bloque physiquement l'autre.
-	 *
-	 * Par défaut, une entité générique n'est pas bloquante. Les spécialisations
-	 * redéfinissent cette méthode.
 	 */
 	public boolean blocks(Entity other) {
-		assert other != null;
-
 		return false;
 	}
 
@@ -580,8 +537,6 @@ public abstract class Entity {
 	 * entité se déplace vite.
 	 */
 	public Hitbox hitboxBetween(ISU.Coord from, ISU.Coord to) {
-		assert from != null;
-		assert to != null;
 
 		Bounding startBounding = boundingAt(from, this.orientation_degree);
 
@@ -604,11 +559,6 @@ public abstract class Entity {
 	}
 
 	private void checkGeometry() {
-		assert this.center != null;
-		assert this.position != null;
-		assert this.size != null;
-		assert this.step != null;
-		assert this.bounding != null;
 
 		/*
 		 * Position Grid et centre ISU doivent toujours représenter le même emplacement.
@@ -647,7 +597,6 @@ public abstract class Entity {
 	 * cellules.
 	 */
 	final void prepareInitialPosition(Grid.Position initialPosition) {
-		assert initialPosition != null;
 		assert !this.installed;
 		assert this.occupied.isEmpty();
 
@@ -669,7 +618,6 @@ public abstract class Entity {
 	final void install() {
 		assert !this.installed;
 		assert this.occupied.isEmpty();
-		assert this.bounding != null;
 
 		this.installed = true;
 
@@ -708,7 +656,6 @@ public abstract class Entity {
 	 * Grid ; - l'orientation ; - le Bounding ; - les cellules occupées.
 	 */
 	final void applyPoseFromModel(ISU.Coord newCenter, int newOrientation, boolean notifyStunt) {
-		assert newCenter != null;
 		assert newCenter.isu() == this.isu;
 
 		ISU.Coord oldCenter = this.center.mkCopy();

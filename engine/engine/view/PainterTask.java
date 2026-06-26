@@ -21,13 +21,11 @@ public final class PainterTask implements Runnable {
 	private boolean stopped;
 
 	public PainterTask(Painter painter, int delay) {
-		assert painter != null;
 		assert delay > 0;
 
 		this.painter = painter;
 		this.delay = delay;
 		this.lastTime = System.currentTimeMillis();
-		this.stopped = false;
 	}
 
 	public void stop() {
@@ -53,15 +51,6 @@ public final class PainterTask implements Runnable {
 			canvas.repaint();
 		}
 
-		/*
-		 * Correction du retard.
-		 *
-		 * Si delay = 30 ms et que le repaint précédent est arrivé après 45 ms :
-		 *
-		 * skew = 45 - 30 = 15 nextDelay = 30 - 15 = 15
-		 *
-		 * Cela aide à maintenir la fréquence globale demandée par les slides.
-		 */
 		long skew = elapsed - this.delay;
 
 		int nextDelay = (int) (this.delay - skew);

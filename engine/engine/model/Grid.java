@@ -29,7 +29,6 @@ public class Grid {
 	private final Game game;
 
 	public Grid(Game game) {
-		assert game != null;
 
 		this.game = game;
 
@@ -79,7 +78,6 @@ public class Grid {
 	}
 
 	public Grid.Cell cellAt(Grid.Position p) {
-		assert p != null;
 
 		Grid.Position normalized = p.copy();
 		normalized.normalize();
@@ -103,7 +101,6 @@ public class Grid {
 	}
 
 	public boolean contains(Grid.Position p) {
-		assert p != null;
 
 		return p.x() >= 0 && p.x() < this.width_ncell && p.y() >= 0 && p.y() < this.height_ncell;
 	}
@@ -189,7 +186,6 @@ public class Grid {
 		 * Conversion vers ISU. On passe d'une taille en cellules à une taille en cm.
 		 */
 		public ISU.Dimension toISUDimension() {
-			assert isu != null;
 
 			double x_cm = this.x_ncell * isu.cmPerCell();
 			double y_cm = this.y_ncell * isu.cmPerCell();
@@ -232,7 +228,6 @@ public class Grid {
 		}
 
 		public void add(Vector vector) {
-			assert vector != null;
 			assert vector.grid() == Grid.this;
 
 			this.x_deplacement += vector.x_deplacement;
@@ -244,9 +239,7 @@ public class Grid {
 		}
 
 		public boolean equiv(Vector vector) {
-			return vector != null
-					&& vector.grid() == Grid.this
-					&& this.x_deplacement == vector.x_deplacement
+			return vector != null && vector.grid() == Grid.this && this.x_deplacement == vector.x_deplacement
 					&& this.y_deplacement == vector.y_deplacement;
 		}
 
@@ -335,7 +328,6 @@ public class Grid {
 		}
 
 		public void translate(Vector vector) {
-			assert vector != null;
 			assert vector.grid() == Grid.this;
 
 			this.x_point += vector.x_deplacement;
@@ -369,7 +361,6 @@ public class Grid {
 		 * angles compatibles avec une grille carrée.
 		 */
 		public void rotateAround(Grid.Position center, int angle_degree) {
-			assert center != null;
 			assert center.grid() == Grid.this;
 
 			int dx = Grid.this.xAxis.delta(center.x_point, this.x_point);
@@ -414,15 +405,12 @@ public class Grid {
 
 		/*
 		 * Permet de vérifier que deux positions appartiennent à la même grille.
-		 *
-		 * Visibilité package : utile à Model, mais pas exposée aux jeux.
 		 */
 		Grid grid() {
 			return Grid.this;
 		}
 
 		public double distanceTo(Position position) {
-			assert position != null;
 			assert position.grid() == Grid.this;
 
 			double dx = xAxis.distance(this.x_point, position.x_point);
@@ -437,7 +425,6 @@ public class Grid {
 		 * gauche de la cellule.
 		 */
 		public ISU.Coord toISUCoord() {
-			assert isu != null;
 
 			double x_cm = this.x_point * isu.cmPerCell();
 			double y_cm = this.y_point * isu.cmPerCell();
@@ -450,7 +437,6 @@ public class Grid {
 		 * plus utilisée pour placer les entités.
 		 */
 		public ISU.Coord toISUCoordCentered() {
-			assert isu != null;
 
 			double x_cm = (this.x_point + 0.5) * isu.cmPerCell();
 			double y_cm = (this.y_point + 0.5) * isu.cmPerCell();
@@ -464,8 +450,6 @@ public class Grid {
 		public Picture.Pixel toPicturePixel() {
 			Picture picture = Grid.this.game.getPicture();
 
-			assert picture != null;
-
 			return picture.from(this);
 		}
 
@@ -474,8 +458,6 @@ public class Grid {
 		 */
 		public Picture.Pixel toPicturePixelCentered() {
 			Picture picture = Grid.this.game.getPicture();
-
-			assert picture != null;
 
 			return picture.from(toISUCoordCentered());
 		}
@@ -500,8 +482,6 @@ public class Grid {
 		private List<Entity> entities;
 
 		public Cell(Position p) {
-			assert p != null;
-
 			this.size = new Dimension(1, 1);
 			this.position = p;
 			this.entities = new ArrayList<Entity>();
@@ -520,15 +500,12 @@ public class Grid {
 		}
 
 		public void add(Entity e) {
-			assert e != null;
-
 			if (!this.entities.contains(e)) {
 				this.entities.add(e);
 			}
 		}
 
 		public void remove(Entity e) {
-			assert e != null;
 
 			this.entities.remove(e);
 		}

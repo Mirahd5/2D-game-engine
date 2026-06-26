@@ -14,9 +14,7 @@ public class Painter implements Canvas.PaintListener {
 	}
 
 	public Painter(View view, PerformanceMonitor performanceMonitor) {
-		assert view != null;
 		this.view = view;
-		this.canvas = null;
 		this.performanceMonitor = performanceMonitor;
 	}
 
@@ -26,16 +24,12 @@ public class Painter implements Canvas.PaintListener {
 
 	@Override
 	public void visible(Canvas canvas) {
-		assert canvas != null;
-
 		this.canvas = canvas;
 		canvas.repaint();
 	}
 
 	@Override
 	public void paint(Canvas canvas, Graphics g) {
-		assert canvas != null;
-		assert g != null;
 
 		if (this.performanceMonitor != null) {
 			this.performanceMonitor.recordPaintEvent();

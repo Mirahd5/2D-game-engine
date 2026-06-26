@@ -6,7 +6,7 @@ import java.util.logging.Logger;
  *
  * Un axe peut être normal ou torique.
  * Sur un axe torique, les positions reviennent au début quand elles dépassent
- * le périmètre, comme dans PacMan quand on sort d'un côté de la carte.
+ * le périmètre.
  */
 public class Axis {
 	private static final Logger logger = Logger.getLogger(Axis.class.getName());
@@ -44,10 +44,6 @@ public class Axis {
 		return modp(value, integerPerimeter());
 	}
 
-	/*
-	 * Modulo positif. En Java, -1 % 5 donne -1, mais pour une position on veut
-	 * obtenir 4.
-	 */
 	public int modp(int value, int perimeter) {
 		assert perimeter > 0 : perimeter;
 

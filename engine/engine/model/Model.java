@@ -25,8 +25,7 @@ public class Model {
 	private ViewPort viewPort;
 
 	public Model(Game game) {
-		assert game != null;
-
+		
 		this.game = game;
 		this.grid = game.getGrid();
 		this.isu = game.getIsu();
@@ -50,7 +49,6 @@ public class Model {
 	 * strictement plus petite.
 	 */
 	private double defaultViewPortLength(Axis axis, double mapLength) {
-		assert axis != null;
 		assert mapLength > 0.0;
 
 		if (!axis.onTorus()) {
@@ -85,7 +83,6 @@ public class Model {
 	}
 
 	public void setViewPort(ViewPort viewPort) {
-		assert viewPort != null;
 		assert viewPort.model() == this;
 
 		this.viewPort = viewPort;
@@ -94,14 +91,11 @@ public class Model {
 	// ENTITY MANAGEMENT
 
 	public void add(Entity entity) {
-		assert entity != null;
 
 		add(entity, entity.position());
 	}
 
 	public void add(Entity entity, Grid.Position initialPosition) {
-		assert entity != null;
-		assert initialPosition != null;
 		assert entity.model() == this;
 		assert !this.entities.contains(entity);
 
@@ -119,7 +113,6 @@ public class Model {
 	}
 
 	public void remove(Entity entity) {
-		assert entity != null;
 		assert entity.model() == this;
 
 		if (!this.entities.contains(entity)) {
@@ -148,7 +141,6 @@ public class Model {
 	 * Cette méthode teste les collisions à la position actuelle.
 	 */
 	public List<Entity> collisions(Entity entity) {
-		assert entity != null;
 
 		List<Entity> result = new ArrayList<Entity>();
 
@@ -183,7 +175,6 @@ public class Model {
 		final ISU.Vector movement;
 
 		Motion(Entity entity, long elapsed) {
-			assert entity != null;
 			assert elapsed >= 0;
 
 			this.entity = entity;
@@ -212,7 +203,6 @@ public class Model {
 	 * tout le mouvement, puis applique ou annule le déplacement.
 	 */
 	public boolean move(Entity entity, long elapsed) {
-		assert entity != null;
 		assert elapsed >= 0;
 
 		assertOwned(entity);
@@ -234,14 +224,12 @@ public class Model {
 	}
 
 	private void assertOwned(Entity entity) {
-		assert entity != null;
 		assert entity.model() == this;
 		assert this.entities.contains(entity);
 		assert entity.installed();
 	}
 
 	private List<Entity> motionCandidates(Motion motion) {
-		assert motion != null;
 
 		List<Entity> candidates = new ArrayList<Entity>();
 
@@ -278,7 +266,6 @@ public class Model {
 	}
 
 	public void place(Entity entity, Grid.Position position) {
-		assert position != null;
 		assert position.grid() == this.grid;
 
 		assertOwned(entity);
@@ -287,7 +274,6 @@ public class Model {
 	}
 
 	public void place(Entity entity, ISU.Coord center) {
-		assert center != null;
 		assert center.isu() == this.isu;
 
 		assertOwned(entity);
@@ -296,7 +282,6 @@ public class Model {
 	}
 
 	public void translate(Entity entity, ISU.Vector vector) {
-		assert vector != null;
 		assert vector.isu() == this.isu;
 
 		assertOwned(entity);
@@ -309,7 +294,6 @@ public class Model {
 	}
 
 	public void translate(Entity entity, Grid.Vector vector) {
-		assert vector != null;
 		assert vector.grid() == this.grid;
 
 		assertOwned(entity);
@@ -332,8 +316,6 @@ public class Model {
 	}
 
 	private void notifyContacts(Entity moving, List<Entity> contacts) {
-		assert moving != null;
-		assert contacts != null;
 
 		if (contacts.isEmpty()) {
 			return;
@@ -352,8 +334,6 @@ public class Model {
 	 * Applique uniquement la dernière pose acceptée.
 	 */
 	private void applyResolvedMotion(Entity entity, MotionResult result) {
-		assert entity != null;
-		assert result != null;
 
 		entity.applyPoseFromModel(result.acceptedCenter, result.acceptedOrientation, true);
 
@@ -389,9 +369,6 @@ public class Model {
 	 * est plus fiable avec un monde torique.
 	 */
 	public List<Entity> collisionsAlongMotion(Entity entity, ISU.Coord from, ISU.Vector movement) {
-		assert entity != null;
-		assert from != null;
-		assert movement != null;
 		assert from.isu() == this.isu;
 		assert movement.isu() == this.isu;
 
@@ -424,9 +401,6 @@ public class Model {
 
 	// Pour les tests
 	public List<Entity> potentialCollisionsByMotionHitbox(Entity entity, ISU.Coord from, ISU.Coord to) {
-		assert entity != null;
-		assert from != null;
-		assert to != null;
 
 		ISU.Vector movement = from.mkVectorToward(to);
 
@@ -441,9 +415,6 @@ public class Model {
 	 */
 	private List<Entity> potentialCollisionsByMotionHitbox(Entity entity, ISU.Coord from, ISU.Vector movement,
 			int fromOrientation, int toOrientation) {
-		assert entity != null;
-		assert from != null;
-		assert movement != null;
 		assert from.isu() == this.isu;
 		assert movement.isu() == this.isu;
 
@@ -473,7 +444,6 @@ public class Model {
 	 * déclencher une notification récursive.
 	 */
 	void placeSilently(Entity entity, ISU.Coord center) {
-		assert center != null;
 		assert center.isu() == this.isu;
 
 		assertOwned(entity);
@@ -499,9 +469,6 @@ public class Model {
 		final List<Entity> blockers;
 
 		MotionResult(ISU.Coord acceptedCenter, int acceptedOrientation, List<Entity> contacts, List<Entity> blockers) {
-			assert acceptedCenter != null;
-			assert contacts != null;
-			assert blockers != null;
 
 			this.acceptedCenter = acceptedCenter;
 			this.acceptedOrientation = acceptedOrientation;
@@ -526,10 +493,6 @@ public class Model {
 	 */
 	private MotionResult resolveMotion(Entity entity, ISU.Coord from, ISU.Vector movement, int fromOrientation,
 			int toOrientation, List<Entity> candidates) {
-		assert entity != null;
-		assert from != null;
-		assert movement != null;
-		assert candidates != null;
 
 		assert from.isu() == this.isu;
 		assert movement.isu() == this.isu;
@@ -591,15 +554,12 @@ public class Model {
 	 * l'autre.
 	 */
 	boolean isBlocking(Entity moving, Entity other) {
-		assert moving != null;
-		assert other != null;
 		assert moving != other;
 
 		return moving.blocks(other) || other.blocks(moving);
 	}
 
 	private int motionStepCount(ISU.Vector movement, int fromOrientation, int toOrientation) {
-		assert movement != null;
 
 		double maxLinearStep = this.isu.cmPerCell() / 4.0;
 
@@ -607,10 +567,6 @@ public class Model {
 
 		int angleDelta = Math.abs(shortestAngleDelta(fromOrientation, toOrientation));
 
-		/*
-		 * Une pose tous les 5 degrés suffit. Faire une pose par degré est inutilement
-		 * coûteux.
-		 */
 		int angularSteps = (int) Math.ceil(angleDelta / 5.0);
 
 		return Math.max(1, Math.max(linearSteps, angularSteps));
@@ -635,7 +591,6 @@ public class Model {
 	 * plusieurs cellules.
 	 */
 	public List<Entity> visibleEntities(ViewPort vp) {
-		assert vp != null;
 
 		Set<Entity> result = new LinkedHashSet<Entity>();
 
@@ -709,8 +664,6 @@ public class Model {
 	// UTILS //////////////////////////////////////////////////////////////////
 
 	private void addAllWithoutDuplicates(List<Entity> destination, List<Entity> source) {
-		assert destination != null;
-		assert source != null;
 
 		for (Entity entity : source) {
 			if (!destination.contains(entity)) {

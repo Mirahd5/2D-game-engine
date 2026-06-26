@@ -23,7 +23,6 @@ public class ISU {
 	private double cmPerCell;
 
 	public ISU(Game game) {
-		assert game != null;
 
 		this.width_cm = game.getWidthCm();
 		this.height_cm = game.getHeightCm();
@@ -36,8 +35,6 @@ public class ISU {
 	}
 
 	public void set(Grid grid) {
-		assert grid != null;
-
 		this.grid = grid;
 	}
 
@@ -246,18 +243,13 @@ public class ISU {
 		/*
 		 * Construit le plus court vecteur vers une autre coordonnée.
 		 *
-		 * Sur un tore, il faut parfois passer par le bord du monde. Exemple : aller de
-		 * x=1 à x=99 dans un monde de largeur 100 peut se faire avec un déplacement de
-		 * -2.
+		 * Sur un tore, il faut parfois passer par le bord du monde. 
 		 */
 		public ISU.Vector mkVectorToward(Coord target) {
-			assert target != null;
 			assert target.isu() == ISU.this;
 
 			/*
-			 * Le choix du plus court chemin dépend de chaque axe. Exemple : PacMan peut
-			 * avoir X torique et Y non torique. On ne doit donc pas appliquer la correction
-			 * du tore sur un axe fermé.
+			 * Le choix du plus court chemin dépend de chaque axe. 
 			 */
 			double dx = xAxis.delta(this.x_cm, target.x_cm);
 			double dy = yAxis.delta(this.y_cm, target.y_cm);
@@ -272,8 +264,6 @@ public class ISU {
 		 * coordonnée.
 		 */
 		public Grid.Position toGridPosition() {
-			assert grid != null;
-
 			int x_ncell = (int) Math.floor(this.x_cm / cmPerCell);
 			int y_ncell = (int) Math.floor(this.y_cm / cmPerCell);
 
@@ -293,7 +283,6 @@ public class ISU {
 		}
 
 		public void translate(ISU.Vector vector) {
-			assert vector != null;
 			assert vector.isu() == ISU.this;
 
 			this.x_cm += vector.x();
@@ -303,7 +292,6 @@ public class ISU {
 		}
 
 		public ISU.Coord mkTranslated(ISU.Vector v) {
-			assert v != null;
 			assert v.isu() == ISU.this;
 
 			return new ISU.Coord(this.x_cm + v.x_cm, this.y_cm + v.y_cm);
@@ -332,12 +320,10 @@ public class ISU {
 		}
 
 		public void rotateAround(Coord center, int angle_degree) {
-			assert center != null;
 			assert center.isu() == ISU.this;
 
 			/*
-			 * Vecteur local du centre de rotation vers le point. Sur le tore, delta choisit
-			 * la représentation locale la plus courte.
+			 * Vecteur local du centre de rotation vers le point. 
 			 */
 			double dx = ISU.this.xAxis.delta(center.x_cm, this.x_cm);
 
@@ -353,15 +339,11 @@ public class ISU {
 
 			this.x_cm = center.x_cm + rotatedX;
 			this.y_cm = center.y_cm + rotatedY;
-
-			/*
-			 * Une seule normalisation, sur la coordonnée finale.
-			 */
+			
 			normalize();
 		}
 
 		public double distanceTo(Coord pt) {
-			assert pt != null;
 
 			double dx = xAxis.distance(this.x_cm, pt.x_cm);
 			double dy = yAxis.distance(this.y_cm, pt.y_cm);
@@ -369,12 +351,6 @@ public class ISU {
 			return Math.sqrt(dx * dx + dy * dy);
 		}
 
-		/*
-		 * equiv compare uniquement les valeurs.
-		 *
-		 * Deux coordonnées de deux ISU différents peuvent être équivalentes, sans être
-		 * égales.
-		 */
 		public boolean equiv(Coord coord) {
 			if (coord == this) {
 				return true;
@@ -412,7 +388,6 @@ public class ISU {
 		}
 
 		public void add(Vector v) {
-			assert v != null;
 
 			this.x_cm += v.x_cm;
 			this.y_cm += v.y_cm;
@@ -429,8 +404,6 @@ public class ISU {
 		}
 
 		public double dot(ISU.Vector v) {
-			assert v != null;
-
 			return this.x_cm * v.x_cm + this.y_cm * v.y_cm;
 		}
 

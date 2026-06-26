@@ -30,7 +30,6 @@ public final class AttackBot extends Bot {
 	public AttackBot(Brain brain, Stunt stunt, Entity target) {
 		super(brain, stunt);
 
-		assert target != null;
 		assert target != stunt.entity();
 
 		/*
@@ -39,7 +38,6 @@ public final class AttackBot extends Bot {
 		assert target.model() == stunt.entity().model();
 
 		this.target = target;
-		this.lastDirection = null;
 	}
 
 	public Entity target() {

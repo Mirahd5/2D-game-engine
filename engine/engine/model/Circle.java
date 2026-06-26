@@ -28,7 +28,6 @@ public class Circle extends Shape {
 
 	@Override
 	public boolean intersects(IShape shape) {
-		assert shape != null;
 		assert shape.isu() == this.isu;
 
 		return shape.intersects(this);
@@ -36,7 +35,6 @@ public class Circle extends Shape {
 
 	@Override
 	public boolean intersects(Circle circle) {
-		assert circle != null;
 		assert circle.isu() == this.isu;
 
 		double distance = this.center.distanceTo(circle.center);
@@ -48,7 +46,6 @@ public class Circle extends Shape {
 
 	@Override
 	public boolean intersects(Rect rect) {
-		assert rect != null;
 		assert rect.isu() == this.isu;
 
 		return rect.intersects(this);

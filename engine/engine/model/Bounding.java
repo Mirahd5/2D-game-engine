@@ -20,16 +20,12 @@ public final class Bounding {
 
 	public Bounding() {
 		this.shapes = new LinkedHashSet<IShape>();
-		this.isu = null;
 	}
 
 	/*
 	 * Ajoute une forme au Bounding.
 	 */
 	public void add(IShape shape) {
-		assert shape != null;
-		assert shape.isu() != null;
-
 		if (this.isu == null) {
 			this.isu = shape.isu();
 		} else {
@@ -55,8 +51,6 @@ public final class Bounding {
 	}
 
 	public ISU isu() {
-		assert this.isu != null : "An empty Bounding has no ISU";
-
 		return this.isu;
 	}
 
@@ -83,8 +77,6 @@ public final class Bounding {
 	 * Teste une forme contre toutes les formes contenues dans ce Bounding.
 	 */
 	public boolean intersects(IShape shape) {
-		assert shape != null;
-
 		if (this.shapes.isEmpty()) {
 			return false;
 		}
@@ -104,8 +96,6 @@ public final class Bounding {
 	 * Teste l'intersection entre deux Bounding.
 	 */
 	public boolean intersects(Bounding other) {
-		assert other != null;
-
 		if (this.shapes.isEmpty() || other.shapes.isEmpty()) {
 			return false;
 		}

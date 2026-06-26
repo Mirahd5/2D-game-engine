@@ -43,37 +43,29 @@ public class Hitbox {
 	/*
 	 * Test classique d'intersection entre deux rectangles alignés.
 	 *
-	 * Deux hitbox ne se touchent pas si l'une est complètement
-	 * à gauche, à droite, au-dessus ou en dessous de l'autre.
+	 * Deux hitbox ne se touchent pas si l'une est complètement à gauche, à droite,
+	 * au-dessus ou en dessous de l'autre.
 	 */
 	public boolean intersects(Hitbox h) {
-		assert h != null;
 
-		return !(
-			this.xmax < h.xmin ||
-			h.xmax < this.xmin ||
-			this.ymax < h.ymin ||
-			h.ymax < this.ymin
-		);
+		return !(this.xmax < h.xmin || h.xmax < this.xmin || this.ymax < h.ymin || h.ymax < this.ymin);
 	}
 
 	/*
 	 * Variante utilisée quand le monde est un tore.
 	 *
-	 * Une forme proche d'un bord peut toucher une autre forme située
-	 * de l'autre côté du monde. Pour gérer ce cas simplement, on teste
-	 * aussi des copies de la deuxième hitbox décalées d'un tour de monde.
+	 * Une forme proche d'un bord peut toucher une autre forme située de l'autre
+	 * côté du monde. Pour gérer ce cas simplement, on teste aussi des copies de la
+	 * deuxième hitbox décalées d'un tour de monde.
 	 */
 	public boolean intersectsOnTorus(Hitbox h, double worldWidth, double worldHeight) {
 		return intersects(h, true, true, worldWidth, worldHeight);
 	}
 
 	/*
-	 * Même principe que intersectsOnTorus, mais axe par axe.
-	 * C'est important pour PacMan : souvent X est torique, mais Y ne l'est pas.
+	 * Même principe que intersectsOnTorus, mais axe par axe. 
 	 */
 	public boolean intersects(Hitbox h, boolean torusX, boolean torusY, double worldWidth, double worldHeight) {
-		assert h != null;
 		assert worldWidth > 0.0;
 		assert worldHeight > 0.0;
 
@@ -82,12 +74,7 @@ public class Hitbox {
 
 		for (double dx : dxs) {
 			for (double dy : dys) {
-				Hitbox shifted = new Hitbox(
-					h.xmin() + dx,
-					h.xmax() + dx,
-					h.ymin() + dy,
-					h.ymax() + dy
-				);
+				Hitbox shifted = new Hitbox(h.xmin() + dx, h.xmax() + dx, h.ymin() + dy, h.ymax() + dy);
 
 				if (this.intersects(shifted)) {
 					return true;
@@ -101,17 +88,12 @@ public class Hitbox {
 	/*
 	 * Construit une hitbox qui englobe deux hitbox.
 	 *
-	 * Cette méthode est utile pour créer la hitbox globale d'un Bounding
-	 * composé de plusieurs formes.
+	 * Cette méthode est utile pour créer la hitbox globale d'un Bounding composé de
+	 * plusieurs formes.
 	 */
 	public Hitbox union(Hitbox h) {
-		assert h != null;
 
-		return new Hitbox(
-			Math.min(this.xmin, h.xmin),
-			Math.max(this.xmax, h.xmax),
-			Math.min(this.ymin, h.ymin),
-			Math.max(this.ymax, h.ymax)
-		);
+		return new Hitbox(Math.min(this.xmin, h.xmin), Math.max(this.xmax, h.xmax), Math.min(this.ymin, h.ymin),
+				Math.max(this.ymax, h.ymax));
 	}
 }

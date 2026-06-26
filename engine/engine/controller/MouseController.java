@@ -11,13 +11,10 @@ import oop.graphics.Canvas;
  * - commencer une rotation vers la droite ;
  * - arrêter la rotation vers la droite.
  *
- * La classe ne connaît pas Pac-Man, le Model ou le RotationStunt.
  */
 public final class MouseController extends Controller {
 
 	/*
-	 * FSM demandée dans les slides.
-	 *
 	 * Lorsque les deux boutons sont pressés, seul celui qui a été pressé en premier
 	 * agit.
 	 */
@@ -30,7 +27,6 @@ public final class MouseController extends Controller {
 	private State state;
 
 	public MouseController(RotationCommands commands) {
-		assert commands != null;
 
 		this.commands = commands;
 		this.state = State.NO_ROT;
@@ -50,7 +46,6 @@ public final class MouseController extends Controller {
 
 	@Override
 	protected void mouseMoved(Canvas canvas, int x, int y) {
-		// Aucun traitement nécessaire.
 	}
 
 	@Override

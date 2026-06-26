@@ -42,16 +42,12 @@ public final class StartupReveal {
 		long delayBetweenEntitiesMs,
 		long entityRevealDurationMs
 	) {
-		assert entities != null;
 		assert delayBetweenEntitiesMs >= 0L;
 		assert entityRevealDurationMs > 0L;
 
 		this.delayBetweenEntitiesMs = delayBetweenEntitiesMs;
 		this.entityRevealDurationMs = entityRevealDurationMs;
 		this.startTimes = new IdentityHashMap<Entity, Long>();
-
-		this.elapsedMs = 0L;
-		this.totalDurationMs = 0L;
 
 		buildOrder(entities);
 	}
@@ -129,14 +125,10 @@ public final class StartupReveal {
 	}
 
 	public boolean visible(Entity entity) {
-		assert entity != null;
-
 		return scale(entity) > 0.0;
 	}
 
 	public double scale(Entity entity) {
-		assert entity != null;
-
 		Long start = this.startTimes.get(entity);
 
 		if (start == null) {
@@ -167,10 +159,6 @@ public final class StartupReveal {
 			progress = 1.0;
 		}
 
-		/*
-		 * Courbe plus jolie que linéaire :
-		 * commence rapide puis ralentit vers 100%.
-		 */
 		return 1.0 - Math.pow(1.0 - progress, 3.0);
 	}
 }

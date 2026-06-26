@@ -24,21 +24,19 @@ public final class PlayerBot extends Bot implements RotationCommands {
 	}
 
 	/*
-	 * Dernière direction demandée, mais pas encore acceptée. null signifie
-	 * qu'aucune commande n'est en attente.
+	 * Dernière direction demandée, mais pas encore acceptée. 
 	 */
 	private Integer wishedDirection;
 
 	/*
-	 * Direction actuellement suivie. null signifie que le joueur n'a encore
-	 * commencé aucun mouvement.
+	 * Direction actuellement suivie.
 	 */
 	private Integer currentDirection;
 
 	private State state;
 
 	/*
-	 * Stunt facultatif permettant de contrôler une rotation continue avec la
+	 * Stunt permettant de contrôler une rotation continue avec la
 	 * souris.
 	 */
 	private final RotationStunt rotationStunt;
@@ -51,7 +49,7 @@ public final class PlayerBot extends Bot implements RotationCommands {
 	}
 
 	/*
-	 * Constructeur avec gestion facultative de la rotation.
+	 * Constructeur avec gestion de la rotation.
 	 */
 	public PlayerBot(Brain brain, Stunt walkingStunt, RotationStunt rotationStunt) {
 		super(brain, walkingStunt);
@@ -65,8 +63,6 @@ public final class PlayerBot extends Bot implements RotationCommands {
 
 		this.rotationStunt = rotationStunt;
 
-		this.wishedDirection = null;
-		this.currentDirection = null;
 		this.state = State.IDLE;
 	}
 
@@ -120,15 +116,11 @@ public final class PlayerBot extends Bot implements RotationCommands {
 
 	@Override
 	public void collision(Entity entity) {
-		assert entity != null;
-
 		tryToMove();
 	}
 
 	@Override
 	public void collision(List<Entity> entities) {
-		assert entities != null;
-
 		tryToMove();
 	}
 

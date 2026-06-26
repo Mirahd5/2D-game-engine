@@ -15,7 +15,6 @@ public final class SpawnAnimation {
 		assert durationMs > 0L;
 
 		this.durationMs = durationMs;
-		this.elapsedMs = 0L;
 	}
 
 	public void tick(long elapsed) {
@@ -43,10 +42,6 @@ public final class SpawnAnimation {
 			progress = 1.0;
 		}
 
-		/*
-		 * Animation visible : 0% -> très petit 70% -> dépasse un peu la taille normale
-		 * 100% -> taille normale
-		 */
 		if (progress < 0.70) {
 			double p = progress / 0.70;
 			return 0.05 + p * 1.15;

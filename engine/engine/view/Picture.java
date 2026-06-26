@@ -27,8 +27,6 @@ public final class Picture {
 	private final int heightPixel;
 
 	public Picture(Game game) {
-		assert game != null;
-		assert game.getIsu() != null;
 		assert game.getPixelPerCm() > 0;
 
 		this.game = game;
@@ -37,7 +35,7 @@ public final class Picture {
 		this.pixelPerCm = game.getPixelPerCm();
 
 		/*
-		 * ceil garantit que toute la carte ISU peut être représentée dans l'image.
+		 * il garantit que toute la carte ISU peut être représentée dans l'image.
 		 */
 		this.widthPixel = (int) Math.ceil(game.getWidthCm() * this.pixelPerCm);
 
@@ -92,7 +90,6 @@ public final class Picture {
 	 * Convertit une coordonnée ISU en Pixel.
 	 */
 	public Pixel from(ISU.Coord coord) {
-		assert coord != null;
 		assert coord.isu() == this.isu;
 
 		return new Pixel(toPixel(coord.x()), toPixel(coord.y()));
@@ -103,13 +100,11 @@ public final class Picture {
 	 * Grid.Position.
 	 */
 	public Pixel from(Grid.Position position) {
-		assert position != null;
 
 		return from(position.toISUCoord());
 	}
 
 	public void show(PrintStream ps) {
-		assert ps != null;
 
 		ps.println("Picture:");
 		ps.println("width = " + this.widthPixel + " pixels");
@@ -183,7 +178,6 @@ public final class Picture {
 		}
 
 		public void show(PrintStream ps) {
-			assert ps != null;
 
 			ps.println("Pixel(" + this.xPixel + ", " + this.yPixel + ")");
 		}

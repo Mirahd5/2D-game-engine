@@ -28,7 +28,6 @@ public class View {
 	}
 
 	public View(Model model, int widthPixel, int heightPixel, Overlay overlay) {
-		assert model != null;
 		assert widthPixel > 0;
 		assert heightPixel > 0;
 
@@ -99,7 +98,6 @@ public class View {
 	}
 
 	public double revealScale(Entity entity) {
-		assert entity != null;
 
 		if (this.startupReveal == null) {
 			return 1.0;
@@ -225,7 +223,6 @@ public class View {
 	}
 
 	public void paint(Graphics graphics) {
-		assert graphics != null;
 
 		Object savedTransform = graphics.getTransform();
 
@@ -270,10 +267,6 @@ public class View {
 			entity.avatar().paint(graphics);
 		}
 
-		/*
-		 * Important : On remet la transformation avant de dessiner le debug. Les
-		 * avatars peuvent avoir fait des translate/scale/rotate.
-		 */
 		graphics.setTransform(savedTransform);
 		graphics.setClip(worldX, worldY, worldW, worldH);
 
@@ -337,6 +330,5 @@ public class View {
 	public void setPerformanceMonitor(PerformanceMonitor performanceMonitor) {
 		this.performanceMonitor = performanceMonitor;
 	}
-	
-	
+
 }

@@ -29,16 +29,14 @@ public class BasicStunt extends Stunt {
 
 		this.walkSpeed = walkSpeed;
 
-		this.walking = false;
-		this.startCenter = null;
-		this.targetCenter = null;
-		this.pendingDone = false;
 	}
 
 	public boolean walking() {
 		return this.walking;
 	}
-	// i added this because the enemy’s BasicStunt still thinks it is in the middle of a walk
+
+	// i added this because the enemy’s BasicStunt still thinks it is in the middle
+	// of a walk
 	public void cancelCurrentAction() {
 		if (!valid()) {
 			return;
@@ -57,6 +55,7 @@ public class BasicStunt extends Stunt {
 	public double walkSpeed() {
 		return this.walkSpeed;
 	}
+
 	public void setWalkSpeed(double walkSpeed) {
 		if (walkSpeed <= 0.0) {
 			return;
@@ -152,7 +151,6 @@ public class BasicStunt extends Stunt {
 
 	@Override
 	public void collision(Entity other) {
-		assert other != null;
 
 		if (model.isBlocking(entity, other)) {
 			stopBecauseOfCollision();
@@ -163,7 +161,6 @@ public class BasicStunt extends Stunt {
 
 	@Override
 	public void collision(List<Entity> entities) {
-		assert entities != null;
 
 		boolean blocked = false;
 
@@ -230,10 +227,6 @@ public class BasicStunt extends Stunt {
 		this.startCenter = currentPosition.toISUCoordCentered();
 		this.targetCenter = targetPosition.toISUCoordCentered();
 
-		/*
-		 * Quand on démarre un nouveau pas, on recale PacMan au centre de sa cellule
-		 * actuelle.
-		 */
 		model.placeSilently(entity, this.startCenter);
 
 		this.walking = true;
@@ -264,9 +257,9 @@ public class BasicStunt extends Stunt {
 		}
 
 		/*
-		 * Direction perpendiculaire : on autorise seulement si PacMan est proche du
-		 * centre de sa cellule. Sinon on garde la commande en mémoire dans PlayerBot,
-		 * elle sera retentée au prochain think().
+		 * Direction perpendiculaire : on autorise seulement si on est proche du centre
+		 * de sa cellule. Sinon on garde la commande en mémoire dans PlayerBot, elle
+		 * sera retentée au prochain think().
 		 */
 		if (isCloseToCellCenter()) {
 			Grid.Position currentPosition = entity.position();
@@ -297,8 +290,7 @@ public class BasicStunt extends Stunt {
 		ISU.Coord currentCenter = entity.center().mkCopy();
 
 		/*
-		 * En cas de demi-tour, la nouvelle cible devient l'ancien départ. Exemple :
-		 * PacMan allait de A vers B ; s'il fait demi-tour, il revient vers A.
+		 * En cas de demi-tour, la nouvelle cible devient l'ancien départ.
 		 */
 		ISU.Coord oldStart = this.startCenter.mkCopy();
 
@@ -314,7 +306,6 @@ public class BasicStunt extends Stunt {
 	}
 
 	private Grid.Position neighborPosition(Grid.Position position, int orientation) {
-		assert position != null;
 
 		Grid.Position targetPosition = position.copy();
 
@@ -369,7 +360,6 @@ public class BasicStunt extends Stunt {
 	}
 
 	private boolean canWalkTo(Grid.Position targetPosition) {
-		assert targetPosition != null;
 
 		if (!model.grid().contains(targetPosition)) {
 			return false;

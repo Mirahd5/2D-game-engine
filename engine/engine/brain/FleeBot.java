@@ -19,8 +19,7 @@ public final class FleeBot extends Bot {
 	private final List<Entity> enemies;
 
 	/*
-	 * Dernière direction choisie. null signifie qu'aucun mouvement n'a encore
-	 * commencé.
+	 * Dernière direction choisie.
 	 */
 	private Integer lastDirection;
 
@@ -32,23 +31,17 @@ public final class FleeBot extends Bot {
 
 		this.enemies = new ArrayList<Entity>();
 
-		this.lastDirection = null;
-
 		addEnemy(enemy);
 	}
 
 	/*
-	 * Constructeur demandé pour pouvoir fuir l'ennemi le plus proche parmi
+	 * Constructeur pour pouvoir fuir l'ennemi le plus proche parmi
 	 * plusieurs entités.
 	 */
 	public FleeBot(Brain brain, Stunt stunt, List<? extends Entity> enemies) {
 		super(brain, stunt);
 
-		assert enemies != null;
-
 		this.enemies = new ArrayList<Entity>();
-
-		this.lastDirection = null;
 
 		for (Entity enemy : enemies) {
 			addEnemy(enemy);
@@ -56,7 +49,6 @@ public final class FleeBot extends Bot {
 	}
 
 	public void addEnemy(Entity enemy) {
-		assert enemy != null;
 		assert enemy != this.stunt.entity();
 		assert enemy.model() == this.stunt.entity().model();
 
@@ -66,7 +58,6 @@ public final class FleeBot extends Bot {
 	}
 
 	public void removeEnemy(Entity enemy) {
-		assert enemy != null;
 
 		this.enemies.remove(enemy);
 	}
@@ -75,9 +66,6 @@ public final class FleeBot extends Bot {
 		return new ArrayList<Entity>(this.enemies);
 	}
 
-	/*
-	 * Retourne actuellement l'ennemi vivant et installé le plus proche.
-	 */
 	public Entity closestEnemy() {
 		Entity self = this.stunt.entity();
 

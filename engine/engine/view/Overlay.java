@@ -3,7 +3,7 @@ package engine.view;
 import oop.graphics.Graphics;
 
 /*
- * Élément graphique optionnel affiché en dehors
+ * Élément graphique affiché en dehors
  * de la zone principale du monde.
  *
  * Un Overlay peut représenter :
@@ -34,7 +34,7 @@ public interface Overlay {
 	void paint(Graphics graphics, View view, int x, int y);
 
 	/*
-	 * Mise à jour facultative des animations de l'overlay.
+	 * Mise à jour des animations de l'overlay.
 	 */
 	default void tick(long elapsed) {
 	}
