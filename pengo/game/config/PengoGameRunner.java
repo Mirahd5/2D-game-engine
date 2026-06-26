@@ -83,7 +83,11 @@ public final class PengoGameRunner {
 		// charge automate gal
 		Automaton enemyAutomaton = loadGalAutomaton(ENEMY_GAL_PATH);
 		Automaton friendAutomaton = loadGalAutomaton(FRIEND_GAL_PATH);
-		Automaton spawnerLoadAutomaton = loadGalAutomaton(SPAWNER_LOAD_GAL_PATH);
+
+		Automaton spawnerLoadAutomaton = null;
+		if (isGalLoadTestMap(config)) {
+		    spawnerLoadAutomaton = loadGalAutomaton(SPAWNER_LOAD_GAL_PATH);
+		}
 
 		CurrentPlayer currentPlayer = new CurrentPlayer(pengo);
 
@@ -120,13 +124,6 @@ public final class PengoGameRunner {
 
 		// effet special si les spawners sont alignes
 		PengoBotInstaller.installSpawnerAlignmentEffect(builder, pengo, runState, config.tickDelayMs());
-
-		PengoBotInstaller.installDebugLoadSpawner(debugOptions, model, view, brain, enemyAutomaton, currentPlayer,
-				builder, gameState, runState);
-
-		PengoBotInstaller.installIceBots(brain, model, builder, gameState);
-
-		PengoBotInstaller.installGameStateBot(brain, model, gameState);
 
 		// cree le controller clavier
 		PengoController controller = new PengoController(controlSwitcher, view, config.continuousWalk(), debugOptions);
