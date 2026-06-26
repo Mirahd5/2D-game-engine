@@ -49,7 +49,6 @@ public final class FleeBot extends Bot {
 	}
 
 	public void addEnemy(Entity enemy) {
-		assert enemy != null;
 		assert enemy != this.stunt.entity();
 		assert enemy.model() == this.stunt.entity().model();
 
@@ -59,7 +58,6 @@ public final class FleeBot extends Bot {
 	}
 
 	public void removeEnemy(Entity enemy) {
-		assert enemy != null;
 
 		this.enemies.remove(enemy);
 	}

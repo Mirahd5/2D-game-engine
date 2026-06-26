@@ -94,7 +94,7 @@ final class DebugRenderer {
 
 		int x = 12;
 		int y = view.overlayHeightPixel() + 12;
-		int w = 330;
+		int w = 360;
 		int h = options.loadTest() ? 116 : 98;
 
 		graphics.setColor(graphics.getColor(210, 0, 0, 0));
