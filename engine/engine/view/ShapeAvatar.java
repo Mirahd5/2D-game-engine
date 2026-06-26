@@ -22,17 +22,12 @@ public abstract class ShapeAvatar extends Avatar {
 		super(view, entity);
 	}
 
-	/*
-	 * Par défaut, une forme n'est pas tournée.
-	 * RectAvatar redéfinit cette méthode.
-	 */
 	protected boolean rotateWithEntity() {
 		return false;
 	}
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
 
 		ISU.Dimension size = this.entity.size();
 		ISU.Coord center = this.entity.center();

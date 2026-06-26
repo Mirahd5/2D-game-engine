@@ -12,7 +12,6 @@ public final class PerformanceMonitor {
 		this.tickStats = new TimeStats();
 		this.paintStats = new TimeStats();
 		this.fpsStats = new TimeStats();
-		this.lastPaintTime = 0L;
 	}
 
 	public void recordTick(long elapsedMs) {

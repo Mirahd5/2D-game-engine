@@ -3,6 +3,7 @@ package engine.model;
 public final class Orientation {
 
 	// Classe utilitaire pour ne pas répéter le code des directions cardinales.
+	
 	public static final int EAST = 0;
 	public static final int SOUTH = 90;
 	public static final int WEST = 180;
@@ -50,7 +51,6 @@ public final class Orientation {
 	}
 
 	public static Grid.Vector vector(Grid grid, int direction) {
-		assert grid != null;
 
 		switch (normalizeCardinal(direction)) {
 		case EAST:
@@ -67,17 +67,12 @@ public final class Orientation {
 	}
 
 	public static Grid.Position neighbor(Grid grid, Grid.Position from, int direction) {
-		assert grid != null;
-		assert from != null;
 
 		return neighbor(grid, from, direction, grid.xAxis().onTorus(), grid.yAxis().onTorus());
 	}
 
 	public static Grid.Position neighbor(Grid grid, Grid.Position from, int direction, boolean torusOnXaxis,
 			boolean torusOnYaxis) {
-
-		assert grid != null;
-		assert from != null;
 
 		int normalizedDirection = Orientation.normalizeCardinal(direction);
 		int dx = 0;

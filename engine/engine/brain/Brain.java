@@ -14,7 +14,6 @@ public class Brain {
 	}
 
 	public void add(Bot bot) {
-		assert bot != null;
 		assert bot.brain() == this;
 
 		if (!this.bots.contains(bot)) {
@@ -23,7 +22,6 @@ public class Brain {
 	}
 
 	public void remove(Bot bot) {
-		assert bot != null;
 
 		this.bots.remove(bot);
 	}
@@ -51,8 +49,6 @@ public class Brain {
 	}
 
 	public void removeBotsOf(Entity entity) {
-		assert entity != null;
-
 		List<Bot> toRemove = new ArrayList<Bot>();
 
 		for (Bot bot : this.bots) {

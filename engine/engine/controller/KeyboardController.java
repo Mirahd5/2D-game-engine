@@ -9,8 +9,6 @@ public class KeyboardController extends Controller {
 	private final PlayerBot playerBot;
 
 	public KeyboardController(PlayerBot playerBot) {
-		assert playerBot != null;
-
 		this.playerBot = playerBot;
 	}
 
@@ -44,13 +42,9 @@ public class KeyboardController extends Controller {
 
 	@Override
 	public void released(Canvas canvas, int keyCode, char keyChar) {
-		/*
-		 * La direction de Pac-Man reste active après le relâchement de la touche.
-		 */
 	}
 
 	@Override
 	public void typed(Canvas canvas, char keyChar) {
-		// Non utilisé.
 	}
 }

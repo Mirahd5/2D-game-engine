@@ -15,8 +15,6 @@ public abstract class Avatar {
 	protected final Entity entity;
 
 	public Avatar(View view, Entity entity) {
-		assert view != null;
-		assert entity != null;
 		assert entity.model() == view.model();
 
 		this.view = view;

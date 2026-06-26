@@ -19,8 +19,6 @@ public class RotationStunt extends Stunt {
 		assert angularSpeed > 0.0 : angularSpeed;
 
 		this.angularSpeed = angularSpeed;
-		this.turningLeft = false;
-		this.turningRight = false;
 	}
 
 	public void startTurnRight() {

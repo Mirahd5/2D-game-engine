@@ -10,9 +10,6 @@ import engine.brain.Bot;
  * Le Bot décide quoi faire.
  * Le Stunt sait comment exécuter l'action sur l'entité.
  *
- * Exemple :
- * - AttackBot décide d'aller vers PacMan ;
- * - BasicStunt exécute le déplacement avec walk(...).
  */
 public abstract class Stunt {
 
@@ -23,13 +20,10 @@ public abstract class Stunt {
 	private boolean enabled;
 
 	protected Stunt(Model model, Entity entity) {
-		assert model != null;
-		assert entity != null;
 		assert entity.model() == model;
 
 		this.model = model;
 		this.entity = entity;
-		this.bot = null;
 		this.enabled = true;
 	}
 
@@ -52,14 +46,8 @@ public abstract class Stunt {
 
 		this.enabled = false;
 
-		/*
-		 * Permet aux sous-classes de nettoyer leur état interne.
-		 */
 		onInvalidate();
 
-		/*
-		 * Coupe la relation vers le Bot.
-		 */
 		this.bot = null;
 	}
 
@@ -76,7 +64,6 @@ public abstract class Stunt {
 	}
 
 	public final void setBot(Bot bot) {
-		assert bot != null;
 		assert this.enabled;
 		assert bot.stunt() == this;
 
@@ -123,17 +110,11 @@ public abstract class Stunt {
 
 	/*
 	 * Action de base demandée par les Bots.
-	 *
-	 * La classe abstraite ne sait pas comment marcher : c'est une sous-classe,
-	 * comme BasicStunt, qui définit le vrai comportement.
 	 */
 	public abstract boolean walk(int degree);
 
 	/*
 	 * Notification envoyée quand l'orientation de l'entité change.
-	 *
-	 * Par défaut, un Stunt n'a rien à faire. Les sous-classes peuvent redéfinir
-	 * cette méthode si nécessaire.
 	 */
 	public void set(int orientation) {
 	}

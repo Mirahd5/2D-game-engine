@@ -18,8 +18,8 @@ public class Ticker implements Runnable {
 
 	private Entity followedEntity;
 
-	private final int delay; // délai théorique en ms (ex: 16 pour ~60 FPS)
-	private long lastTime; // timestamp du dernier run()
+	private final int delay;
+	private long lastTime;
 
 	private final PerformanceMonitor performanceMonitor;
 
@@ -29,9 +29,7 @@ public class Ticker implements Runnable {
 
 	public Ticker(Model model, Brain brain, View view, int delay, Entity followedEntity,
 			PerformanceMonitor performanceMonitor) {
-		assert model != null;
-		assert brain != null;
-		assert view != null;
+
 		assert delay > 0;
 
 		if (followedEntity != null) {
@@ -46,8 +44,6 @@ public class Ticker implements Runnable {
 		this.performanceMonitor = performanceMonitor;
 
 		this.lastTime = System.currentTimeMillis();
-		this.stopped = false;
-		this.paused = false;
 	}
 
 	public void stop() {
@@ -140,13 +136,9 @@ public class Ticker implements Runnable {
 
 		this.view.tick(elapsed);
 
-		// skew = combien de ms de retard/avance par rapport au délai théorique.
-		// Si elapsed = 20ms et delay = 16ms → skew = 4ms → on re-poste dans 12ms.
-		// Si elapsed = 10ms et delay = 16ms → skew = -6ms → on re-poste dans 22ms.
 		long skew = elapsed - this.delay;
 		int nextDelay = (int) (this.delay - skew);
 
-		// Plancher à 1ms : on ne poste jamais avec un délai nul ou négatif.
 		if (nextDelay < 1) {
 			nextDelay = 1;
 		}

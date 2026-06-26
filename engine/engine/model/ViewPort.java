@@ -22,9 +22,6 @@ public final class ViewPort {
 	private ISU.Dimension dimension;
 
 	public ViewPort(Model model, ISU.Coord origin, ISU.Dimension dimension) {
-		assert model != null;
-		assert origin != null;
-		assert dimension != null;
 
 		this.model = model;
 		this.isu = model.isu();
@@ -78,16 +75,7 @@ public final class ViewPort {
 		return this.dimension.y();
 	}
 
-	/*
-	 * Contraintes demandées par le professeur :
-	 *
-	 * axe non torique : dimension <= dimension de la carte
-	 *
-	 * axe torique : dimension < dimension de la carte afin d'éviter le pavage de la
-	 * carte.
-	 */
 	private void checkDimension(ISU.Dimension candidate) {
-		assert candidate != null;
 		assert candidate.isu() == this.isu;
 
 		double width = candidate.x();
@@ -111,7 +99,6 @@ public final class ViewPort {
 	}
 
 	public void setOrigin(ISU.Coord newOrigin) {
-		assert newOrigin != null;
 		assert newOrigin.isu() == this.isu;
 
 		this.origin = newOrigin.mkCopy();
@@ -120,7 +107,6 @@ public final class ViewPort {
 	}
 
 	public void setDimension(ISU.Dimension newDimension) {
-		assert newDimension != null;
 		assert newDimension.isu() == this.isu;
 
 		ISU.Dimension copy = newDimension.copy();
@@ -140,7 +126,6 @@ public final class ViewPort {
 	 * Place immédiatement l'entité au centre du ViewPort.
 	 */
 	public void centerOn(Entity entity) {
-		assert entity != null;
 		assert entity.model() == this.model;
 		assert entity.installed();
 
@@ -157,21 +142,10 @@ public final class ViewPort {
 		setOrigin(this.isu.new Coord(targetX, targetY));
 	}
 
-	/*
-	 * Nom pratique correspondant directement au comportement présenté dans les
-	 * slides.
-	 */
 	public void follow(Entity entity) {
 		centerOn(entity);
 	}
 
-	/*
-	 * Suivi progressif facultatif.
-	 *
-	 * elasticity = 1.0 : centrage immédiat.
-	 *
-	 * elasticity = 0.0 : aucun mouvement.
-	 */
 	public void follow(Entity entity, double elasticity) {
 		assert entity != null;
 		assert entity.model() == this.model;
@@ -207,9 +181,6 @@ public final class ViewPort {
 				this.origin.y() + dy * elasticity));
 	}
 
-	/*
-	 * Normalise ou limite l'origine selon le type d'axe.
-	 */
 	private void normalizeOrigin() {
 		double normalizedX = legalOriginX(this.origin.x());
 
@@ -220,15 +191,9 @@ public final class ViewPort {
 
 	private double legalOriginX(double requestedX) {
 		if (this.isu.xAxis().onTorus()) {
-			/*
-			 * Sur un tore, l'origine peut être partout.
-			 */
 			return this.isu.xAxis().normalize(requestedX);
 		}
 
-		/*
-		 * Sur une carte non torique, le ViewPort doit rester entièrement dans la carte.
-		 */
 		double maximum = this.isu.width() - width();
 
 		return clamp(requestedX, 0.0, maximum);

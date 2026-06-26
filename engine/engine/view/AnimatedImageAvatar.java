@@ -15,7 +15,6 @@ public abstract class AnimatedImageAvatar extends ImageAvatar {
 		assert frameDuration > 0L;
 
 		this.frameDuration = frameDuration;
-		this.elapsedSinceFrame = 0L;
 		this.animatedOrientation = entity.orientation();
 	}
 

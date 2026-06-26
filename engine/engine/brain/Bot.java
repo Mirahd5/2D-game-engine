@@ -11,9 +11,6 @@ public abstract class Bot {
 	protected final Stunt stunt;
 
 	protected Bot(Brain brain, Stunt stunt) {
-		assert brain != null;
-		assert stunt != null;
-
 		this.brain = brain;
 		this.stunt = stunt;
 

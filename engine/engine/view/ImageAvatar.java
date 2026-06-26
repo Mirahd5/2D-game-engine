@@ -17,18 +17,15 @@ public abstract class ImageAvatar extends Avatar {
 	public ImageAvatar(View view, Entity entity, String[] paths) {
 		super(view, entity);
 
-		assert paths != null;
 		assert paths.length > 0;
 
 		this.paths = paths.clone();
 		this.images = new BufferedImage[paths.length];
 
 		for (String path : this.paths) {
-			assert path != null;
 			assert !path.isEmpty();
 		}
 
-		this.currentFrame = 0;
 		this.spawnAnimation = new SpawnAnimation();
 	}
 
@@ -63,7 +60,6 @@ public abstract class ImageAvatar extends Avatar {
 	}
 
 	protected BufferedImage image(Graphics graphics) {
-		assert graphics != null;
 
 		if (this.images[this.currentFrame] == null) {
 			this.images[this.currentFrame] = graphics.load(this.paths[this.currentFrame]);
@@ -97,7 +93,6 @@ public abstract class ImageAvatar extends Avatar {
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
 
 		BufferedImage image = image(graphics);
 

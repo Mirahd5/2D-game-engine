@@ -10,7 +10,6 @@ public abstract class Shape implements IShape {
 	protected ISU.Coord center;
 
 	public Shape(ISU.Coord center) {
-		assert center != null;
 
 		this.isu = center.isu();
 		this.center = center;
@@ -26,16 +25,13 @@ public abstract class Shape implements IShape {
 	}
 
 	public void translate(ISU.Vector vector) {
-		assert vector != null;
 		assert vector.isu() == this.isu;
 
 		this.center.translate(vector);
 	}
 
 	/*
-	 * Vérifie la contrainte imposée par TASK2 :
-	 *
-	 * chaque dimension d'une Shape doit être strictement plus petite que le plus
+	 * Chaque dimension d'une Shape doit être strictement plus petite que le plus
 	 * petit demi-périmètre des axes toriques.
 	 *
 	 * Sur un monde non torique, cette contrainte n'est pas nécessaire.
