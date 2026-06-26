@@ -180,7 +180,12 @@ public abstract class Player extends Entity {
 	}
 
 	public void activateFreezePower() {
-		this.freezeEnd_ms = gameTimeMs() + FREEZE_DURATION_MS;
+		activateFreezePower(FREEZE_DURATION_MS);
+	}
+	
+	public void activateFreezePower(long durationMs) {
+		assert durationMs > 0L;
+		this.freezeEnd_ms = gameTimeMs() + durationMs;
 		freezeEnemies();
 	}
 
@@ -221,7 +226,12 @@ public abstract class Player extends Entity {
 	}
 
 	public void activateStar() {
-		this.starEnd_ms = gameTimeMs() + STAR_DURATION_MS;
+		activateStar(STAR_DURATION_MS);
+	}
+
+	public void activateStar(long durationMs) {
+		assert durationMs > 0L;
+		this.starEnd_ms = gameTimeMs() + durationMs;
 	}
 
 	public void deactivateStar() {

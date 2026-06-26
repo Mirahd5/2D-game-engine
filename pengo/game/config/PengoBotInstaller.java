@@ -137,7 +137,7 @@ public final class PengoBotInstaller {
 	                            return;
 	                        }
 
-	                        Grid.Position position = PengoPowerSpawner.randomFreePosition(model, builder);
+	                        Grid.Position position = randomLoadTestPosition(model, builder);
 
 	                        if (position == null) {
 	                            return;
@@ -150,6 +150,27 @@ public final class PengoBotInstaller {
 
 	        brain.add(spawnerBot);
 	    }
+	}
+	
+	private static Grid.Position randomLoadTestPosition(Model model, BuildMap builder) {
+		char[][] map = builder.getMap();
+		Grid grid = model.grid();
+
+		List<Grid.Position> positions = new ArrayList<Grid.Position>();
+
+		for (int y = 0; y < grid.height(); y++) {
+			for (int x = 0; x < grid.width(); x++) {
+				if (y >= 0 && y < map.length && x >= 0 && x < map[y].length && map[y][x] == '.') {
+					positions.add(grid.new Position(x, y));
+				}
+			}
+		}
+
+		if (positions.isEmpty()) {
+			return null;
+		}
+
+		return positions.get((int) (Math.random() * positions.size()));
 	}
 
 	public static void installIceBots(Brain brain, Model model, BuildMap builder, PengoGameState gameState) {
@@ -245,7 +266,7 @@ public final class PengoBotInstaller {
 					return;
 				}
 				if (!runState.paused() && debugOptions.loadTest()) {
-					Grid.Position position = PengoPowerSpawner.randomFreePosition(model, builder);
+					Grid.Position position = randomLoadTestPosition(model, builder);
 
 					if (position != null) {
 						createSpawnedEnemy(model, view, brain, enemyAutomaton, currentPlayer, position, gameState,
@@ -344,15 +365,14 @@ public final class PengoBotInstaller {
 
 	// applique l'effet quand les spawners sont alignes
 	private static void triggerSpawnerAlignmentEffect(BuildMap builder, Pengo pengo) {
-		assert builder != null;
-		assert pengo != null;
+		long durationMs = Spawner.ALIGNMENT_EFFECT_DURATION_MS;
 
-		pengo.activateFreezePower();
-		pengo.activateStar();
+		pengo.activateFreezePower(durationMs);
+		pengo.activateStar(durationMs);
 
 		for (Spawner spawner : builder.spawners()) {
 			if (spawner.alive() && spawner.installed()) {
-				spawner.activateAlignmentEffect();
+				spawner.activateAlignmentEffect(durationMs);
 			}
 		}
 	}
