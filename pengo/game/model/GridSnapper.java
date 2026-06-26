@@ -79,7 +79,8 @@ final class GridSnapper {
 			}
 
 			// ces entités empechent le bloc de snapper sur cette cellule
-			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner) {
+			if (other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
+					|| other instanceof Spawner) {
 				return false;
 			}
 		}

@@ -18,7 +18,8 @@ final class EnemyTrain {
 	private final List<Enemies> carriedEnemies;
 
 	// position de chaque ennemi dans le train.
-	// Plusieurs ennemis peuvent avoir le meme slot si deux poissons sont dans la meme case.
+	// Plusieurs ennemis peuvent avoir le meme slot si deux poissons sont dans la
+	// meme case.
 	private final Map<Enemies, Integer> carriedSlots;
 
 	EnemyTrain(Glissade owner) {
@@ -200,7 +201,8 @@ final class EnemyTrain {
 	}
 
 	// ajoute un ennemi a un slot precis du train.
-	// Deux poissons peuvent partager le meme slot quand ils etaient sur la meme case.
+	// Deux poissons peuvent partager le meme slot quand ils etaient sur la meme
+	// case.
 	void prepareCarriedEnemy(Enemies enemy, int slot) {
 		if (enemy == null || slot <= 0) {
 			return;
@@ -273,7 +275,8 @@ final class EnemyTrain {
 				continue;
 			}
 
-			Grid.Position finalPosition = this.owner.positionInFrontFrom(blockStopPosition, carriedSlotOrDefault(enemy, i + 1));
+			Grid.Position finalPosition = this.owner.positionInFrontFrom(blockStopPosition,
+					carriedSlotOrDefault(enemy, i + 1));
 			ISU.Coord safeCenter = finalPosition == null ? enemy.center() : finalPosition.toISUCoordCentered();
 
 			releaseCarriedEnemy(enemy, safeCenter);
@@ -331,7 +334,8 @@ final class EnemyTrain {
 	}
 
 	// cherche tous les ennemis transportables sur un slot donne.
-	// Important : si deux poissons sont dans la meme case, on les prend tous au meme slot.
+	// Important : si deux poissons sont dans la meme case, on les prend tous au
+	// meme slot.
 	private List<Enemies> carryableEnemiesAtSlot(int slot) {
 		List<Enemies> result = new ArrayList<Enemies>();
 		Grid.Position position = this.owner.positionInFront(slot);

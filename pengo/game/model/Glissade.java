@@ -305,7 +305,8 @@ public abstract class Glissade extends Entity implements Pushable {
 	}
 
 	// Ramasse un power touche par un glacon/spawner qui glisse.
-	// Le Power ne bloque plus la glissade : il est donne au joueur controle puis supprime.
+	// Le Power ne bloque plus la glissade : il est donne au joueur controle puis
+	// supprime.
 	final boolean collectPowerForControlledPlayer(Power power) {
 		if (power == null || !power.alive()) {
 			return false;
@@ -349,10 +350,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			return false;
 		}
 
-		return other instanceof Obstacle
-				|| other instanceof Mur
-				|| other instanceof Glacon
-				|| other instanceof Spawner;
+		return other instanceof Obstacle || other instanceof Mur || other instanceof Glacon || other instanceof Spawner;
 	}
 
 	// Obstacles capables d'écraser les ennemis transportés.
@@ -382,9 +380,7 @@ public abstract class Glissade extends Entity implements Pushable {
 			return true;
 		}
 
-		boolean hardType = other instanceof Obstacle
-				|| other instanceof Mur
-				|| other instanceof Glacon
+		boolean hardType = other instanceof Obstacle || other instanceof Mur || other instanceof Glacon
 				|| other instanceof Spawner;
 
 		if (!hardType) {
@@ -426,10 +422,7 @@ public abstract class Glissade extends Entity implements Pushable {
 
 	protected final String slideDebugLabel(String name) {
 		if (isSliding()) {
-			return name
-					+ " SLIDE d="
-					+ this.motion.direction()
-					+ " v="
+			return name + " SLIDE d=" + this.motion.direction() + " v="
 					+ Math.round(this.motion.currentSpeedCmPerSecond());
 		}
 
