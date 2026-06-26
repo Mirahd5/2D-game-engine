@@ -6,13 +6,13 @@ import engine.model.BasicStunt;
 import engine.model.Entity;
 import engine.model.Grid;
 import engine.model.Orientation;
-import game.model.Enemies;
-import game.model.Friend;
-import game.model.Glacon;
-import game.model.Mur;
-import game.model.Pengo;
-import game.model.Power;
-import game.model.Spawner;
+import game.model.entity.Enemies;
+import game.model.entity.Glacon;
+import game.model.entity.Mur;
+import game.model.entity.Power;
+import game.model.entity.Spawner;
+import game.model.player.Friend;
+import game.model.player.Pengo;
 
 public final class GalGameContext {
 

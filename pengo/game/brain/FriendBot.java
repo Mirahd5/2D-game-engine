@@ -7,7 +7,7 @@ import engine.brain.Bot;
 import engine.brain.Brain;
 import engine.model.BasicStunt;
 import engine.model.Entity;
-import game.model.Friend;
+import game.model.player.Friend;
 
 // Bot simple de l'allié : il choisit une direction praticable au hasard.
 //Inutile quand comportement gal

@@ -3,7 +3,7 @@ package game.view;
 import engine.view.Avatar;
 import engine.view.SpawnAnimation;
 import engine.view.View;
-import game.model.Friend;
+import game.model.player.Friend;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
@@ -19,7 +19,6 @@ public final class FriendAvatar extends Avatar {
 
 	public FriendAvatar(View view, Friend friend) {
 		super(view, friend);
-
 		this.friend = friend;
 		this.spawnAnimation = new SpawnAnimation();
 	}
@@ -27,14 +26,11 @@ public final class FriendAvatar extends Avatar {
 	@Override
 	public void tick(long elapsed) {
 		assert elapsed >= 0L;
-
 		this.spawnAnimation.tick(elapsed);
 	}
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
-
 		loadImages(graphics);
 
 		BufferedImage image = imageForOrientation(this.friend.orientation());
@@ -58,7 +54,6 @@ public final class FriendAvatar extends Avatar {
 		if (this.down != null) {
 			return;
 		}
-
 		this.down = graphics.load("pengo_rsrc/friend_down.png");
 		this.up = graphics.load("pengo_rsrc/friend_up.png");
 		this.left = graphics.load("pengo_rsrc/friend_left.png");
@@ -69,16 +64,12 @@ public final class FriendAvatar extends Avatar {
 		switch (orientation) {
 		case 0:
 			return this.right;
-
 		case 90:
 			return this.down;
-
 		case 180:
 			return this.left;
-
 		case 270:
 			return this.up;
-
 		default:
 			return this.down;
 		}

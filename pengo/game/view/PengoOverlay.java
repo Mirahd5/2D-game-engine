@@ -12,8 +12,6 @@ public class PengoOverlay implements Overlay {
 	private final PengoGameState state;
 
 	public PengoOverlay(PengoGameState state) {
-		assert state != null;
-
 		this.state = state;
 	}
 
@@ -24,9 +22,6 @@ public class PengoOverlay implements Overlay {
 
 	@Override
 	public void paint(Graphics graphics, View view, int x, int y) {
-		assert graphics != null;
-		assert view != null;
-
 		this.state.update();
 
 		graphics.setColor(graphics.getColor(230, 0, 0, 0));

@@ -6,8 +6,8 @@ import java.util.Map;
 import engine.view.Avatar;
 import engine.view.SpawnAnimation;
 import engine.view.View;
-import game.model.Power;
-import game.model.PowerType;
+import game.model.entity.Power;
+import game.model.entity.PowerType;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
@@ -21,11 +21,9 @@ public final class PowerAvatar extends Avatar {
 
 	public PowerAvatar(View view, Power power) {
 		super(view, power);
-
 		this.power = power;
 		this.images = new EnumMap<PowerType, BufferedImage>(PowerType.class);
 		this.spawnAnimation = new SpawnAnimation();
-		this.imagesLoaded = false;
 	}
 
 	@Override
@@ -37,8 +35,6 @@ public final class PowerAvatar extends Avatar {
 
 	@Override
 	public void paint(Graphics graphics) {
-		assert graphics != null;
-
 		loadImages(graphics);
 
 		BufferedImage image = this.images.get(this.power.getType());

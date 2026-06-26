@@ -1,5 +1,7 @@
 package game.config;
 
+import game.config.map.PengoMapChoice;
+
 public final class PengoConfig {
 
 	private final PengoMapChoice mapChoice;// map choisie

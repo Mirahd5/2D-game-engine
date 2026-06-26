@@ -7,9 +7,10 @@ import engine.model.Orientation;
 import engine.view.Avatar;
 import engine.view.SpawnAnimation;
 import engine.view.View;
-import game.model.Enemies;
+import game.model.entity.Enemies;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
+
 
 public final class EnemiesAvatar extends Avatar {
 
@@ -24,7 +25,6 @@ public final class EnemiesAvatar extends Avatar {
 		this.enemy = enemy;
 		this.images = new HashMap<String, BufferedImage>();
 		this.spawnAnimation = new SpawnAnimation();
-		this.crushedElapsed_ms = 0L;
 	}
 
 	@Override

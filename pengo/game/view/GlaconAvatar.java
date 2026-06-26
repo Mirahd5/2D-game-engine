@@ -2,7 +2,7 @@ package game.view;
 
 import engine.view.ImageAvatar;
 import engine.view.View;
-import game.model.Glacon;
+import game.model.entity.Glacon;
 import oop.graphics.Graphics;
 
 /** Avatar d'un bloc de glace. */
@@ -25,6 +25,7 @@ public final class GlaconAvatar extends ImageAvatar {
 
 		super.paint(graphics);
 	}
+
 	@Override
 	protected double visualScale() {
 		return 1.4 / Glacon.collisionSizeFactor();

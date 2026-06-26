@@ -10,7 +10,7 @@ import engine.model.Orientation;
 import engine.view.DebugOptions;
 import engine.view.View;
 import game.model.PengoGameState;
-import game.model.Player;
+import game.model.player.Player;
 import oop.graphics.Canvas;
 import oop.graphics.VirtualKeyCodes;
 

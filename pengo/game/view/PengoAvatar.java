@@ -4,7 +4,7 @@ import engine.model.Orientation;
 import engine.view.Avatar;
 import engine.view.SpawnAnimation;
 import engine.view.View;
-import game.model.Pengo;
+import game.model.player.Pengo;
 import oop.graphics.BufferedImage;
 import oop.graphics.Graphics;
 
@@ -30,17 +30,14 @@ public final class PengoAvatar extends Avatar {
 
 	public PengoAvatar(View view, Pengo pengo) {
 		super(view, pengo);
-
 		this.pengo = pengo;
 		this.spawnAnimation = new SpawnAnimation();
-
 		this.animatedOrientation = Orientation.normalize(pengo.orientation());
 	}
 
 	@Override
 	public void tick(long elapsed) {
 		assert elapsed >= 0L : elapsed;
-
 		this.spawnAnimation.tick(elapsed);
 
 		if (!this.pengo.alive() || !this.pengo.installed()) {
@@ -78,7 +75,6 @@ public final class PengoAvatar extends Avatar {
 		if (!this.pengo.alive() || !this.pengo.installed()) {
 			return;
 		}
-
 		if (!this.pengo.visibleDuringInvincibilityBlink()) {
 			return;
 		}
@@ -123,7 +119,6 @@ public final class PengoAvatar extends Avatar {
 		if (this.down1 != null) {
 			return;
 		}
-
 		this.down1 = graphics.load("pengo_rsrc/pengo_down1.png");
 		this.down2 = graphics.load("pengo_rsrc/pengo_down2.png");
 
@@ -139,20 +134,15 @@ public final class PengoAvatar extends Avatar {
 
 	private BufferedImage imageForOrientation(int orientation) {
 		int activeFrame = this.pengo.isMoving() ? this.frame : 0;
-
 		switch (orientation) {
 		case Orientation.EAST:
 			return activeFrame == 0 ? this.right1 : this.right2;
-
 		case Orientation.SOUTH:
 			return activeFrame == 0 ? this.down1 : this.down2;
-
 		case Orientation.WEST:
 			return activeFrame == 0 ? this.left1 : this.left2;
-
 		case Orientation.NORTH:
 			return activeFrame == 0 ? this.up1 : this.up2;
-
 		default:
 			return this.down1;
 		}

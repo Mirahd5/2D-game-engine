@@ -2,6 +2,12 @@ package game.model;
 
 import engine.model.Entity;
 import engine.model.Model;
+import game.model.entity.Enemies;
+import game.model.entity.PowerType;
+import game.model.entity.Spawner;
+import game.model.player.Friend;
+import game.model.player.Pengo;
+import game.model.player.Player;
 
 public class PengoGameState {
 
@@ -18,8 +24,6 @@ public class PengoGameState {
 	private boolean lost;
 
 	public PengoGameState(Model model, Pengo pengo, int initialEnemies, int spawnerCount, int maxTotalEnemies) {
-		assert model != null;
-		assert pengo != null;
 		assert initialEnemies >= 0;
 		assert spawnerCount >= 0;
 		assert maxTotalEnemies >= 0;

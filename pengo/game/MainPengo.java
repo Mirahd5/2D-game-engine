@@ -2,7 +2,7 @@ package game;
 
 import java.awt.Dimension;
 
-import game.config.PengoConfigMenu;
+import game.config.menu.PengoConfigMenu;
 import oop.graphics.Canvas;
 import oop.tasks.Runtime;
 import oop.tasks.Runnable;

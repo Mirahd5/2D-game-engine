@@ -6,7 +6,7 @@ import java.util.Map;
 import engine.view.Overlay;
 import engine.view.View;
 import game.model.PengoGameState;
-import game.model.PowerType;
+import game.model.entity.PowerType;
 import oop.graphics.BufferedImage;
 import oop.graphics.Color;
 import oop.graphics.Font;
@@ -31,13 +31,8 @@ public final class PengoClassicOverlay implements Overlay {
 	private int heightPixel = BASE_HEIGHT_PIXEL;
 
 	public PengoClassicOverlay(PengoGameState state) {
-		assert state != null;
-
 		this.state = state;
 		this.powerImages = new EnumMap<PowerType, BufferedImage>(PowerType.class);
-
-		this.imagesLoaded = false;
-		this.finishedElapsedMs = 0L;
 	}
 
 	@Override
@@ -53,9 +48,7 @@ public final class PengoClassicOverlay implements Overlay {
 	@Override
 	public void tick(long elapsed) {
 		assert elapsed >= 0L;
-
 		this.state.update();
-
 		if (this.state.finished()) {
 			this.finishedElapsedMs += elapsed;
 		} else {
@@ -85,7 +78,7 @@ public final class PengoClassicOverlay implements Overlay {
 
 		graphics.setFont(oldFont);
 	}
-	
+
 	private void paintRespawnInvincibility(Graphics graphics, View view, int x, int y) {
 		if (!this.state.respawnInvincible()) {
 			return;
@@ -121,31 +114,29 @@ public final class PengoClassicOverlay implements Overlay {
 	}
 
 	private void paintLives(Graphics graphics, View view, int x, int y) {
-	    int colX = view.widthPixel() / 4;
+		int colX = view.widthPixel() / 4;
 
-	    String title = this.state.controlledPlayerNameForHud() + " LIVES";
+		String title = this.state.controlledPlayerNameForHud() + " LIVES";
 
-	    graphics.setColor(Graphics.Colors.cyan);
-	    graphics.drawString(title, colX, y + scaled(view, 16));
+		graphics.setColor(Graphics.Colors.cyan);
+		graphics.drawString(title, colX, y + scaled(view, 16));
 
-	    int icon = scaled(view, ICON_PIXEL);
-	    int gap = scaled(view, 5);
-	    int iconX = colX;
-	    int iconY = y + scaled(view, 22);
+		int icon = scaled(view, ICON_PIXEL);
+		int gap = scaled(view, 5);
+		int iconX = colX;
+		int iconY = y + scaled(view, 22);
 
-	    int lives = this.state.lives();
-	    int drawnLives = Math.min(lives, 6);
+		int lives = this.state.lives();
+		int drawnLives = Math.min(lives, 6);
 
-	    BufferedImage image = this.state.friendControlledForHud()
-	            ? this.friendLifeImage
-	            : this.lifeImage;
+		BufferedImage image = this.state.friendControlledForHud() ? this.friendLifeImage : this.lifeImage;
 
-	    for (int i = 0; i < drawnLives; i++) {
-	        graphics.drawImage(image, iconX + i * (icon + gap), iconY, icon, icon);
-	    }
+		for (int i = 0; i < drawnLives; i++) {
+			graphics.drawImage(image, iconX + i * (icon + gap), iconY, icon, icon);
+		}
 
-	    graphics.setColor(Graphics.Colors.white);
-	    graphics.drawString("x " + lives, iconX + drawnLives * (icon + gap) + gap, y + scaled(view, 36));
+		graphics.setColor(Graphics.Colors.white);
+		graphics.drawString("x " + lives, iconX + drawnLives * (icon + gap) + gap, y + scaled(view, 36));
 	}
 
 	private void paintEnemies(Graphics graphics, View view, int x, int y) {
@@ -155,11 +146,7 @@ public final class PengoClassicOverlay implements Overlay {
 		String countText = this.state.livingEnemies() + "/" + this.state.targetTotalEnemies();
 
 		graphics.setColor(Graphics.Colors.green);
-		graphics.drawString(
-				title,
-				colCenter - graphics.getFont().getWidth(title) / 2,
-				y + scaled(view, 16)
-		);
+		graphics.drawString(title, colCenter - graphics.getFont().getWidth(title) / 2, y + scaled(view, 16));
 
 		int icon = scaled(view, ICON_PIXEL);
 		int rowY = y + scaled(view, 22);
@@ -218,7 +205,6 @@ public final class PengoClassicOverlay implements Overlay {
 
 			px += scaled(view, 58);
 		}
-
 		if (!hasPower) {
 			graphics.setColor(Graphics.Colors.lightGray);
 			graphics.drawString("NONE", px, y + 36);
@@ -229,9 +215,7 @@ public final class PengoClassicOverlay implements Overlay {
 		if (!this.state.finished()) {
 			return;
 		}
-
 		boolean visible = (this.finishedElapsedMs / 420L) % 2L == 0L;
-
 		if (!visible) {
 			return;
 		}
@@ -287,19 +271,12 @@ public final class PengoClassicOverlay implements Overlay {
 				win ? Graphics.Colors.yellow : Graphics.Colors.red);
 
 		graphics.setFont(smallFont);
-
 		drawArcadeText(graphics, smallMessage, panelX, titleY + 42, panelWidth, Graphics.Colors.white);
-
 		graphics.setFont(oldFont);
 	}
 
 	private void drawArcadeText(Graphics graphics, String text, int panelX, int y, int panelWidth, Color mainColor) {
-		assert graphics != null;
-		assert text != null;
-		assert mainColor != null;
-
 		int estimatedWidth;
-
 		if (text.length() <= 10) {
 			estimatedWidth = text.length() * 28;
 		} else {
@@ -324,8 +301,6 @@ public final class PengoClassicOverlay implements Overlay {
 	}
 
 	private void drawPixelTrophy(Graphics graphics, int x, int y) {
-		assert graphics != null;
-
 		int s = 6;
 
 		graphics.setColor(Graphics.Colors.black);
@@ -399,7 +374,6 @@ public final class PengoClassicOverlay implements Overlay {
 
 	private static String formatSeconds(long remainingMs) {
 		long seconds = (remainingMs + 999L) / 1000L;
-
 		return seconds + "s";
 	}
 

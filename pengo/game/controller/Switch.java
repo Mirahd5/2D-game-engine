@@ -9,9 +9,9 @@ import engine.view.Ticker;
 import gal.ast.Automaton;
 import game.gal.CurrentPlayer;
 import game.gal.GalBot;
-import game.model.Friend;
-import game.model.Pengo;
-import game.model.Player;
+import game.model.player.Friend;
+import game.model.player.Pengo;
+import game.model.player.Player;
 
 public final class Switch {
 

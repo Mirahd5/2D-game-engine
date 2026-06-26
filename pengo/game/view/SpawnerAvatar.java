@@ -2,7 +2,7 @@ package game.view;
 
 import engine.view.ImageAvatar;
 import engine.view.View;
-import game.model.Spawner;
+import game.model.entity.Spawner;
 
 public final class SpawnerAvatar extends ImageAvatar {
 
@@ -27,7 +27,6 @@ public final class SpawnerAvatar extends ImageAvatar {
     @Override
     public void tick(long elapsed) {
         super.tick(elapsed);
-
         if (this.spawner.alignmentEffectActive()) {
             setCurrentFrame(this.spawner.alignmentColorFrame() % frameCount());
         } else {

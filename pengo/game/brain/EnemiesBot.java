@@ -7,8 +7,8 @@ import engine.brain.Brain;
 import engine.model.BasicStunt;
 import engine.model.Entity;
 import engine.model.ISU;
-import game.model.Enemies;
-import game.model.Pengo;
+import game.model.entity.Enemies;
+import game.model.player.Pengo;
 
 // Bot d'un ennemi : il tente de réduire la distance avec Pengo.
 //Inutile quand comportement gal
