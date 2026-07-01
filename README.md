@@ -55,6 +55,7 @@ Le jeu utilise des cartes textuelles, des ressources graphiques PNG et des fichi
 ├── CONTRAT.md                      # Contrat de projet
 ├── PARTICIPATION.md                # Implication des membres de l'équipe
 └── README.md                       # Ce fichier
+└── video_pengo.mp4                 # video presantant le jeu
 ```
 
 Remarque : dans Eclipse, `engine`, `pengo`, `gal` et `tests` sont des **source folders**. C'est pour cela que les packages visibles sont `engine.model`, `engine.view`, `game.model.entity`, `game.config.map`, etc. Le package principal du jeu est donc `game`, même si les fichiers sont rangés dans le dossier `pengo/`.
@@ -178,6 +179,7 @@ Fonctionnalités principales :
 - cartes toriques ou non toriques ;
 - viewport pour suivre le joueur sur certaines cartes ;
 - options de debug et de test de charge.
+- menu principal, menu pause et écran de fin de partie ;
 
 ## Commandes du jeu
 
